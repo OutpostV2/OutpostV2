@@ -250,8 +250,9 @@ Build:
 one phase
 → one task
 → verify
-→ checkpoint
-→ next task
+→ task commit
+→ checkpoint commit
+→ STOP (next task selected only)
 ```
 
 ---
@@ -367,7 +368,9 @@ inspect
 → implement
 → targeted verification
 → broader relevant verification
-→ checkpoint
+→ task commit
+→ Layer 4 checkpoint commit
+→ STOP
 ```
 
 Do not bundle unrelated refactors.
@@ -899,158 +902,150 @@ Fix the actual invariant.
 
 ---
 
-# MANDATORY LAYER 4 SELF-UPDATE RULE
+# AUTONOMOUS VERIFIED TASK LOOP
 
-After every successfully implemented and verified task, generate a complete replacement for **Layer 4 only**.
+This is the permanent completion workflow for every task selected by Layer 4. The instruction `Continue from Layer 4.` authorizes the entire loop, including deliberate staging and both commits, without a separate user request for each step.
 
-Never regenerate Layers 1–3 as part of task completion.
+Read Layer 4 first, then read the entire master prompt. Inspect the repository, current branch, HEAD, status, working diff, and staged diff; reconcile the checkpoint with actual Git state before executing only `CURRENT TASK`.
 
----
+```text
+Read Layer 4 and the entire master prompt
+    ↓
+Inspect repository and confirm Git/checkpoint state
+    ↓
+Execute only CURRENT TASK
+    ↓
+Required targeted verification
+    ↓
+Required broader relevant verification
+    ↓
+Verification successful?
+    ├── NO → Do not commit or advance the task
+    │        Diagnose → minimal fix → targeted and broader verification
+    └── YES
+         ↓
+       Inspect status/diffs and isolate verified task changes
+         ↓
+       Commit A: verified project task
+         ↓
+       Read actual Commit A hash and verify commit/state
+         ↓
+       Update Layer 4 and select next chronological task from Layer 2
+         ↓
+       Verify checkpoint diff
+         ↓
+       Commit B: Layer 4 checkpoint
+         ↓
+       Verify final Git state → STOP
+```
 
 ## Completion Gate
 
-A task is complete only when required verification passes.
+Writing code or passing only a narrow test is not completion. All verification required by Layers 1–2 and the current task must pass before Commit A. Choose applicable checks:
 
-Writing code is not completion.
+| Task | Required verification as applicable |
+| --- | --- |
+| Documentation / ADR | File exists; internal consistency; agreement with Layer 2; correct decision index; no contradictory architecture |
+| Backend | Unit, integration, API and migration tests; lint; formatting validation; type checks; broader relevant module suite |
+| Frontend | Unit/component tests; type checks; lint; production build; Playwright flow |
+| Database | Inspect generated migration; verify upgrade, constraints, PostgreSQL behavior, and rollback when required |
 
-If verification fails:
+Record exact commands and results. Do not claim runtime verification for documentation-only work. Completion of the handoff also requires successful Commit B and verification of final repository state.
 
-```text
-task remains active
-phase remains active
-Layer 4 must not claim success
-```
+## Task Commit Rule and User Work Protection
 
----
+After verification passes, automatically create Commit A. Before every commit:
 
-## Next-Task Selection
+1. Inspect `git status`, relevant working diff, staged diff, and all files entering the commit, including new files.
+2. Confirm required verification actually passed and staged content matches the verified changes.
+3. Check for secrets and accidentally tracked generated, cache, or dependency artifacts.
+4. Include only changes belonging to the current task (or the checkpoint for Commit B).
+5. Stage deliberately with explicit relevant paths; inspect the resulting staged diff before committing.
 
-After successful verification:
+Unrelated modified, untracked, or staged work must remain intact and outside the commit. Do not use `git add .` when unrelated changes exist. If task changes cannot be safely isolated, stop and report the conflict rather than risking user work.
 
-1. inspect the current phase;
-2. compare verified work with Layer 2;
-3. identify the next unfinished requirement;
-4. keep the phase if unfinished work remains;
-5. otherwise advance to the next phase;
-6. select its first unfinished task.
+Do not force push, reset, discard, stash, rewrite unrelated history, or amend unrelated commits. Use a concise conventional task-specific message describing the actual change, such as `add password registration service` or `document tenant isolation architecture`. A local task commit does not authorize a push.
 
-Never skip phases without explicit approval.
+## Secret Safety
 
----
+Before every commit, inspect task changes for `.env` files, passwords, API credentials, OAuth secrets, database credentials, private keys, OTP secrets, refresh tokens, and signing keys. Never commit secret values copied from terminal output, Layer 4, or local configuration. Use `.env.example` with non-secret placeholders where required. Do not put secrets in checkpoint evidence.
 
-## No Invented State
+## Git Checkpoint Rule — Two Commits
 
-Never fabricate:
+**Commit A — Verified Project Task** contains implementation, tests, applicable migrations, task ADRs/documents, and directly required related project changes. A task-required canonical Layer 3 update also belongs in Commit A. After committing, obtain the real hash from Git, verify that the commit exists and contains the intended files, and inspect repository state before editing Layer 4.
 
-```text
-commit hashes
-branch names
-test counts
-changed files
-successful commands
-environment versions
-deployment status
-```
-
-If unknown, say:
+**Commit B — Checkpoint Update** contains only the resulting dynamic Layer 4 handoff. Verify its diff and commit it separately with a concise accurate message such as `checkpoint outpost after password registration`.
 
 ```text
-unknown
-not verified
-not yet committed
+LAST VERIFIED PROJECT COMMIT = Commit A
+Checkpoint commit = Commit B
 ```
 
----
+Never put Commit B's own hash into Layer 4; that creates a self-referencing commit loop. Do not invent commit hashes. If a commit fails, report actual Git state and resume the missing step; do not claim the handoff is complete or repeat an already successful task commit. If verified task work is already committed, inspect and verify that real commit rather than creating an empty duplicate.
 
-## Git Checkpoint Rule
+## Mandatory Layer 4 Self-Update Rule
 
-Layer 4 records the last verified project/implementation commit.
+After Commit A succeeds, replace the dynamic Layer 4 checkpoint in the file. Do not regenerate Layers 1–3. Record Commit A, exact verification evidence, concise completed facts, and the next task selected below. Remove stale errors and irrelevant history. Update the relevant-files list for the next task; do not create or implement its files yet.
 
-Do not require Layer 4 to contain the hash of the commit that contains
-the Layer 4 update itself, because that would create a self-referencing
-commit loop.
-
-Use:
-
-LAST VERIFIED PROJECT COMMIT:
-<real commit hash>
-
-This means the latest commit whose project state was verified before
-the current checkpoint update.
-
-Never fabricate a commit hash.
-
-## Verification Baseline Rule
-
-Record exact results.
-
-Good:
-
-```text
-pytest tests/auth/test_registration.py: 8 passed
-ruff check .: passed
-npm run typecheck: passed
-```
-
-Bad:
-
-```text
-everything works
-```
-
-unless the full suite was actually verified.
-
----
-
-## Completed-Work Rule
-
-Layer 4 should contain only concise facts required to prevent rebuilding work.
-
-Do not accumulate complete project history.
-
-When moving into a new phase, remove irrelevant completed-task history from previous phases.
-
----
-
-## Failure Handoff
-
-If work remains broken, preserve:
+Layer 4 must contain:
 
 ```text
 CURRENT PHASE
 CURRENT TASK
-failing command
-smallest useful error
-relevant changed files
+TASK GOAL
+Repository
+Project root
+Branch
+LAST VERIFIED PROJECT COMMIT
+CHECKPOINT FILE STATE
+Working tree at last verification
+Last verified baseline
+COMPLETED WITHIN CURRENT PHASE
+FILES RELEVANT TO CURRENT TASK
+FILES CHANGED SINCE LAST VERIFIED CHECKPOINT
+ENVIRONMENT
+CURRENT REQUEST
+LAST COMMAND
+CURRENT OUTPUT / ERROR
+OPTIONAL CURRENT FILE/SNIPPET
 ```
 
-The next session must resume the failure instead of restarting.
+Keep the handoff compact, not a project diary. Preserve only verified information; never fabricate branch names, test counts, changed files, successful commands, environment versions, or deployment status. Use `unknown`, `not verified`, or `not yet committed` when appropriate. Qualify pre-checkpoint working-tree observations rather than predicting the result of Commit B. Remove irrelevant prior-phase completion history when advancing phases.
 
----
+## Next-Task Selection and Automatic Phase Advancement
 
-## Layer 4 Completion Output
+After Commit A, compare verified completed work with the current phase requirements in Layer 2. If unfinished requirements remain, retain the phase and select the next unfinished task. Otherwise, advance to the next chronological phase and select its first unfinished task. Do not ask what to do next when Layer 2 already defines it, skip phases, or infer completion merely because a related feature exists. Selection is not execution.
 
-After successful verification append:
+## Failure Rule and Handoff
+
+If verification fails, DO NOT COMMIT and do not advance `CURRENT PHASE` or `CURRENT TASK`. Use systematic debugging:
 
 ```text
-LAYER 4 UPDATE
+reproduce → establish root cause → minimal fix
+→ targeted verification → broader relevant verification
 ```
 
-followed by a complete replacement Layer 4.
+If the session must stop while broken, Layer 4 may preserve the failure state, explicitly marked incomplete, with the current task, relevant files, failing command, smallest useful error, and actual Git state. Leave that failure handoff uncommitted under this verification gate. Never convert failure into apparent completion; resume the same task next time.
 
-Do not repeat Layers 1–3.
+## Layer 3 Update Rule
 
----
+Layer 3 normally remains unchanged. When the current task intentionally creates or materially stabilizes a canonical foundation file, update only its affected Layer 3 block if needed, in Commit A. Examples include `backend/pyproject.toml`, `.env.example`, `docker-compose.yml`, `frontend/package.json`, `alembic.ini`, and foundational configuration. Never regenerate Layer 3 wholesale or put routine feature code there.
 
-## Stop Boundary
+## Decision Record Rule
 
-After identifying the next task:
+When a task establishes a durable architectural decision, create or update its ADR under `docs/decisions/` and its entry in `docs/OUTPOST-DECISIONS.md`. Keep the master prompt stable unless the approved decision actually changes the governing specification. Routine implementation decisions do not require Layer 2 edits.
 
-```text
-STOP
-```
+## Architectural Change Gate
 
-Do not automatically implement it unless the user explicitly asked to continue through multiple tasks.
+The loop authorizes implementation of approved Layer 2 work, not autonomous redefinition of core architecture. If the specification itself needs to change, document the conflict, explain why it is insufficient, retain the current task in Layer 4, and request architectural approval before implementing the change. Never silently rewrite Layer 2.
+
+Examples include replacing PostgreSQL, abandoning the modular monolith, changing tenant boundaries, replacing custom authentication with managed identity, materially changing refresh sessions, abandoning roadmap versioning, introducing microservices, or adding a persistent database technology.
+
+## Stop Boundary and Completion Report
+
+After Commit B succeeds, verify final Git status and STOP. Report concisely: completed task, verification performed, actual Commit A hash, actual Commit B hash, next selected task, and actual working-tree status. Do not reprint the guide or the complete Layer 4 handoff when it has been saved in the file.
+
+Do not start the next task in the same run unless the user explicitly says `Continue automatically through multiple tasks` or gives another explicit broader execution instruction. Default behavior is one verified task per run. Staging, task commit, hash retrieval, checkpoint update, checkpoint commit, and next-task selection require no additional user request.
 
 ---
 
@@ -2832,15 +2827,10 @@ CURRENT PHASE:
 Phase 0 — Architecture Freeze
 
 CURRENT TASK:
-Create ADR-001 defining Outpost's modular-monolith and cloud-independence architecture boundary.
+Create and review ADR-002 defining the organization-based tenant model (not started).
 
 TASK GOAL:
-Formally document the architectural rule that Outpost begins as a
-modular monolith, keeps cloud-provider dependencies outside domain and
-application logic, uses provider interfaces for infrastructure, and
-remains deployable to AWS later without requiring a domain rewrite.
-
-CURRENT CHECKPOINT:
+Document Organization as the tenant boundary and the tenant-isolation rules from Layer 2.
 
 Repository:
 Outpost
@@ -2852,98 +2842,57 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-5194905
+30980b0f34ee4b19eae31d5f944dc0ccae97efc5
 
 CHECKPOINT FILE STATE:
-Layer 4 is being updated after the verified initial repository commit.
+ADR-001 and its decision-index entry are committed in Commit A above.
+This checkpoint commit also installs the autonomous workflow in Layer 1 and aligns the session rule, as explicitly authorized for this run only. Future Commit B changes are confined to Layer 4.
 
 Working tree at last verification:
-clean
+After Commit A, only docs/OUTPOST-MASTER-BUILD-PROMPT.md was modified; no staged changes remained. Final post-checkpoint Git status must be verified after Commit B and reported without a self-referencing hash update.
 
 Last verified baseline:
-- Git repository is initialized.
-- Canonical branch is main.
-- Initial repository commit exists: 5194905.
-- Working tree was clean after that commit.
-- Canonical project root is D:\Shared Workspace\Projects\Outpost-New.
-- Repository-specific Git safe.directory access is working.
-- Master build prompt is present under docs/.
-- Initial documentation workspace is committed.
+- ADR-001 manually reviewed for internal consistency and agreement with Layers 1–3: passed.
+- PowerShell assertions for required ADR sections, five interfaces, and both relative documentation links: passed.
+- git diff --check and git diff --cached --check for Commit A: passed.
+- Staged contents reviewed: only ADR-001 and decision index; no secrets, unrelated work, or generated artifacts.
+- git show --format=fuller --stat HEAD: Commit A exists and contains exactly those two files.
+- Documentation-only task; no runtime tests apply. Runtime portability remains unverified.
+- Workflow PowerShell assertions: unique rule headings, complete Layer 4 fields, correct Commit A hash, unchanged Layers 2–3, balanced Markdown fences, master-prompt-only scope, and no next-task files: passed.
+- git diff --check for the workflow/checkpoint update: passed; manual requirements and secret/artifact review: passed.
 
 COMPLETED WITHIN CURRENT PHASE:
-- Overall Outpost architecture reviewed and approved.
-- Cloud-agnostic application architecture approved.
-- Modular-monolith strategy approved.
-- Organization-based multi-tenancy approved.
-- Custom authentication approved:
-  - email/username + password
-  - passwordless phone OTP
-  - Google OAuth/OIDC
-- One canonical user with multiple linked authentication methods approved.
-- PostgreSQL selected as canonical database.
-- AWS retained as a future deployment target rather than an application dependency.
-- Build-from-scratch workflow approved.
-- Initial Git/documentation workspace established.
+- ADR-001 accepted, verified, indexed, and committed: modular monolith, provider interfaces, state placement, deployment portability.
+- Detailed tenant, authentication, authorization, and roadmap-versioning ADRs remain unfinished.
 
 FILES RELEVANT TO CURRENT TASK:
-docs/decisions/ADR-001-modular-monolith-cloud-independence.md
+docs/decisions/ADR-002-organization-tenant-model.md (planned; not created)
 docs/OUTPOST-DECISIONS.md
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
-docs/OUTPOST-MASTER-BUILD-PROMPT.md
+Since Commit A: docs/OUTPOST-MASTER-BUILD-PROMPT.md (authorized workflow installation and Layer 4 handoff).
 
 ENVIRONMENT:
-OS: Windows
-Shell: PowerShell
-Git: verified working
-Python: not verified
-Node: not verified
-Docker: not verified
-PostgreSQL: not configured
-Redis: not configured
+Windows / PowerShell; Git verified working.
+Python, Node, Docker: not verified.
+PostgreSQL, Redis: not configured.
 Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
-Create and review ADR-001 only.
-Do not begin Phase 1.
-After ADR-001 is verified, update Layer 4 according to the self-update rule.
+ADR-001 is completed. Finish the authorized workflow/checkpoint commit and stop. On the next continuation, execute only ADR-002 using the autonomous verified task loop. Do not begin Phase 1 in this run.
 
 LAST COMMAND:
-git status
+git status --short
 
 CURRENT OUTPUT / ERROR:
-On branch main.
-Working tree clean at verified commit 5194905.
+After Commit A: only docs/OUTPOST-MASTER-BUILD-PROMPT.md modified. No active task verification error.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-None.
-```
+Documentation-only fresh build. Tracked .gitignore already exists although its Layer 3 block is stale; preserve the file. Layers 2–3 are unchanged in this workflow-installation task.
 
 ---
 
 # SESSION OPERATING RULE
 
-Whenever this prompt is loaded:
-
-1. Read Layer 4 first.
-2. Confirm the canonical root is:
-
-```text
-D:\Shared Workspace\Projects\Outpost-New
-```
-
-3. Inspect actual repository state before making assumptions.
-4. Determine whether Fresh Build Mode is required.
-5. Use Layers 1–3 as governing architecture.
-6. Use repository contents as implementation truth.
-7. Work only on the current task.
-8. Do not rebuild verified work.
-9. Prefer test-first development.
-10. Use minimal targeted changes.
-11. Run required verification.
-12. Do not mark success without evidence.
-13. After success, output a complete replacement `LAYER 4 UPDATE`.
-14. Automatically identify the next unfinished task from Layer 2.
-15. Do not begin that next task until the next turn unless explicitly instructed to continue.
-16. Stop at a clean engineering checkpoint.
+Whenever this prompt is loaded, follow the Layer 1 Autonomous Verified Task Loop. Read Layer 4 first and then the entire prompt, confirm the canonical root, inspect repository/Git state, and determine whether Fresh Build Mode applies. Layers 1–3 govern architecture; repository contents establish implementation truth. Preserve verified work, execute only the current task, and complete the two-commit handoff before stopping under the Layer 1 Stop Boundary.
