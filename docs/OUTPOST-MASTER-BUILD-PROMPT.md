@@ -964,18 +964,21 @@ not yet committed
 
 ## Git Checkpoint Rule
 
-If code is verified but not committed:
+Layer 4 records the last verified project/implementation commit.
 
-```text
-Working tree:
-verified changes not yet committed
-```
+Do not require Layer 4 to contain the hash of the commit that contains
+the Layer 4 update itself, because that would create a self-referencing
+commit loop.
 
-Do not invent a commit hash.
+Use:
 
-Only update `HEAD` when Git has returned the actual hash.
+LAST VERIFIED PROJECT COMMIT:
+<real commit hash>
 
----
+This means the latest commit whose project state was verified before
+the current checkpoint update.
+
+Never fabricate a commit hash.
 
 ## Verification Baseline Rule
 
@@ -2825,22 +2828,17 @@ cache directories
 
 # LAYER 4 — DYNAMIC USER WINDOW
 
-Replace only this layer during normal implementation.
-
-The AI must regenerate this layer after each successfully verified task.
-
-```text
 CURRENT PHASE:
 Phase 0 — Architecture Freeze
 
 CURRENT TASK:
-Inspect the canonical project root and establish the first verified Outpost project checkpoint without assuming any application files already exist.
+Create ADR-001 defining Outpost's modular-monolith and cloud-independence architecture boundary.
 
 TASK GOAL:
-Determine whether the project directory is empty, partially initialized,
-or already contains an Outpost repository; preserve any valid existing
-contents; initialize only the missing Phase 0/Phase 1 foundations required
-to begin the approved build safely from scratch.
+Formally document the architectural rule that Outpost begins as a
+modular monolith, keeps cloud-provider dependencies outside domain and
+application logic, uses provider interfaces for infrastructure, and
+remains deployable to AWS later without requiring a domain rewrite.
 
 CURRENT CHECKPOINT:
 
@@ -2851,23 +2849,31 @@ Project root:
 D:\Shared Workspace\Projects\Outpost-New
 
 Branch:
-unknown until repository inspection
+main
 
-HEAD:
-unknown until repository inspection
+LAST VERIFIED PROJECT COMMIT:
+5194905
 
-Last known good commit:
-none established yet
+CHECKPOINT FILE STATE:
+Layer 4 is being updated after the verified initial repository commit.
 
-Working tree:
-unknown until repository inspection
+Working tree at last verification:
+clean
 
 Last verified baseline:
-No implementation baseline established yet.
+- Git repository is initialized.
+- Canonical branch is main.
+- Initial repository commit exists: 5194905.
+- Working tree was clean after that commit.
+- Canonical project root is D:\Shared Workspace\Projects\Outpost-New.
+- Repository-specific Git safe.directory access is working.
+- Master build prompt is present under docs/.
+- Initial documentation workspace is committed.
 
 COMPLETED WITHIN CURRENT PHASE:
-- Product architecture has been reviewed and approved.
-- Cloud-agnostic modular-monolith direction approved.
+- Overall Outpost architecture reviewed and approved.
+- Cloud-agnostic application architecture approved.
+- Modular-monolith strategy approved.
 - Organization-based multi-tenancy approved.
 - Custom authentication approved:
   - email/username + password
@@ -2877,47 +2883,38 @@ COMPLETED WITHIN CURRENT PHASE:
 - PostgreSQL selected as canonical database.
 - AWS retained as a future deployment target rather than an application dependency.
 - Build-from-scratch workflow approved.
+- Initial Git/documentation workspace established.
 
 FILES RELEVANT TO CURRENT TASK:
-D:\Shared Workspace\Projects\Outpost-New
-docs/
-docs/decisions/
-docs/architecture/
+docs/decisions/ADR-001-modular-monolith-cloud-independence.md
+docs/OUTPOST-DECISIONS.md
+docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
-None established yet.
+docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 ENVIRONMENT:
 OS: Windows
 Shell: PowerShell
+Git: verified working
 Python: not verified
 Node: not verified
-Git: not verified
 Docker: not verified
 PostgreSQL: not configured
 Redis: not configured
 Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
-Inspect the project root first.
-
-Determine whether this is:
-A. an empty/fresh project,
-B. a partially initialized Outpost project, or
-C. an existing implementation.
-
-Then resume from the earliest unfinished task in the build specification.
-
-Do not assume files exist.
-Do not overwrite existing valid files.
-Do not scaffold future phases.
-Work on one task only.
+Create and review ADR-001 only.
+Do not begin Phase 1.
+After ADR-001 is verified, update Layer 4 according to the self-update rule.
 
 LAST COMMAND:
-None established for the revised build.
+git status
 
 CURRENT OUTPUT / ERROR:
-None.
+On branch main.
+Working tree clean at verified commit 5194905.
 
 OPTIONAL CURRENT FILE/SNIPPET:
 None.
