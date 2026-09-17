@@ -2711,7 +2711,12 @@ name = "outpost-backend"
 version = "0.1.0"
 description = "Outpost backend foundation"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+  "psycopg[binary]>=3.3.5,<4",
+  "pydantic>=2.13.5,<3",
+  "pydantic-settings>=2.15,<3",
+  "sqlalchemy>=2.0.54,<2.1",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -2726,6 +2731,9 @@ packages = ["app"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
+markers = [
+  "integration: requires the local infrastructure named by the test",
+]
 testpaths = ["tests"]
 
 [tool.ruff]
@@ -2737,6 +2745,7 @@ select = ["B", "E", "F", "I", "SIM", "UP"]
 
 [tool.mypy]
 files = ["app", "tests"]
+plugins = ["pydantic.mypy"]
 python_version = "3.13"
 strict = true
 ```
@@ -2748,6 +2757,7 @@ strict = true
 ```dotenv
 OUTPOST_ENV=development
 OUTPOST_LOG_LEVEL=INFO
+OUTPOST_DATABASE_URL=postgresql+psycopg://outpost:outpost-local-dev-only@127.0.0.1:5433/outpost
 ```
 
 ---
@@ -2806,7 +2816,7 @@ NOT CREATED YET — Phase 3
 POSTGRES_DB=outpost
 POSTGRES_USER=outpost
 POSTGRES_PASSWORD=outpost-local-dev-only
-POSTGRES_PORT=5432
+POSTGRES_PORT=5433
 VALKEY_PORT=6379
 MINIO_ROOT_USER=outpost
 MINIO_ROOT_PASSWORD=outpost-local-dev-only
@@ -2832,7 +2842,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-outpost}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

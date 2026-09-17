@@ -54,6 +54,17 @@ docker compose exec --no-TTY postgres pg_isready -U outpost -d outpost
 docker compose exec --no-TTY postgres psql -U outpost -d outpost -c "SELECT current_database(), current_user;"
 ```
 
+PostgreSQL is exposed to the host at `127.0.0.1:5433` by default so it can coexist with a native PostgreSQL installation. Override `POSTGRES_PORT` in the root `.env` file when another host port is required.
+
+Copy the backend environment example, then run the backend's independent SQLAlchemy connection probe from `backend/`:
+
+```powershell
+Copy-Item .env.example .env
+.\.venv\Scripts\python.exe -m app.database
+```
+
+A successful probe prints the connected database, user, and PostgreSQL version. The backend environment file is ignored by Git and uses the Psycopg driver explicitly; local development and integration testing do not use SQLite.
+
 Stop the Compose stack with `docker compose down`. Named volumes preserve service data between container recreations; use `docker compose down --volumes` only when intentionally deleting all local service data.
 
 ## Local Valkey
