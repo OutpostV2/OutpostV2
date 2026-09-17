@@ -2812,6 +2812,8 @@ MINIO_ROOT_USER=outpost
 MINIO_ROOT_PASSWORD=outpost-local-dev-only
 MINIO_API_PORT=9000
 MINIO_CONSOLE_PORT=9001
+MAILPIT_SMTP_PORT=1025
+MAILPIT_UI_PORT=8025
 ```
 
 ---
@@ -2880,10 +2882,33 @@ services:
     networks:
       - outpost
 
+  mailpit:
+    image: axllent/mailpit:v1.31.1
+    restart: unless-stopped
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_DISABLE_VERSION_CHECK: "true"
+      MP_SMTP_DISABLE_RDNS: "true"
+      MP_ALLOWED_HOSTS: localhost:${MAILPIT_UI_PORT:-8025},127.0.0.1:${MAILPIT_UI_PORT:-8025},mailpit:8025
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+    volumes:
+      - mailpit_data:/data
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - outpost
+
 volumes:
   postgres_data:
   valkey_data:
   minio_data:
+  mailpit_data:
 
 networks:
   outpost:

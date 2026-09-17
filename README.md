@@ -80,6 +80,18 @@ Invoke-WebRequest http://127.0.0.1:9000/minio/health/live
 
 The S3 API is available at `http://127.0.0.1:9000`, and the browser console is available at `http://127.0.0.1:9001`. Sign in with `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD` from the root `.env` file. MinIO stores objects in the `minio_data` named volume.
 
+## Local Mailpit
+
+Start and verify the local SMTP capture service from the repository root:
+
+```powershell
+docker compose up --detach --wait mailpit
+docker compose ps mailpit
+Invoke-WebRequest http://127.0.0.1:8025/readyz
+```
+
+Applications can send unauthenticated development email to `127.0.0.1:1025`. Inspect captured messages in the browser at `http://127.0.0.1:8025`. Mailpit stores captured messages in the `mailpit_data` named volume.
+
 ## Container foundations
 
 When Docker is available, build the initial images from the repository root so the root `.dockerignore` applies:
@@ -89,7 +101,7 @@ docker build --file backend/Dockerfile --tag outpost-backend:local .
 docker build --file frontend/Dockerfile --tag outpost-frontend:local .
 ```
 
-The backend image validates the installable package foundation. The frontend image builds the static application and serves it with Nginx. The Compose stack currently contains PostgreSQL, Redis-compatible Valkey, and MinIO object storage; the mail service is added in a later Phase 2 checkpoint.
+The backend image validates the installable package foundation. The frontend image builds the static application and serves it with Nginx. The local Compose stack contains PostgreSQL, Redis-compatible Valkey, MinIO object storage, and Mailpit email capture.
 
 ## Architecture records
 
