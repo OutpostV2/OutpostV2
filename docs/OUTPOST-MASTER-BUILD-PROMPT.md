@@ -2978,38 +2978,121 @@ export default defineConfig([
 }
 ```
 
+## `frontend/.env.example`
+
+```dotenv
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+```
+
 ---
 
 # `.gitignore`
 
-```text
-NOT CREATED YET — Phase 1
-```
+```gitignore
+# Environment and secrets
+.env
+.env.*
+!.env.example
 
-Once created and stabilized, replace this block with its canonical contents.
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Node
+node_modules/
+.npm/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Coverage
+.coverage
+htmlcov/
+coverage/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Private keys / certificates
+*.pem
+*.key
+```
 
 ---
 
 # Stable Directory Tree
 
-Current initial state:
-
 ```text
 D:\Shared Workspace\Projects\Outpost-New
-```
-
-The repository may initially be empty.
-
-Update this block only when the foundational directory structure becomes stable.
-
-Do not include:
-
-```text
-node_modules
-.venv
-generated files
-build artifacts
-cache directories
+├── .dockerignore
+├── .editorconfig
+├── .gitattributes
+├── .gitignore
+├── README.md
+├── backend
+│   ├── .env.example
+│   ├── Dockerfile
+│   ├── app
+│   │   └── __init__.py
+│   ├── pyproject.toml
+│   └── tests
+│       └── test_package.py
+├── docs
+│   ├── architecture
+│   │   └── README.md
+│   ├── decisions
+│   │   ├── ADR-001-modular-monolith-cloud-independence.md
+│   │   ├── ADR-002-organization-tenant-model.md
+│   │   ├── ADR-003-authentication-model.md
+│   │   ├── ADR-004-tenant-aware-authorization.md
+│   │   └── ADR-005-roadmap-versioning.md
+│   ├── superpowers
+│   │   └── plans
+│   │       └── 2026-09-17-phase-1-repository-tooling-foundation.md
+│   ├── OUTPOST-DECISIONS.md
+│   └── OUTPOST-MASTER-BUILD-PROMPT.md
+└── frontend
+    ├── .env.example
+    ├── .gitignore
+    ├── .prettierignore
+    ├── .prettierrc.json
+    ├── Dockerfile
+    ├── eslint.config.js
+    ├── index.html
+    ├── package-lock.json
+    ├── package.json
+    ├── README.md
+    ├── src
+    │   ├── test
+    │   │   └── setup.ts
+    │   ├── App.css
+    │   ├── App.test.tsx
+    │   ├── App.tsx
+    │   ├── index.css
+    │   └── main.tsx
+    ├── tsconfig.app.json
+    ├── tsconfig.json
+    ├── tsconfig.node.json
+    └── vite.config.ts
 ```
 
 ---

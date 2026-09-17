@@ -65,10 +65,10 @@
 - Modify: `.gitignore`
 - Modify: `docs/OUTPOST-MASTER-BUILD-PROMPT.md` Layers 3 and 4 according to the repository loop
 
-- [ ] Normalize text, editor, ignored-file, and Docker build-context conventions.
-- [ ] Document the supported setup and verification commands for both projects.
-- [ ] Add initial backend and frontend Dockerfiles and statically verify their required instructions.
-- [ ] Add the frontend API-base environment convention without implementing an API integration.
-- [ ] Run the complete Phase 1 backend and frontend verification suites from a clean working tree candidate.
-- [ ] Update the stable Layer 3 `.gitignore` and directory-tree records and mark this plan complete.
-- [ ] Review and commit the final Phase 1 foundation as Commit A, then update only Layer 4 to the first Phase 2 task and commit the checkpoint as Commit B.
+- [x] Normalize text, editor, ignored-file, and Docker build-context conventions.
+- [x] Document the supported setup and verification commands for both projects.
+- [x] Add initial backend and frontend Dockerfiles and statically verify their required instructions.
+- [x] Add the frontend API-base environment convention without implementing an API integration.
+- [x] Run the complete Phase 1 backend and frontend verification suites from a clean working tree candidate.
+- [x] Update the stable Layer 3 `.gitignore` and directory-tree records and mark this plan complete.
+- [x] Review and commit the final Phase 1 foundation as Commit A, then update only Layer 4 to the first Phase 2 task and commit the checkpoint as Commit B.
