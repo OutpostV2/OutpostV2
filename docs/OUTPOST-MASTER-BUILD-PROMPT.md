@@ -3144,10 +3144,10 @@ CURRENT PHASE:
 Phase 2 — Local Infrastructure
 
 CURRENT TASK:
-Create the Docker Compose foundation with PostgreSQL and verify the PostgreSQL service independently (not started; Docker CLI currently unavailable).
+Add a Redis-compatible Valkey service to Docker Compose and verify it independently (not started).
 
 TASK GOAL:
-Define the first local infrastructure service in `docker-compose.yml` with explicit configuration, persistence, and health verification. Do not add Redis/Valkey, MinIO, Mailpit, or backend database integration in this task.
+Extend the verified PostgreSQL Compose foundation with one Redis-compatible Valkey service, explicit persistence, and health verification. Preserve the PostgreSQL service unchanged. Do not add MinIO, Mailpit, or backend integration in this task.
 
 Repository:
 Outpost
@@ -3159,33 +3159,31 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-8e288835212c7837f0c46ece4169b1691aa6239e
+4f87d1f3a1f145a5ff1ac251a8677853443368f7
 
 CHECKPOINT FILE STATE:
-Phase 1 repository conventions, setup documentation, frontend environment example, backend/frontend Dockerfiles, completed execution plan, and stable Layer 3 records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+The PostgreSQL-only Docker Compose foundation, root environment example, local setup documentation, and canonical Layer 3 records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- Backend editable install and documented root setup command: verified; Ruff format/lint, strict mypy, pytest, and isolated wheel build: passed.
-- Frontend lockfile reproduction with `npm ci`: 235 packages installed, 236 audited, 0 vulnerabilities reported; Prettier, ESLint, TypeScript, Vitest, and Vite production build: passed.
-- Backend and frontend dependency-scope assertions: passed; no later-phase runtime dependencies were introduced.
-- Backend and frontend Dockerfile instruction/source checks and JSON-form commands: passed statically.
-- Root and architecture documentation relative-link checks: passed; frontend environment examples are explicitly unignored.
-- All Phase 1 canonical Layer 3 content and stable directory-tree checks: passed.
-- git diff --check and git diff --cached --check: passed; staged diff reviewed; generated-artifact, secret-value, placeholder, and plan-completion checks passed.
-- Docker CLI is unavailable, so image builds were not executed; Phase 2 service runtime verification requires Docker to be installed or enabled.
+- Docker Desktop 4.91.0 is running with Engine/CLI 29.8.0 and Compose 5.5.1 on WSL 2.7.14.0; Windows virtualization, Virtual Machine Platform, and WSL prerequisites are active.
+- `docker compose config --quiet` passed and the resolved service list contains only `postgres`.
+- PostgreSQL image `postgres:17.11-alpine3.24` pulled and started successfully; container health is `healthy` and `pg_isready` accepts connections.
+- SQL verification returned database `outpost`, user `outpost`, and server version `17.11`.
+- Named volume `outpost_postgres_data` is mounted at `/var/lib/postgresql/data`; a marker row survived a full container stop/start and remained queryable.
+- Root `.env` is ignored, `.env.example` is trackable, and no Redis/Valkey, MinIO, Mailpit, or backend integration entered the PostgreSQL checkpoint.
+- README relative links, Compose/Layer 3 canonical invariants, stable tree entries, scope checks, `git diff --check`, and `git diff --cached --check`: passed.
 
 COMPLETED WITHIN CURRENT PHASE:
-- No Phase 2 task has started.
-- Phase 1 is complete with backend, frontend, repository, documentation, environment, and initial Docker foundations verified and committed.
+- PostgreSQL Docker Compose foundation with required environment configuration, named-volume persistence, health check, independent runtime verification, and local setup documentation.
+- Phase 1 remains complete with backend, frontend, repository, documentation, environment, and initial Docker foundations verified and committed.
 
 FILES RELEVANT TO CURRENT TASK:
-docker-compose.yml (planned; not created)
-.dockerignore
-backend/.env.example
-backend/pyproject.toml
+docker-compose.yml
+.env.example
+README.md
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3194,21 +3192,21 @@ Since Commit A: docs/OUTPOST-MASTER-BUILD-PROMPT.md (Layer 4 only).
 ENVIRONMENT:
 Windows / PowerShell; Git verified working.
 Python 3.13.15, Node 26.7.0, npm 12.0.2 verified.
-Docker CLI unavailable.
-PostgreSQL, Redis: not configured.
+Docker Desktop 4.91.0; Docker Engine/CLI 29.8.0; Docker Compose 5.5.1; WSL 2.7.14.0 verified.
+PostgreSQL 17.11: configured, healthy, and running. Redis/Valkey: not configured.
 Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
-Phase 1 completed. Commit this Layer 4 checkpoint and stop. The next continuation begins only the selected Phase 2 PostgreSQL Docker Compose task after Docker is available.
+The PostgreSQL Phase 2 task is complete. Commit this Layer 4 checkpoint and stop. The next continuation begins only the selected Redis-compatible Valkey Docker Compose task.
 
 LAST COMMAND:
-git commit -m "complete repository tooling foundation"
+git commit -m "add local PostgreSQL infrastructure"
 
 CURRENT OUTPUT / ERROR:
-Commit A created as `8e28883`; working tree clean before this Layer 4-only update. Docker CLI is unavailable, which blocks runtime verification of the next task but does not invalidate Phase 1's static Docker foundations.
+Commit A created as `4f87d1f`; working tree clean before this Layer 4-only update. Docker and PostgreSQL verification passed with PostgreSQL left running and healthy.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-No `docker-compose.yml` exists. Preserve the Phase 1 Dockerfiles and root-context build convention. The next task must add PostgreSQL only, verify its health independently, update the Layer 3 `docker-compose.yml` block in Commit A, and leave the remaining Phase 2 services for later checkpoints.
+Preserve the verified PostgreSQL service, `postgres_data` volume, root environment contract, and current health behavior. The next task must add only a Redis-compatible Valkey service, verify its health and persistence independently, update the corresponding Layer 3 canonical files in Commit A, and leave MinIO, Mailpit, and backend integration for later checkpoints.
 
 ---
 
