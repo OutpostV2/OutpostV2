@@ -3303,10 +3303,10 @@ CURRENT PHASE:
 Phase 3 — Backend Core
 
 CURRENT TASK:
-Implement the SQLAlchemy database session foundation (not started).
+Implement the structured API error model (not started).
 
 TASK GOAL:
-Create the Phase 3 SQLAlchemy 2.x engine, declarative base, session factory, and transaction-safe session lifecycle using the canonical settings. Verify real PostgreSQL session behavior without adding schemas, migrations, FastAPI application behavior, or later Phase 3 capabilities.
+Define the Phase 3 application error taxonomy and stable JSON error envelope, including FastAPI handlers for application and validation errors. Add only the dependencies and tests needed for this error contract; do not add middleware, logging, health/readiness endpoints, routing, migrations, or domain behavior.
 
 Repository:
 Outpost
@@ -3318,29 +3318,28 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-e85802780dd98a24731c2832dda7e28c5154fae8
+056bfecc37260c0cc01b82c6b9f705c844d7707e
 
 CHECKPOINT FILE STATE:
-The typed Phase 3 application configuration, database probe integration, tests, and canonical Layer 3 configuration record are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+The SQLAlchemy engine, declarative base, session factory, transaction-safe session scope, PostgreSQL integration tests, and affected canonical Layer 3 records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- `app.core.config.Settings` provides typed environment, log level, and PostgreSQL DSN values from `OUTPOST_` environment variables or the backend `.env` file.
-- Supported environments are development, test, staging, and production; supported log levels are the standard Python levels from DEBUG through CRITICAL.
-- The existing database probe consumes the canonical settings and still returns PostgreSQL 17.11 identity from the live Compose database.
-- Configuration and database tests passed (`5 passed` targeted; `6 passed, 1 skipped` broader), the live PostgreSQL integration test passed, and Ruff formatting/lint plus strict mypy passed.
-- The Phase 2 Compose stack remains configured and healthy; PostgreSQL host access remains on `127.0.0.1:5433`.
+- `app.db.session` builds the SQLAlchemy engine from canonical settings, creates typed sessions, commits successful scopes, rolls back failures, and always closes sessions.
+- `app.db.base.Base` is ready for future Alembic-managed model metadata; no persistent schemas or migrations were created.
+- The live PostgreSQL session test proved commit and rollback semantics with a temporary table and left no persistent table behind.
+- Ruff formatting/lint, strict mypy, the default suite (`6 passed, 2 skipped`), and live PostgreSQL tests (`2 passed`) succeeded.
+- Typed application configuration and the Phase 2 service stack remain verified.
 
 COMPLETED WITHIN CURRENT PHASE:
 - Typed backend application configuration.
+- SQLAlchemy engine, declarative base, and transaction-safe session lifecycle.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/core/config.py
-backend/app/db/base.py (not created yet)
-backend/app/db/session.py (not created yet)
-backend/tests/integration/test_database_session.py (not created yet)
+backend/app/core/errors.py (not created yet)
+backend/tests/test_errors.py (not created yet)
 backend/pyproject.toml
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
@@ -3358,13 +3357,13 @@ CURRENT REQUEST:
 The user explicitly requested completion of Phase 3. After this checkpoint, continue with the selected database session task and subsequent verified Phase 3 tasks; do not begin Phase 4.
 
 LAST COMMAND:
-git commit -m "add typed backend configuration"
+git commit -m "add database session foundation"
 
 CURRENT OUTPUT / ERROR:
-Commit A created as `e858027`; working tree clean before this Layer 4-only update. Typed configuration tests and the live PostgreSQL regression passed.
+Commit A created as `056bfec`; working tree clean before this Layer 4-only update. Default and live PostgreSQL session tests passed.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Preserve `app.core.config.Settings` as the canonical runtime configuration. The next task should introduce only SQLAlchemy base/session lifecycle infrastructure and its PostgreSQL tests; no models, migrations, API routes, or later Phase 3 behavior.
+Preserve the verified configuration and session foundations. The next task should define only the reusable error model and FastAPI error serialization contract; application middleware and routes remain later Phase 3 tasks.
 
 ---
 
