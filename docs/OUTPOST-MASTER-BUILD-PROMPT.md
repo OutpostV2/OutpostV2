@@ -2712,6 +2712,7 @@ version = "0.1.0"
 description = "Outpost backend foundation"
 requires-python = ">=3.13"
 dependencies = [
+  "fastapi>=0.141.1,<1",
   "psycopg[binary]>=3.3.5,<4",
   "pydantic>=2.13.5,<3",
   "pydantic-settings>=2.15,<3",
@@ -2721,6 +2722,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "build>=1.2.2,<2",
+  "httpx2>=2.13,<3",
   "mypy>=1.15,<2",
   "pytest>=8.3,<10",
   "ruff>=0.11,<1",
