@@ -2827,10 +2827,10 @@ CURRENT PHASE:
 Phase 0 — Architecture Freeze
 
 CURRENT TASK:
-Create and review ADR-002 defining the organization-based tenant model (not started).
+Create and review ADR-003 defining the authentication model (not started).
 
 TASK GOAL:
-Document Organization as the tenant boundary and the tenant-isolation rules from Layer 2.
+Document Outpost-owned authentication, one canonical user with linked password/phone/Google methods, and the session-security invariants approved in Layers 1–2.
 
 Repository:
 Outpost
@@ -2842,36 +2842,35 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-30980b0f34ee4b19eae31d5f944dc0ccae97efc5
+a43c3ac8fdababebb4a1fb90fa0562d38630aabb
 
 CHECKPOINT FILE STATE:
-ADR-001 and its decision-index entry are committed in Commit A above.
-This checkpoint commit also installs the autonomous workflow in Layer 1 and aligns the session rule, as explicitly authorized for this run only. Future Commit B changes are confined to Layer 4.
+ADR-002 and its decision-index entry are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
-After Commit A, only docs/OUTPOST-MASTER-BUILD-PROMPT.md was modified; no staged changes remained. Final post-checkpoint Git status must be verified after Commit B and reported without a self-referencing hash update.
+Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- ADR-001 manually reviewed for internal consistency and agreement with Layers 1–3: passed.
-- PowerShell assertions for required ADR sections, five interfaces, and both relative documentation links: passed.
-- git diff --check and git diff --cached --check for Commit A: passed.
-- Staged contents reviewed: only ADR-001 and decision index; no secrets, unrelated work, or generated artifacts.
-- git show --format=fuller --stat HEAD: Commit A exists and contains exactly those two files.
-- Documentation-only task; no runtime tests apply. Runtime portability remains unverified.
-- Workflow PowerShell assertions: unique rule headings, complete Layer 4 fields, correct Commit A hash, unchanged Layers 2–3, balanced Markdown fences, master-prompt-only scope, and no next-task files: passed.
-- git diff --check for the workflow/checkpoint update: passed; manual requirements and secret/artifact review: passed.
+- ADR-002 manually reviewed against Layers 1–3 and ADR-001: consistent tenant ownership, membership roles, indirect resource scope, progress uniqueness, worker boundaries, and future regression criteria.
+- PowerShell assertions: required ADR sections and tenant invariants present; all decision-index/ADR relative links resolve; ADR-002 indexed exactly once; task scope limited to two documentation files: passed.
+- git diff --check and git diff --cached --check: passed.
+- Staged diff reviewed: only ADR-002 and its index entry; no secrets, unrelated work, or generated artifacts.
+- git show --stat --oneline HEAD: verified Commit A contains exactly those two files.
+- git status --short after Commit A: no output (clean).
+- Documentation-only task; runtime tenant isolation and PostgreSQL regression tests remain unimplemented and unverified.
 
 COMPLETED WITHIN CURRENT PHASE:
-- ADR-001 accepted, verified, indexed, and committed: modular monolith, provider interfaces, state placement, deployment portability.
-- Detailed tenant, authentication, authorization, and roadmap-versioning ADRs remain unfinished.
+- ADR-001 accepted, verified, indexed, and committed: modular monolith and cloud independence.
+- ADR-002 accepted, verified, indexed, and committed: organization-based tenant model and isolation invariants.
+- Authentication, authorization, and roadmap-versioning ADRs remain unfinished.
 
 FILES RELEVANT TO CURRENT TASK:
-docs/decisions/ADR-002-organization-tenant-model.md (planned; not created)
+docs/decisions/ADR-003-authentication-model.md (planned; not created)
 docs/OUTPOST-DECISIONS.md
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
-Since Commit A: docs/OUTPOST-MASTER-BUILD-PROMPT.md (authorized workflow installation and Layer 4 handoff).
+Since Commit A: docs/OUTPOST-MASTER-BUILD-PROMPT.md (Layer 4 only).
 
 ENVIRONMENT:
 Windows / PowerShell; Git verified working.
@@ -2880,16 +2879,16 @@ PostgreSQL, Redis: not configured.
 Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
-ADR-001 is completed. Finish the authorized workflow/checkpoint commit and stop. On the next continuation, execute only ADR-002 using the autonomous verified task loop. Do not begin Phase 1 in this run.
+ADR-002 completed. Commit this checkpoint and stop. The next continuation executes only ADR-003 through the autonomous verified task loop; do not begin Phase 1.
 
 LAST COMMAND:
 git status --short
 
 CURRENT OUTPUT / ERROR:
-After Commit A: only docs/OUTPOST-MASTER-BUILD-PROMPT.md modified. No active task verification error.
+No output after Commit A; working tree clean. No active error.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Documentation-only fresh build. Tracked .gitignore already exists although its Layer 3 block is stale; preserve the file. Layers 2–3 are unchanged in this workflow-installation task.
+Documentation-only fresh build. Tracked .gitignore exists although its Layer 3 block is stale; preserve it. No application scaffolding exists.
 
 ---
 
