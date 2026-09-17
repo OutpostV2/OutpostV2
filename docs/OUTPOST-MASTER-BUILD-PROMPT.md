@@ -3305,10 +3305,10 @@ CURRENT PHASE:
 Phase 3 — Backend Core
 
 CURRENT TASK:
-Implement request ID middleware and propagation (not started).
+Implement structured JSON logging (not started).
 
 TASK GOAL:
-Add Phase 3 request ID generation, trusted-format validation, request-scoped access, and response-header propagation through FastAPI middleware. Integrate request IDs into structured error responses without adding logging, health/readiness endpoints, application routing, migrations, or domain behavior.
+Add Phase 3 standard-library structured JSON logging configured from canonical settings, with request IDs automatically attached to request-scoped records and safe exception logging. Do not add health/readiness endpoints, the application router, migrations, or domain behavior.
 
 Repository:
 Outpost
@@ -3320,30 +3320,31 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-7c51f0ff4b9596dd52f1ef3446acf3ed8389ee6c
+db799a9f336e461a3db0042219dfe631f2078294
 
 CHECKPOINT FILE STATE:
-The structured application error taxonomy, stable JSON envelope, safe unhandled-error response, validation serialization, FastAPI dependency additions, HTTPX2 tests, and affected Layer 3 dependency record are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+The pure-ASGI request ID middleware, trusted UUID handling, request-scoped context, response propagation, error-envelope correlation, and API tests are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- Expected application errors, request validation errors, and unexpected exceptions serialize through one stable `{"error": ...}` JSON envelope.
-- Unexpected exceptions return a generic internal error without exposing implementation details.
-- FastAPI 0.141.1 and HTTPX2 2.13 are declared in their appropriate runtime/development dependency groups.
-- Error API tests passed (`3 passed`); Ruff formatting/lint, strict mypy, the broader suite (`9 passed, 2 skipped`), live PostgreSQL tests (`2 passed`), and wheel build succeeded.
-- Configuration, database session, and Phase 2 service foundations remain verified.
+- Every HTTP request receives a canonical UUID request ID; valid incoming UUIDs are preserved and invalid values are replaced.
+- The request ID is available through a context variable, stored in ASGI state, returned in `X-Request-ID`, included in structured error responses, and cleared after the request.
+- Request ID and error tests passed (`7 passed`); Ruff formatting/lint, strict mypy, the broader suite (`13 passed, 2 skipped`), and live PostgreSQL tests (`2 passed`) succeeded.
+- Configuration, database session, structured errors, and Phase 2 services remain verified.
 
 COMPLETED WITHIN CURRENT PHASE:
 - Typed backend application configuration.
 - SQLAlchemy engine, declarative base, and transaction-safe session lifecycle.
 - Structured application and validation error contract.
+- Request ID generation, validation, request scope, response propagation, and error correlation.
 
 FILES RELEVANT TO CURRENT TASK:
+backend/app/core/config.py
+backend/app/core/logging.py (not created yet)
 backend/app/core/errors.py
-backend/app/core/middleware.py (not created yet)
-backend/tests/test_middleware.py (not created yet)
+backend/tests/test_logging.py (not created yet)
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3360,13 +3361,13 @@ CURRENT REQUEST:
 The user explicitly requested completion of Phase 3. After this checkpoint, continue with the selected database session task and subsequent verified Phase 3 tasks; do not begin Phase 4.
 
 LAST COMMAND:
-git commit -m "add structured API errors"
+git commit -m "add request ID middleware"
 
 CURRENT OUTPUT / ERROR:
-Commit A created as `7c51f0f`; working tree clean before this Layer 4-only update. Error-contract tests, broader backend checks, live PostgreSQL tests, and wheel build passed.
+Commit A created as `db799a9`; working tree clean before this Layer 4-only update. Request ID API tests, broader backend checks, and live PostgreSQL regressions passed.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Preserve the stable error envelope. The next task should add request ID middleware with generated UUIDs, safe incoming-ID handling, request-scoped access, response propagation, and error-envelope correlation only.
+Preserve request ID context as the logging correlation source. The next task should configure JSON logging with standard-library logging, deterministic fields, configured levels, and safe exception records only.
 
 ---
 
