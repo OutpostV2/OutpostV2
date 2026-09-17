@@ -3305,10 +3305,10 @@ CURRENT PHASE:
 Phase 3 — Backend Core
 
 CURRENT TASK:
-Implement the structured API error model (not started).
+Implement request ID middleware and propagation (not started).
 
 TASK GOAL:
-Define the Phase 3 application error taxonomy and stable JSON error envelope, including FastAPI handlers for application and validation errors. Add only the dependencies and tests needed for this error contract; do not add middleware, logging, health/readiness endpoints, routing, migrations, or domain behavior.
+Add Phase 3 request ID generation, trusted-format validation, request-scoped access, and response-header propagation through FastAPI middleware. Integrate request IDs into structured error responses without adding logging, health/readiness endpoints, application routing, migrations, or domain behavior.
 
 Repository:
 Outpost
@@ -3320,29 +3320,30 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-056bfecc37260c0cc01b82c6b9f705c844d7707e
+7c51f0ff4b9596dd52f1ef3446acf3ed8389ee6c
 
 CHECKPOINT FILE STATE:
-The SQLAlchemy engine, declarative base, session factory, transaction-safe session scope, PostgreSQL integration tests, and affected canonical Layer 3 records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+The structured application error taxonomy, stable JSON envelope, safe unhandled-error response, validation serialization, FastAPI dependency additions, HTTPX2 tests, and affected Layer 3 dependency record are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- `app.db.session` builds the SQLAlchemy engine from canonical settings, creates typed sessions, commits successful scopes, rolls back failures, and always closes sessions.
-- `app.db.base.Base` is ready for future Alembic-managed model metadata; no persistent schemas or migrations were created.
-- The live PostgreSQL session test proved commit and rollback semantics with a temporary table and left no persistent table behind.
-- Ruff formatting/lint, strict mypy, the default suite (`6 passed, 2 skipped`), and live PostgreSQL tests (`2 passed`) succeeded.
-- Typed application configuration and the Phase 2 service stack remain verified.
+- Expected application errors, request validation errors, and unexpected exceptions serialize through one stable `{"error": ...}` JSON envelope.
+- Unexpected exceptions return a generic internal error without exposing implementation details.
+- FastAPI 0.141.1 and HTTPX2 2.13 are declared in their appropriate runtime/development dependency groups.
+- Error API tests passed (`3 passed`); Ruff formatting/lint, strict mypy, the broader suite (`9 passed, 2 skipped`), live PostgreSQL tests (`2 passed`), and wheel build succeeded.
+- Configuration, database session, and Phase 2 service foundations remain verified.
 
 COMPLETED WITHIN CURRENT PHASE:
 - Typed backend application configuration.
 - SQLAlchemy engine, declarative base, and transaction-safe session lifecycle.
+- Structured application and validation error contract.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/core/errors.py (not created yet)
-backend/tests/test_errors.py (not created yet)
-backend/pyproject.toml
+backend/app/core/errors.py
+backend/app/core/middleware.py (not created yet)
+backend/tests/test_middleware.py (not created yet)
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3359,13 +3360,13 @@ CURRENT REQUEST:
 The user explicitly requested completion of Phase 3. After this checkpoint, continue with the selected database session task and subsequent verified Phase 3 tasks; do not begin Phase 4.
 
 LAST COMMAND:
-git commit -m "add database session foundation"
+git commit -m "add structured API errors"
 
 CURRENT OUTPUT / ERROR:
-Commit A created as `056bfec`; working tree clean before this Layer 4-only update. Default and live PostgreSQL session tests passed.
+Commit A created as `7c51f0f`; working tree clean before this Layer 4-only update. Error-contract tests, broader backend checks, live PostgreSQL tests, and wheel build passed.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Preserve the verified configuration and session foundations. The next task should define only the reusable error model and FastAPI error serialization contract; application middleware and routes remain later Phase 3 tasks.
+Preserve the stable error envelope. The next task should add request ID middleware with generated UUIDs, safe incoming-ID handling, request-scoped access, response propagation, and error-envelope correlation only.
 
 ---
 
