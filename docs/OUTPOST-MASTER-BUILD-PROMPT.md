@@ -3214,10 +3214,10 @@ CURRENT PHASE:
 Phase 2 — Local Infrastructure
 
 CURRENT TASK:
-Add a Mailpit email-testing service to Docker Compose and verify it independently (not started).
+Connect the backend foundation to local PostgreSQL and verify the connection independently (not started).
 
 TASK GOAL:
-Extend the verified PostgreSQL, Valkey, and MinIO Compose foundation with one Mailpit service and independent SMTP/UI health verification. Preserve the existing services unchanged. Do not add backend integration in this task.
+Configure the backend runtime for the verified Compose PostgreSQL service and prove a live database connection with a minimal query. Preserve all four infrastructure services. Do not add domain schemas, migrations, Phase 3 modules, or backend integrations for Valkey, MinIO, or Mailpit in this task.
 
 Repository:
 Outpost
@@ -3229,28 +3229,29 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-08c0ac409f378e0c388bb103cd7f711b178c86ab
+cd2bd5adf7ca04b55d01d689facd154e19d495e3
 
 CHECKPOINT FILE STATE:
-The PostgreSQL, Valkey, and MinIO Docker Compose foundation, root environment example, local setup documentation, and canonical Layer 3 records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+The complete PostgreSQL, Valkey, MinIO, and Mailpit Docker Compose foundation, root environment example, local setup documentation, and canonical Layer 3 records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
 - Docker Desktop 4.91.0 is running with Engine/CLI 29.8.0 and Compose 5.5.1 on WSL 2.7.14.0; Windows virtualization, Virtual Machine Platform, and WSL prerequisites are active.
-- `docker compose config --quiet` passed and the resolved service list contains exactly `postgres`, `valkey`, and `minio`.
-- PostgreSQL 17.11 and Valkey 9.1.2 remained healthy throughout the MinIO checkpoint.
-- MinIO image `quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z` pulled from the official Quay registry; container health is `healthy` and the live endpoint returns HTTP 200.
-- MinIO API and console publish on `127.0.0.1` only; named volume `outpost_minio_data` is mounted at `/data`.
-- An object created with the pinned official MinIO client survived a full server stop/start, was read successfully, and the temporary verification bucket was then removed.
-- Root `.env` is ignored, `.env.example` is trackable, and no Mailpit or backend integration entered the MinIO checkpoint.
+- `docker compose config --quiet` passed and the resolved service list contains exactly `postgres`, `valkey`, `minio`, and `mailpit`.
+- PostgreSQL 17.11, Valkey 9.1.2, and MinIO remained healthy throughout the Mailpit checkpoint.
+- Mailpit image `axllent/mailpit:v1.31.1` pulled and started successfully; container health is `healthy`, `/readyz` returns HTTP 200, and runtime version is `1.31.1`.
+- Mailpit SMTP and UI publish on `127.0.0.1` only; named volume `outpost_mailpit_data` is mounted at `/data` with a persistent SQLite database.
+- A real SMTP message was captured through Mailpit's API, survived a full container stop/start, and was then removed successfully.
+- Root `.env` is ignored, `.env.example` is trackable, and no backend integration entered the Mailpit checkpoint.
 - README relative links, exact Layer 3 canonical-file copies, Layer 4 boundary, service scope, `git diff --check`, and `git diff --cached --check`: passed.
 
 COMPLETED WITHIN CURRENT PHASE:
 - PostgreSQL Docker Compose foundation with required environment configuration, named-volume persistence, health check, independent runtime verification, and local setup documentation.
 - Redis-compatible Valkey Docker Compose service with localhost port binding, AOF named-volume persistence, health check, independent runtime verification, and local setup documentation.
 - MinIO Docker Compose service with localhost API/console bindings, named-volume persistence, health check, independent object persistence verification, and local setup documentation.
+- Mailpit Docker Compose service with localhost SMTP/UI bindings, persistent message storage, health check, independent SMTP/API persistence verification, and local setup documentation.
 - Phase 1 remains complete with backend, frontend, repository, documentation, environment, and initial Docker foundations verified and committed.
 
 FILES RELEVANT TO CURRENT TASK:
@@ -3266,20 +3267,20 @@ ENVIRONMENT:
 Windows / PowerShell; Git verified working.
 Python 3.13.15, Node 26.7.0, npm 12.0.2 verified.
 Docker Desktop 4.91.0; Docker Engine/CLI 29.8.0; Docker Compose 5.5.1; WSL 2.7.14.0 verified.
-PostgreSQL 17.11, Valkey 9.1.2, and MinIO RELEASE.2025-09-07T16-13-09Z: configured, healthy, and running. Mailpit: not configured.
+PostgreSQL 17.11, Valkey 9.1.2, MinIO RELEASE.2025-09-07T16-13-09Z, and Mailpit 1.31.1: configured, healthy, and running. Backend PostgreSQL connection: not configured.
 Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
-The MinIO Phase 2 task is complete. Commit this Layer 4 checkpoint and stop. The next continuation begins only the selected Mailpit Docker Compose task.
+The Mailpit Phase 2 task is complete. Commit this Layer 4 checkpoint and stop. The next continuation begins only the selected backend-to-PostgreSQL connection task.
 
 LAST COMMAND:
-git commit -m "add local MinIO infrastructure"
+git commit -m "add local Mailpit infrastructure"
 
 CURRENT OUTPUT / ERROR:
-Commit A created as `08c0ac4`; working tree clean before this Layer 4-only update. Docker, PostgreSQL, Valkey, and MinIO verification passed with all three services left running and healthy.
+Commit A created as `cd2bd5a`; working tree clean before this Layer 4-only update. Docker and all four infrastructure services passed verification and remain running and healthy.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Preserve the verified PostgreSQL, Valkey, and MinIO services, their named volumes, root environment contract, and current health behavior. The next task must add only Mailpit, verify SMTP capture and its UI/API independently, update the corresponding Layer 3 canonical files in Commit A, and leave backend integration for a later checkpoint.
+Preserve the verified four-service Compose stack, named volumes, root environment contract, and health behavior. The next task must connect only the backend foundation to PostgreSQL, verify a live connection without introducing domain tables or Phase 3 behavior, update the corresponding Layer 3 canonical files in Commit A, and leave Valkey, MinIO, and Mailpit backend integrations for later checkpoints.
 
 ---
 
