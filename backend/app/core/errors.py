@@ -8,6 +8,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from app.core.middleware import get_request_id
+
 
 class ErrorPayload(BaseModel):
     """Machine-readable and human-readable API error information."""
@@ -15,6 +17,7 @@ class ErrorPayload(BaseModel):
     code: str
     message: str
     details: list[dict[str, Any]] | None = None
+    request_id: str | None = None
 
 
 class ErrorResponse(BaseModel):
@@ -77,7 +80,14 @@ def _response(
     *,
     details: list[dict[str, Any]] | None = None,
 ) -> JSONResponse:
-    payload = ErrorResponse(error=ErrorPayload(code=code, message=message, details=details))
+    payload = ErrorResponse(
+        error=ErrorPayload(
+            code=code,
+            message=message,
+            details=details,
+            request_id=get_request_id(),
+        )
+    )
     return JSONResponse(
         status_code=status_code,
         content=jsonable_encoder(payload.model_dump(exclude_none=True)),
