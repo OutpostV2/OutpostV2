@@ -3221,13 +3221,13 @@ D:\Shared Workspace\Projects\Outpost-New
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 2 — Local Infrastructure
+Phase 3 — Backend Core
 
 CURRENT TASK:
-Connect the backend foundation to local PostgreSQL and verify the connection independently (not started).
+Implement the typed backend application configuration foundation (not started).
 
 TASK GOAL:
-Configure the backend runtime for the verified Compose PostgreSQL service and prove a live database connection with a minimal query. Preserve all four infrastructure services. Do not add domain schemas, migrations, Phase 3 modules, or backend integrations for Valkey, MinIO, or Mailpit in this task.
+Create the Phase 3 application configuration module with typed environment, log-level, and PostgreSQL settings; make the existing database probe consume the canonical configuration without changing its verified connection behavior. Do not add the database session, FastAPI application, error model, request IDs, structured logging, health/readiness endpoints, API router, Alembic, or domain modules in this task.
 
 Repository:
 Outpost
@@ -3239,58 +3239,58 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-cd2bd5adf7ca04b55d01d689facd154e19d495e3
+6e99a8b657b93d6ec0c9ed2de79676a924241db7
 
 CHECKPOINT FILE STATE:
-The complete PostgreSQL, Valkey, MinIO, and Mailpit Docker Compose foundation, root environment example, local setup documentation, and canonical Layer 3 records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+The Phase 2 backend-to-PostgreSQL connection, its unit and live integration tests, the PostgreSQL host-port correction, backend runtime dependencies, local setup documentation, and affected Layer 3 canonical records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- Docker Desktop 4.91.0 is running with Engine/CLI 29.8.0 and Compose 5.5.1 on WSL 2.7.14.0; Windows virtualization, Virtual Machine Platform, and WSL prerequisites are active.
-- `docker compose config --quiet` passed and the resolved service list contains exactly `postgres`, `valkey`, `minio`, and `mailpit`.
-- PostgreSQL 17.11, Valkey 9.1.2, and MinIO remained healthy throughout the Mailpit checkpoint.
-- Mailpit image `axllent/mailpit:v1.31.1` pulled and started successfully; container health is `healthy`, `/readyz` returns HTTP 200, and runtime version is `1.31.1`.
-- Mailpit SMTP and UI publish on `127.0.0.1` only; named volume `outpost_mailpit_data` is mounted at `/data` with a persistent SQLite database.
-- A real SMTP message was captured through Mailpit's API, survived a full container stop/start, and was then removed successfully.
-- Root `.env` is ignored, `.env.example` is trackable, and no backend integration entered the Mailpit checkpoint.
-- README relative links, exact Layer 3 canonical-file copies, Layer 4 boundary, service scope, `git diff --check`, and `git diff --cached --check`: passed.
+- Backend runtime dependencies are pinned to supported ranges for SQLAlchemy 2.0, Psycopg 3, Pydantic 2, and pydantic-settings 2; the editable environment and backend image install successfully.
+- `app.database.DatabaseSettings` accepts PostgreSQL DSNs from `OUTPOST_DATABASE_URL` and rejects SQLite; the engine uses the explicit `postgresql+psycopg` driver with connection pre-ping.
+- The live host integration test passed against PostgreSQL 17.11, and `python -m app.database` returned `database=outpost user=outpost version=17.11`.
+- The rebuilt `outpost-backend:local` image ran the same probe successfully over the Compose network.
+- Outpost PostgreSQL now publishes only on `127.0.0.1:5433`, avoiding the existing native Windows PostgreSQL listener on IPv4 port 5432 while preserving container port 5432 and the named volume.
+- `docker compose config --quiet` passed; PostgreSQL, Valkey, MinIO, and Mailpit are running and healthy after the PostgreSQL container recreation.
+- Backend Ruff formatting and lint, strict mypy, default pytest (`3 passed, 1 skipped`), live PostgreSQL integration pytest (`1 passed`), and wheel build passed.
+- Root and backend `.env` files are ignored; both committed environment examples, README instructions, affected Layer 3 canonical blocks, `git diff --check`, and `git diff --cached --check` passed.
 
 COMPLETED WITHIN CURRENT PHASE:
-- PostgreSQL Docker Compose foundation with required environment configuration, named-volume persistence, health check, independent runtime verification, and local setup documentation.
-- Redis-compatible Valkey Docker Compose service with localhost port binding, AOF named-volume persistence, health check, independent runtime verification, and local setup documentation.
-- MinIO Docker Compose service with localhost API/console bindings, named-volume persistence, health check, independent object persistence verification, and local setup documentation.
-- Mailpit Docker Compose service with localhost SMTP/UI bindings, persistent message storage, health check, independent SMTP/API persistence verification, and local setup documentation.
+- None. Phase 3 is selected but not started.
+- Phase 2 is complete: all four local services and the backend PostgreSQL connection are verified and committed.
 - Phase 1 remains complete with backend, frontend, repository, documentation, environment, and initial Docker foundations verified and committed.
 
 FILES RELEVANT TO CURRENT TASK:
-docker-compose.yml
-.env.example
-README.md
+backend/app/database.py
+backend/app/core/config.py (not created yet)
+backend/tests/test_database.py
+backend/pyproject.toml
+backend/.env.example
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
-Since Commit A: docs/OUTPOST-MASTER-BUILD-PROMPT.md (Layer 4 only).
+Since Commit A above: docs/OUTPOST-MASTER-BUILD-PROMPT.md (Layer 4 only).
 
 ENVIRONMENT:
 Windows / PowerShell; Git verified working.
 Python 3.13.15, Node 26.7.0, npm 12.0.2 verified.
 Docker Desktop 4.91.0; Docker Engine/CLI 29.8.0; Docker Compose 5.5.1; WSL 2.7.14.0 verified.
-PostgreSQL 17.11, Valkey 9.1.2, MinIO RELEASE.2025-09-07T16-13-09Z, and Mailpit 1.31.1: configured, healthy, and running. Backend PostgreSQL connection: not configured.
+PostgreSQL 17.11, Valkey 9.1.2, MinIO RELEASE.2025-09-07T16-13-09Z, and Mailpit 1.31.1: configured, healthy, and running. Backend PostgreSQL host and container probes: verified.
 Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
-The Mailpit Phase 2 task is complete. Commit this Layer 4 checkpoint and stop. The next continuation begins only the selected backend-to-PostgreSQL connection task.
+The backend-to-PostgreSQL Phase 2 task is complete. Commit this Layer 4 checkpoint and stop. The next continuation begins only the selected typed application configuration task.
 
 LAST COMMAND:
-git commit -m "add local Mailpit infrastructure"
+git commit -m "connect backend to PostgreSQL"
 
 CURRENT OUTPUT / ERROR:
-Commit A created as `cd2bd5a`; working tree clean before this Layer 4-only update. Docker and all four infrastructure services passed verification and remain running and healthy.
+Commit A created as `6e99a8b`; working tree clean before this Layer 4-only update. The backend connected to PostgreSQL from the host and rebuilt container, and all four infrastructure services remain healthy.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Preserve the verified four-service Compose stack, named volumes, root environment contract, and health behavior. The next task must connect only the backend foundation to PostgreSQL, verify a live connection without introducing domain tables or Phase 3 behavior, update the corresponding Layer 3 canonical files in Commit A, and leave Valkey, MinIO, and Mailpit backend integrations for later checkpoints.
+Preserve the verified four-service Compose stack, localhost PostgreSQL port 5433, backend PostgreSQL connection probe, dependency ranges, and test contract. The next task should introduce only the canonical typed application configuration module and adapt the probe to it; keep the database session and all later Phase 3 capabilities for separate checkpoints.
 
 ---
 
