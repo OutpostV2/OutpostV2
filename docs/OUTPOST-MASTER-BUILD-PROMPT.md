@@ -2808,6 +2808,10 @@ POSTGRES_USER=outpost
 POSTGRES_PASSWORD=outpost-local-dev-only
 POSTGRES_PORT=5432
 VALKEY_PORT=6379
+MINIO_ROOT_USER=outpost
+MINIO_ROOT_PASSWORD=outpost-local-dev-only
+MINIO_API_PORT=9000
+MINIO_CONSOLE_PORT=9001
 ```
 
 ---
@@ -2855,9 +2859,31 @@ services:
     networks:
       - outpost
 
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-outpost}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set in .env}
+    ports:
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - outpost
+
 volumes:
   postgres_data:
   valkey_data:
+  minio_data:
 
 networks:
   outpost:

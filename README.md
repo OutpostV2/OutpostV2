@@ -68,6 +68,18 @@ docker compose exec --no-TTY valkey valkey-cli ping
 
 Valkey uses append-only persistence in the `valkey_data` named volume. `docker compose down` preserves this data; `docker compose down --volumes` deletes it intentionally.
 
+## Local MinIO
+
+Start and verify the S3-compatible object-storage service from the repository root:
+
+```powershell
+docker compose up --detach --wait minio
+docker compose ps minio
+Invoke-WebRequest http://127.0.0.1:9000/minio/health/live
+```
+
+The S3 API is available at `http://127.0.0.1:9000`, and the browser console is available at `http://127.0.0.1:9001`. Sign in with `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD` from the root `.env` file. MinIO stores objects in the `minio_data` named volume.
+
 ## Container foundations
 
 When Docker is available, build the initial images from the repository root so the root `.dockerignore` applies:
@@ -77,7 +89,7 @@ docker build --file backend/Dockerfile --tag outpost-backend:local .
 docker build --file frontend/Dockerfile --tag outpost-frontend:local .
 ```
 
-The backend image validates the installable package foundation. The frontend image builds the static application and serves it with Nginx. The Compose stack currently contains PostgreSQL and Redis-compatible Valkey; object storage and mail services are added in later Phase 2 checkpoints.
+The backend image validates the installable package foundation. The frontend image builds the static application and serves it with Nginx. The Compose stack currently contains PostgreSQL, Redis-compatible Valkey, and MinIO object storage; the mail service is added in a later Phase 2 checkpoint.
 
 ## Architecture records
 
