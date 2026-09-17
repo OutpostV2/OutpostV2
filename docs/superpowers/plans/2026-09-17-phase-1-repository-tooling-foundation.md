@@ -44,12 +44,12 @@
 - Create or modify: Vite, TypeScript, ESLint, and Prettier configuration files under `frontend/`
 - Modify: `docs/OUTPOST-MASTER-BUILD-PROMPT.md` Layer 3 only
 
-- [ ] Scaffold a minimal React and TypeScript Vite application.
-- [ ] Add only the formatting, linting, type-checking, and unit-test dependencies needed in Phase 1.
-- [ ] Replace starter product/demo content with a neutral foundation screen and a matching smoke test.
-- [ ] Run format, lint, type-check, unit-test, and production-build checks.
-- [ ] Replace the frontend package and TypeScript/Vite placeholders in Layer 3 with canonical contents.
-- [ ] Review and commit the frontend foundation as Commit A, then update only Layer 4 and commit the checkpoint as Commit B.
+- [x] Scaffold a minimal React and TypeScript Vite application.
+- [x] Add only the formatting, linting, type-checking, and unit-test dependencies needed in Phase 1.
+- [x] Replace starter product/demo content with a neutral foundation screen and a matching smoke test.
+- [x] Run format, lint, type-check, unit-test, and production-build checks.
+- [x] Replace the frontend package and TypeScript/Vite placeholders in Layer 3 with canonical contents.
+- [x] Review and commit the frontend foundation as Commit A, then update only Layer 4 and commit the checkpoint as Commit B.
 
 ## Task 3: Repository, Environment, Documentation, and Docker Foundations
 
