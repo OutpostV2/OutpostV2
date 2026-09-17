@@ -3262,10 +3262,10 @@ CURRENT PHASE:
 Phase 3 — Backend Core
 
 CURRENT TASK:
-Implement the typed backend application configuration foundation (not started).
+Implement the SQLAlchemy database session foundation (not started).
 
 TASK GOAL:
-Create the Phase 3 application configuration module with typed environment, log-level, and PostgreSQL settings; make the existing database probe consume the canonical configuration without changing its verified connection behavior. Do not add the database session, FastAPI application, error model, request IDs, structured logging, health/readiness endpoints, API router, Alembic, or domain modules in this task.
+Create the Phase 3 SQLAlchemy 2.x engine, declarative base, session factory, and transaction-safe session lifecycle using the canonical settings. Verify real PostgreSQL session behavior without adding schemas, migrations, FastAPI application behavior, or later Phase 3 capabilities.
 
 Repository:
 Outpost
@@ -3277,35 +3277,30 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-6e99a8b657b93d6ec0c9ed2de79676a924241db7
+e85802780dd98a24731c2832dda7e28c5154fae8
 
 CHECKPOINT FILE STATE:
-The Phase 2 backend-to-PostgreSQL connection, its unit and live integration tests, the PostgreSQL host-port correction, backend runtime dependencies, local setup documentation, and affected Layer 3 canonical records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+The typed Phase 3 application configuration, database probe integration, tests, and canonical Layer 3 configuration record are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- Backend runtime dependencies are pinned to supported ranges for SQLAlchemy 2.0, Psycopg 3, Pydantic 2, and pydantic-settings 2; the editable environment and backend image install successfully.
-- `app.database.DatabaseSettings` accepts PostgreSQL DSNs from `OUTPOST_DATABASE_URL` and rejects SQLite; the engine uses the explicit `postgresql+psycopg` driver with connection pre-ping.
-- The live host integration test passed against PostgreSQL 17.11, and `python -m app.database` returned `database=outpost user=outpost version=17.11`.
-- The rebuilt `outpost-backend:local` image ran the same probe successfully over the Compose network.
-- Outpost PostgreSQL now publishes only on `127.0.0.1:5433`, avoiding the existing native Windows PostgreSQL listener on IPv4 port 5432 while preserving container port 5432 and the named volume.
-- `docker compose config --quiet` passed; PostgreSQL, Valkey, MinIO, and Mailpit are running and healthy after the PostgreSQL container recreation.
-- Backend Ruff formatting and lint, strict mypy, default pytest (`3 passed, 1 skipped`), live PostgreSQL integration pytest (`1 passed`), and wheel build passed.
-- Root and backend `.env` files are ignored; both committed environment examples, README instructions, affected Layer 3 canonical blocks, `git diff --check`, and `git diff --cached --check` passed.
+- `app.core.config.Settings` provides typed environment, log level, and PostgreSQL DSN values from `OUTPOST_` environment variables or the backend `.env` file.
+- Supported environments are development, test, staging, and production; supported log levels are the standard Python levels from DEBUG through CRITICAL.
+- The existing database probe consumes the canonical settings and still returns PostgreSQL 17.11 identity from the live Compose database.
+- Configuration and database tests passed (`5 passed` targeted; `6 passed, 1 skipped` broader), the live PostgreSQL integration test passed, and Ruff formatting/lint plus strict mypy passed.
+- The Phase 2 Compose stack remains configured and healthy; PostgreSQL host access remains on `127.0.0.1:5433`.
 
 COMPLETED WITHIN CURRENT PHASE:
-- None. Phase 3 is selected but not started.
-- Phase 2 is complete: all four local services and the backend PostgreSQL connection are verified and committed.
-- Phase 1 remains complete with backend, frontend, repository, documentation, environment, and initial Docker foundations verified and committed.
+- Typed backend application configuration.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/database.py
-backend/app/core/config.py (not created yet)
-backend/tests/test_database.py
+backend/app/core/config.py
+backend/app/db/base.py (not created yet)
+backend/app/db/session.py (not created yet)
+backend/tests/integration/test_database_session.py (not created yet)
 backend/pyproject.toml
-backend/.env.example
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3315,20 +3310,20 @@ ENVIRONMENT:
 Windows / PowerShell; Git verified working.
 Python 3.13.15, Node 26.7.0, npm 12.0.2 verified.
 Docker Desktop 4.91.0; Docker Engine/CLI 29.8.0; Docker Compose 5.5.1; WSL 2.7.14.0 verified.
-PostgreSQL 17.11, Valkey 9.1.2, MinIO RELEASE.2025-09-07T16-13-09Z, and Mailpit 1.31.1: configured, healthy, and running. Backend PostgreSQL host and container probes: verified.
+PostgreSQL 17.11 and the remaining Compose services are configured, healthy, and running. Backend PostgreSQL host and container probes are verified.
 Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
-The backend-to-PostgreSQL Phase 2 task is complete. Commit this Layer 4 checkpoint and stop. The next continuation begins only the selected typed application configuration task.
+The user explicitly requested completion of Phase 3. After this checkpoint, continue with the selected database session task and subsequent verified Phase 3 tasks; do not begin Phase 4.
 
 LAST COMMAND:
-git commit -m "connect backend to PostgreSQL"
+git commit -m "add typed backend configuration"
 
 CURRENT OUTPUT / ERROR:
-Commit A created as `6e99a8b`; working tree clean before this Layer 4-only update. The backend connected to PostgreSQL from the host and rebuilt container, and all four infrastructure services remain healthy.
+Commit A created as `e858027`; working tree clean before this Layer 4-only update. Typed configuration tests and the live PostgreSQL regression passed.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Preserve the verified four-service Compose stack, localhost PostgreSQL port 5433, backend PostgreSQL connection probe, dependency ranges, and test contract. The next task should introduce only the canonical typed application configuration module and adapt the probe to it; keep the database session and all later Phase 3 capabilities for separate checkpoints.
+Preserve `app.core.config.Settings` as the canonical runtime configuration. The next task should introduce only SQLAlchemy base/session lifecycle infrastructure and its PostgreSQL tests; no models, migrations, API routes, or later Phase 3 behavior.
 
 ---
 
