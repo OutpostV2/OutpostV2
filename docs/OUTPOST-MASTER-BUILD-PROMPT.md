@@ -2827,10 +2827,10 @@ CURRENT PHASE:
 Phase 0 — Architecture Freeze
 
 CURRENT TASK:
-Create and review ADR-004 defining centralized tenant-aware authorization (not started).
+Create and review ADR-005 defining roadmap versioning and publication (not started).
 
 TASK GOAL:
-Document the reusable authorization policies, organization-scoped roles, resource-relationship checks, and backend enforcement boundaries approved in Layers 1–2.
+Document draft editing, immutable published versions, archival, exact cohort-version assignment, and the relationship between curriculum structure and per-user progress approved in Layers 1–2.
 
 Repository:
 Outpost
@@ -2842,31 +2842,32 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-9248260c2ef0d75f86c260c873eff658ba26c55c
+d06afa240235821fe331b866365052f866e9df0f
 
 CHECKPOINT FILE STATE:
-ADR-003 and its decision-index entry are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+ADR-004 and its decision-index entry are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- ADR-003 manually reviewed against Layers 1–3 and ADR-001/ADR-002: consistent canonical identity, password/OTP/Google flows, explicit linking safeguards, rotating sessions, recovery, and authentication/authorization separation.
-- PowerShell assertions: required ADR sections and authentication invariants present; all decision-index/ADR relative links resolve; ADR-003 indexed exactly once; task scope limited to two documentation files; no application scaffolding: passed.
+- ADR-004 manually reviewed against Layers 1–3 and ADRs 001–003: consistent deny-by-default enforcement, five reusable policies, membership-scoped roles, resource relationships, tenant-scoped queries, workers, and error boundaries.
+- PowerShell assertions: required ADR sections and all five authorization policies present; tenant/role/relationship boundaries documented; all relative links resolve; ADR-004 indexed exactly once; no placeholders, unrelated files, or application scaffolding: passed.
 - git diff --check and git diff --cached --check: passed.
-- Staged diff reviewed: only ADR-003 and its index entry; secret-value scan passed; no unrelated work or generated artifacts.
+- Staged diff reviewed: only ADR-004 and its index entry; secret-value scan passed; no unrelated work or generated artifacts.
 - git show --stat --oneline HEAD: verified Commit A contains exactly those two files.
 - git status --short after Commit A: no output (clean).
-- Documentation-only task; runtime authentication and security regression tests remain unimplemented and unverified.
+- Documentation-only task; runtime authorization and cross-organization regression tests remain unimplemented and unverified.
 
 COMPLETED WITHIN CURRENT PHASE:
 - ADR-001 accepted, verified, indexed, and committed: modular monolith and cloud independence.
 - ADR-002 accepted, verified, indexed, and committed: organization-based tenant model and isolation invariants.
 - ADR-003 accepted, verified, indexed, and committed: Outpost-owned authentication, linked identities, and rotating sessions.
-- Authorization and roadmap-versioning ADRs remain unfinished.
+- ADR-004 accepted, verified, indexed, and committed: centralized tenant-aware authorization.
+- Roadmap-versioning ADR remains unfinished.
 
 FILES RELEVANT TO CURRENT TASK:
-docs/decisions/ADR-004-tenant-aware-authorization.md (planned; not created)
+docs/decisions/ADR-005-roadmap-versioning.md (planned; not created)
 docs/OUTPOST-DECISIONS.md
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
@@ -2880,7 +2881,7 @@ PostgreSQL, Redis: not configured.
 Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
-ADR-003 completed. Commit this checkpoint and stop. The next continuation executes only ADR-004 through the autonomous verified task loop; do not begin Phase 1.
+ADR-004 completed. Commit this checkpoint and stop. The next continuation executes only ADR-005 through the autonomous verified task loop; do not begin Phase 1.
 
 LAST COMMAND:
 git status --short
