@@ -3368,10 +3368,10 @@ CURRENT PHASE:
 Phase 3 — Backend Core
 
 CURRENT TASK:
-Implement health and readiness endpoints (not started).
+Implement and verify the `/api/v1` router foundation (not started).
 
 TASK GOAL:
-Create the Phase 3 FastAPI application factory with liveness and PostgreSQL-backed readiness endpoints. Wire the verified configuration, error handlers, request IDs, and structured logging into the application while leaving `/api/v1` product routing, migrations, and domain behavior for later tasks.
+Create and mount the versioned `/api/v1` router, expose a minimal version discovery response, and make the backend container run the assembled FastAPI application. Verify the complete Phase 3 runtime from host tests and a container on the Compose network. Do not begin Alembic, schemas, migrations, or domain modules.
 
 Repository:
 Outpost
@@ -3383,19 +3383,19 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-dbbbc309f21ae5a67d2ae8bf55a37bdf58cec040
+5e9c2f2344474a3b00a8a6e90b8e9668d7735cfb
 
 CHECKPOINT FILE STATE:
-The standard-library JSON formatter, settings-driven logging configuration, request completion records, request ID correlation, safe exception logging, and tests are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+The FastAPI application factory, liveness endpoint, PostgreSQL-backed readiness endpoint, structured unavailable response, API/integration tests, and canonical Layer 3 application record are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- Logging is emitted as deterministic one-line JSON with UTC timestamps, levels, logger names, messages, serializable structured extras, request IDs, and exception details.
-- HTTP completion records include method, path, status, duration, and the request correlation ID.
-- Logging, middleware, and error tests passed (`10 passed`); Ruff formatting/lint, strict mypy, the broader suite (`16 passed, 2 skipped`), and live PostgreSQL tests (`2 passed`) succeeded.
-- Configuration, database session, structured errors, request IDs, and Phase 2 services remain verified.
+- `create_app` assembles settings-driven logging, structured errors, request ID middleware, and a PostgreSQL engine without requiring global mutable application state.
+- `/health` reports process liveness without database access; `/ready` executes `SELECT 1` and returns either `ready` or a correlated structured 503.
+- Ruff formatting/lint, strict mypy, the broader suite (`18 passed, 3 skipped`), and live PostgreSQL/API integration tests (`3 passed`) succeeded.
+- Configuration, database sessions, structured errors, request IDs, logging, and Phase 2 services remain verified.
 
 COMPLETED WITHIN CURRENT PHASE:
 - Typed backend application configuration.
@@ -3403,14 +3403,14 @@ COMPLETED WITHIN CURRENT PHASE:
 - Structured application and validation error contract.
 - Request ID generation, validation, request scope, response propagation, and error correlation.
 - Structured JSON logging and correlated HTTP completion/error records.
+- FastAPI application factory with liveness and PostgreSQL-backed readiness endpoints.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/core/config.py
-backend/app/core/errors.py
-backend/app/core/logging.py
-backend/app/db/session.py
-backend/app/main.py (not created yet)
-backend/tests/test_health.py (not created yet)
+backend/app/api/v1/router.py (not created yet)
+backend/app/main.py
+backend/tests/test_router.py (not created yet)
+backend/Dockerfile
+backend/pyproject.toml
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3427,13 +3427,13 @@ CURRENT REQUEST:
 The user explicitly requested completion of Phase 3. After this checkpoint, continue with the selected database session task and subsequent verified Phase 3 tasks; do not begin Phase 4.
 
 LAST COMMAND:
-git commit -m "add structured JSON logging"
+git commit -m "add health and readiness endpoints"
 
 CURRENT OUTPUT / ERROR:
-Commit A created as `dbbbc30`; working tree clean before this Layer 4-only update. Structured logging tests, broader backend checks, and live PostgreSQL regressions passed.
+Commit A created as `5e9c2f2`; working tree clean before this Layer 4-only update. Liveness, unavailable-readiness, live PostgreSQL readiness, and the full backend quality gate passed.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Preserve all verified core wiring. The next task should create the application factory and only `/health` plus PostgreSQL-backed `/ready`; product APIs remain absent until the `/api/v1` router task.
+Preserve operational endpoints at the root and mount product routing only under `/api/v1`. This final Phase 3 task should prove the assembled host and container runtime, then advance Layer 4 to Phase 4 without implementing it.
 
 ---
 
