@@ -2864,10 +2864,10 @@ CURRENT PHASE:
 Phase 1 — Repository and Tooling Foundation
 
 CURRENT TASK:
-Initialize the backend Python project and create its Phase 1 `backend/pyproject.toml` foundation (not started).
+Initialize the frontend React, TypeScript, and Vite project with Phase 1 quality tooling (not started).
 
 TASK GOAL:
-Create the minimal backend Python project and baseline project configuration needed for Phase 1 tooling, without implementing product features or adding dependencies for later phases.
+Create the minimal frontend project with formatting, linting, type checking, unit testing, and production-build verification, without implementing product features or adding dependencies for later phases.
 
 Repository:
 Outpost
@@ -2879,33 +2879,37 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-03ca349161a9a21f298ce64a3900a69961ce58cc
+523d6c19b1403a6e58e78fa26374160187b455f0
 
 CHECKPOINT FILE STATE:
-ADR-005 and its decision-index entry are verified and committed in Commit A above, completing Phase 0. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+The backend Python package, environment example, quality configuration, smoke test, Phase 1 execution plan, and stable Layer 3 records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- ADR-005 manually reviewed against Layers 1–3 and ADRs 001–004: consistent version snapshots, draft/published/archived lifecycle, published immutability, exact cohort assignment, progress identity, imports, tenant scope, and analytics history.
-- PowerShell assertions: required ADR sections and roadmap lifecycle invariants present; all relative links resolve; ADR-005 indexed exactly once; no placeholders, unrelated files, or Phase 1 scaffolding: passed.
-- Phase 0 coverage assertion: ADR-001 covers modular monolith, cloud independence, and deployment portability; ADR-002 tenant model; ADR-003 authentication; ADR-004 authorization; ADR-005 roadmap versioning: passed.
-- git diff --check and git diff --cached --check: passed.
-- Staged diff reviewed: only ADR-005 and its index entry; secret-value scan passed; no unrelated work or generated artifacts.
-- git show --stat --oneline HEAD: verified Commit A contains exactly those two files.
-- git status --short after Commit A: no output (clean).
-- Documentation-only task; roadmap/version runtime and PostgreSQL regression tests remain unimplemented and unverified.
+- Python 3.13.15 virtual environment created at ignored `backend/.venv`; editable install with the declared `dev` extra succeeded.
+- Ruff format check: 2 files already formatted; Ruff lint: all checks passed.
+- mypy strict check: no issues in 2 source files.
+- pytest: 1 package-metadata smoke test passed.
+- Isolated wheel build: `outpost_backend-0.1.0-py3-none-any.whl` built successfully outside the repository.
+- Layer 3 canonical-content checks for `backend/pyproject.toml` and `backend/.env.example`: passed.
+- git diff --check and git diff --cached --check: passed; staged diff reviewed; secret-value scan passed.
+- Docker CLI is unavailable and was not required for this backend-only task.
 
 COMPLETED WITHIN CURRENT PHASE:
 - Git repository exists on `main`.
 - Root `.gitignore` exists and is tracked; its Layer 3 block remains stale and must be reconciled when that foundation file is intentionally reviewed in Phase 1.
-- No backend or frontend project has been created yet.
+- Backend Python project exists with package metadata, environment convention, Ruff, mypy, pytest, and wheel-build tooling verified.
+- Phase 1 implementation plan exists under `docs/superpowers/plans/`.
+- Frontend project has not been created yet.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/pyproject.toml (planned; not created)
-backend/app/__init__.py (planned; not created)
-backend/tests/ (planned; not created)
+frontend/package.json (planned; not created)
+frontend/src/App.tsx (planned; not created)
+frontend/src/App.test.tsx (planned; not created)
+frontend/src/test/setup.ts (planned; not created)
+frontend/vite.config.ts (planned; not created)
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -2913,21 +2917,22 @@ Since Commit A: docs/OUTPOST-MASTER-BUILD-PROMPT.md (Layer 4 only).
 
 ENVIRONMENT:
 Windows / PowerShell; Git verified working.
-Python, Node, Docker: not verified.
+Python 3.13.15, Node 26.7.0, npm 12.0.2 verified.
+Docker CLI unavailable.
 PostgreSQL, Redis: not configured.
 Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
-Phase 0 completed. Commit this checkpoint and stop. The next continuation begins only the selected Phase 1 backend Python foundation task.
+Continue the user's authorized request to complete Phase 1. Execute only the selected frontend foundation task, complete its two-commit checkpoint, then continue to the next Phase 1 task.
 
 LAST COMMAND:
-git status --short
+git commit -m "establish backend tooling foundation"
 
 CURRENT OUTPUT / ERROR:
-No output after Commit A; working tree clean. No active error.
+Commit A created as `523d6c1`; working tree clean before this Layer 4-only update. No active error.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Phase 0 is complete through ADR-005. Tracked `.gitignore` exists although its Layer 3 block is stale. Preserve it and inspect before any Phase 1 adjustment. No application scaffolding exists.
+Backend commands run from `backend/` through `.venv\\Scripts\\python.exe`. The frontend task must install only Phase 1 dependencies and replace starter demo content with a neutral foundation screen.
 
 ---
 
