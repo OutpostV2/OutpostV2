@@ -42,6 +42,20 @@ npm run build
 
 Use `npm run dev` to start the Vite development server. Copy `frontend/.env.example` to `frontend/.env` when a local override is needed.
 
+## Local PostgreSQL
+
+Copy the root environment example once, then start and verify PostgreSQL from the repository root:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --detach postgres
+docker compose ps postgres
+docker compose exec --no-TTY postgres pg_isready -U outpost -d outpost
+docker compose exec --no-TTY postgres psql -U outpost -d outpost -c "SELECT current_database(), current_user;"
+```
+
+Stop the service with `docker compose down`. The named volume preserves data between container recreations; use `docker compose down --volumes` only when intentionally deleting local database data.
+
 ## Container foundations
 
 When Docker is available, build the initial images from the repository root so the root `.dockerignore` applies:
@@ -51,7 +65,7 @@ docker build --file backend/Dockerfile --tag outpost-backend:local .
 docker build --file frontend/Dockerfile --tag outpost-frontend:local .
 ```
 
-The backend image validates the installable package foundation. The frontend image builds the static application and serves it with Nginx. Local PostgreSQL, Redis-compatible storage, object storage, and mail services belong to Phase 2.
+The backend image validates the installable package foundation. The frontend image builds the static application and serves it with Nginx. The Compose stack currently contains PostgreSQL only; Redis-compatible storage, object storage, and mail services are added in later Phase 2 checkpoints.
 
 ## Architecture records
 

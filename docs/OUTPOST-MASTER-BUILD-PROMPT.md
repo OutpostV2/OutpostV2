@@ -2800,10 +2800,49 @@ NOT CREATED YET — Phase 3
 
 ---
 
+# Root `.env.example`
+
+```dotenv
+POSTGRES_DB=outpost
+POSTGRES_USER=outpost
+POSTGRES_PASSWORD=outpost-local-dev-only
+POSTGRES_PORT=5432
+```
+
+---
+
 # `docker-compose.yml`
 
-```text
-NOT CREATED YET — Phase 2
+```yaml
+name: outpost
+
+services:
+  postgres:
+    image: postgres:17.11-alpine3.24
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-outpost}
+      POSTGRES_USER: ${POSTGRES_USER:-outpost}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - outpost
+
+volumes:
+  postgres_data:
+
+networks:
+  outpost:
+    driver: bridge
 ```
 
 ---
@@ -3045,6 +3084,7 @@ Thumbs.db
 D:\Shared Workspace\Projects\Outpost-New
 ├── .dockerignore
 ├── .editorconfig
+├── .env.example
 ├── .gitattributes
 ├── .gitignore
 ├── README.md
@@ -3070,6 +3110,7 @@ D:\Shared Workspace\Projects\Outpost-New
 │   │       └── 2026-09-17-phase-1-repository-tooling-foundation.md
 │   ├── OUTPOST-DECISIONS.md
 │   └── OUTPOST-MASTER-BUILD-PROMPT.md
+├── docker-compose.yml
 └── frontend
     ├── .env.example
     ├── .gitignore
