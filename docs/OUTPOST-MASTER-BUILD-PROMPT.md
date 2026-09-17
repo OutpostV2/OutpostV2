@@ -3305,10 +3305,10 @@ CURRENT PHASE:
 Phase 3 — Backend Core
 
 CURRENT TASK:
-Implement structured JSON logging (not started).
+Implement health and readiness endpoints (not started).
 
 TASK GOAL:
-Add Phase 3 standard-library structured JSON logging configured from canonical settings, with request IDs automatically attached to request-scoped records and safe exception logging. Do not add health/readiness endpoints, the application router, migrations, or domain behavior.
+Create the Phase 3 FastAPI application factory with liveness and PostgreSQL-backed readiness endpoints. Wire the verified configuration, error handlers, request IDs, and structured logging into the application while leaving `/api/v1` product routing, migrations, and domain behavior for later tasks.
 
 Repository:
 Outpost
@@ -3320,31 +3320,34 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-db799a9f336e461a3db0042219dfe631f2078294
+dbbbc309f21ae5a67d2ae8bf55a37bdf58cec040
 
 CHECKPOINT FILE STATE:
-The pure-ASGI request ID middleware, trusted UUID handling, request-scoped context, response propagation, error-envelope correlation, and API tests are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+The standard-library JSON formatter, settings-driven logging configuration, request completion records, request ID correlation, safe exception logging, and tests are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- Every HTTP request receives a canonical UUID request ID; valid incoming UUIDs are preserved and invalid values are replaced.
-- The request ID is available through a context variable, stored in ASGI state, returned in `X-Request-ID`, included in structured error responses, and cleared after the request.
-- Request ID and error tests passed (`7 passed`); Ruff formatting/lint, strict mypy, the broader suite (`13 passed, 2 skipped`), and live PostgreSQL tests (`2 passed`) succeeded.
-- Configuration, database session, structured errors, and Phase 2 services remain verified.
+- Logging is emitted as deterministic one-line JSON with UTC timestamps, levels, logger names, messages, serializable structured extras, request IDs, and exception details.
+- HTTP completion records include method, path, status, duration, and the request correlation ID.
+- Logging, middleware, and error tests passed (`10 passed`); Ruff formatting/lint, strict mypy, the broader suite (`16 passed, 2 skipped`), and live PostgreSQL tests (`2 passed`) succeeded.
+- Configuration, database session, structured errors, request IDs, and Phase 2 services remain verified.
 
 COMPLETED WITHIN CURRENT PHASE:
 - Typed backend application configuration.
 - SQLAlchemy engine, declarative base, and transaction-safe session lifecycle.
 - Structured application and validation error contract.
 - Request ID generation, validation, request scope, response propagation, and error correlation.
+- Structured JSON logging and correlated HTTP completion/error records.
 
 FILES RELEVANT TO CURRENT TASK:
 backend/app/core/config.py
-backend/app/core/logging.py (not created yet)
 backend/app/core/errors.py
-backend/tests/test_logging.py (not created yet)
+backend/app/core/logging.py
+backend/app/db/session.py
+backend/app/main.py (not created yet)
+backend/tests/test_health.py (not created yet)
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3361,13 +3364,13 @@ CURRENT REQUEST:
 The user explicitly requested completion of Phase 3. After this checkpoint, continue with the selected database session task and subsequent verified Phase 3 tasks; do not begin Phase 4.
 
 LAST COMMAND:
-git commit -m "add request ID middleware"
+git commit -m "add structured JSON logging"
 
 CURRENT OUTPUT / ERROR:
-Commit A created as `db799a9`; working tree clean before this Layer 4-only update. Request ID API tests, broader backend checks, and live PostgreSQL regressions passed.
+Commit A created as `dbbbc30`; working tree clean before this Layer 4-only update. Structured logging tests, broader backend checks, and live PostgreSQL regressions passed.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Preserve request ID context as the logging correlation source. The next task should configure JSON logging with standard-library logging, deterministic fields, configured levels, and safe exception records only.
+Preserve all verified core wiring. The next task should create the application factory and only `/health` plus PostgreSQL-backed `/ready`; product APIs remain absent until the `/api/v1` router task.
 
 ---
 
