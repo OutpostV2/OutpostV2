@@ -1,5 +1,6 @@
 """Stable application error taxonomy and FastAPI response handlers."""
 
+import logging
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -9,6 +10,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.core.middleware import get_request_id
+
+_logger = logging.getLogger("outpost.error")
 
 
 class ErrorPayload(BaseModel):
@@ -116,7 +119,11 @@ async def validation_error_handler(request: Request, error: RequestValidationErr
 async def unhandled_error_handler(request: Request, error: Exception) -> JSONResponse:
     """Return a safe response for unexpected failures."""
 
-    del request, error
+    del request
+    _logger.error(
+        "request.failed",
+        exc_info=(type(error), error, error.__traceback__),
+    )
     return _response(500, "internal_error", "Internal server error")
 
 
