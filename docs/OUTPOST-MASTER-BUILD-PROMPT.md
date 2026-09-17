@@ -2824,13 +2824,13 @@ cache directories
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 0 — Architecture Freeze
+Phase 1 — Repository and Tooling Foundation
 
 CURRENT TASK:
-Create and review ADR-005 defining roadmap versioning and publication (not started).
+Initialize the backend Python project and create its Phase 1 `backend/pyproject.toml` foundation (not started).
 
 TASK GOAL:
-Document draft editing, immutable published versions, archival, exact cohort-version assignment, and the relationship between curriculum structure and per-user progress approved in Layers 1–2.
+Create the minimal backend Python project and baseline project configuration needed for Phase 1 tooling, without implementing product features or adding dependencies for later phases.
 
 Repository:
 Outpost
@@ -2842,33 +2842,33 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-d06afa240235821fe331b866365052f866e9df0f
+03ca349161a9a21f298ce64a3900a69961ce58cc
 
 CHECKPOINT FILE STATE:
-ADR-004 and its decision-index entry are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+ADR-005 and its decision-index entry are verified and committed in Commit A above, completing Phase 0. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- ADR-004 manually reviewed against Layers 1–3 and ADRs 001–003: consistent deny-by-default enforcement, five reusable policies, membership-scoped roles, resource relationships, tenant-scoped queries, workers, and error boundaries.
-- PowerShell assertions: required ADR sections and all five authorization policies present; tenant/role/relationship boundaries documented; all relative links resolve; ADR-004 indexed exactly once; no placeholders, unrelated files, or application scaffolding: passed.
+- ADR-005 manually reviewed against Layers 1–3 and ADRs 001–004: consistent version snapshots, draft/published/archived lifecycle, published immutability, exact cohort assignment, progress identity, imports, tenant scope, and analytics history.
+- PowerShell assertions: required ADR sections and roadmap lifecycle invariants present; all relative links resolve; ADR-005 indexed exactly once; no placeholders, unrelated files, or Phase 1 scaffolding: passed.
+- Phase 0 coverage assertion: ADR-001 covers modular monolith, cloud independence, and deployment portability; ADR-002 tenant model; ADR-003 authentication; ADR-004 authorization; ADR-005 roadmap versioning: passed.
 - git diff --check and git diff --cached --check: passed.
-- Staged diff reviewed: only ADR-004 and its index entry; secret-value scan passed; no unrelated work or generated artifacts.
+- Staged diff reviewed: only ADR-005 and its index entry; secret-value scan passed; no unrelated work or generated artifacts.
 - git show --stat --oneline HEAD: verified Commit A contains exactly those two files.
 - git status --short after Commit A: no output (clean).
-- Documentation-only task; runtime authorization and cross-organization regression tests remain unimplemented and unverified.
+- Documentation-only task; roadmap/version runtime and PostgreSQL regression tests remain unimplemented and unverified.
 
 COMPLETED WITHIN CURRENT PHASE:
-- ADR-001 accepted, verified, indexed, and committed: modular monolith and cloud independence.
-- ADR-002 accepted, verified, indexed, and committed: organization-based tenant model and isolation invariants.
-- ADR-003 accepted, verified, indexed, and committed: Outpost-owned authentication, linked identities, and rotating sessions.
-- ADR-004 accepted, verified, indexed, and committed: centralized tenant-aware authorization.
-- Roadmap-versioning ADR remains unfinished.
+- Git repository exists on `main`.
+- Root `.gitignore` exists and is tracked; its Layer 3 block remains stale and must be reconciled when that foundation file is intentionally reviewed in Phase 1.
+- No backend or frontend project has been created yet.
 
 FILES RELEVANT TO CURRENT TASK:
-docs/decisions/ADR-005-roadmap-versioning.md (planned; not created)
-docs/OUTPOST-DECISIONS.md
+backend/pyproject.toml (planned; not created)
+backend/app/__init__.py (planned; not created)
+backend/tests/ (planned; not created)
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -2881,7 +2881,7 @@ PostgreSQL, Redis: not configured.
 Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
-ADR-004 completed. Commit this checkpoint and stop. The next continuation executes only ADR-005 through the autonomous verified task loop; do not begin Phase 1.
+Phase 0 completed. Commit this checkpoint and stop. The next continuation begins only the selected Phase 1 backend Python foundation task.
 
 LAST COMMAND:
 git status --short
@@ -2890,7 +2890,7 @@ CURRENT OUTPUT / ERROR:
 No output after Commit A; working tree clean. No active error.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Documentation-only fresh build. Tracked .gitignore exists although its Layer 3 block is stale; preserve it. No application scaffolding exists.
+Phase 0 is complete through ADR-005. Tracked `.gitignore` exists although its Layer 3 block is stale. Preserve it and inspect before any Phase 1 adjustment. No application scaffolding exists.
 
 ---
 
