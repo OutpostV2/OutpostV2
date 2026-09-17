@@ -3100,13 +3100,13 @@ D:\Shared Workspace\Projects\Outpost-New
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 1 — Repository and Tooling Foundation
+Phase 2 — Local Infrastructure
 
 CURRENT TASK:
-Complete the Phase 1 repository, environment, documentation, and initial Docker foundations (not started).
+Create the Docker Compose foundation with PostgreSQL and verify the PostgreSQL service independently (not started; Docker CLI currently unavailable).
 
 TASK GOAL:
-Normalize repository conventions, document setup and verification, add frontend environment and backend/frontend Dockerfile foundations, reconcile stable Layer 3 records, and run the complete Phase 1 verification suite without implementing Phase 2 services.
+Define the first local infrastructure service in `docker-compose.yml` with explicit configuration, persistence, and health verification. Do not add Redis/Valkey, MinIO, Mailpit, or backend database integration in this task.
 
 Repository:
 Outpost
@@ -3118,41 +3118,33 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-55ea8e672ea953ef99ec2d09e4dc614a4156a0e2
+8e288835212c7837f0c46ece4169b1691aa6239e
 
 CHECKPOINT FILE STATE:
-The frontend React/TypeScript/Vite project, lockfile, quality configuration, smoke test, neutral foundation screen, and stable Layer 3 records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+Phase 1 repository conventions, setup documentation, frontend environment example, backend/frontend Dockerfiles, completed execution plan, and stable Layer 3 records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- npm install/audit: 236 packages audited, 0 vulnerabilities reported.
-- Prettier format check: all matched frontend files use the configured style.
-- ESLint: passed with no findings; TypeScript project build/type check: passed.
-- Vitest with React Testing Library: 1 foundation-screen smoke test passed.
-- Vite production build: 17 modules transformed and output generated successfully in ignored `frontend/dist/`.
-- Layer 3 canonical-content checks for frontend package, Vite, TypeScript, ESLint, and Prettier configuration: passed.
-- git diff --check and git diff --cached --check: passed; staged diff reviewed; generated-artifact and secret-value checks passed.
-- Docker CLI remains unavailable and was not required for this frontend-only task.
+- Backend editable install and documented root setup command: verified; Ruff format/lint, strict mypy, pytest, and isolated wheel build: passed.
+- Frontend lockfile reproduction with `npm ci`: 235 packages installed, 236 audited, 0 vulnerabilities reported; Prettier, ESLint, TypeScript, Vitest, and Vite production build: passed.
+- Backend and frontend dependency-scope assertions: passed; no later-phase runtime dependencies were introduced.
+- Backend and frontend Dockerfile instruction/source checks and JSON-form commands: passed statically.
+- Root and architecture documentation relative-link checks: passed; frontend environment examples are explicitly unignored.
+- All Phase 1 canonical Layer 3 content and stable directory-tree checks: passed.
+- git diff --check and git diff --cached --check: passed; staged diff reviewed; generated-artifact, secret-value, placeholder, and plan-completion checks passed.
+- Docker CLI is unavailable, so image builds were not executed; Phase 2 service runtime verification requires Docker to be installed or enabled.
 
 COMPLETED WITHIN CURRENT PHASE:
-- Git repository exists on `main`.
-- Root `.gitignore` exists and is tracked; its Layer 3 block remains stale and must be reconciled when that foundation file is intentionally reviewed in Phase 1.
-- Backend Python project exists with package metadata, environment convention, Ruff, mypy, pytest, and wheel-build tooling verified.
-- Phase 1 implementation plan exists under `docs/superpowers/plans/`.
-- Frontend React/TypeScript/Vite project exists with a lockfile, Prettier, ESLint, strict TypeScript, Vitest, React Testing Library, and production-build tooling verified.
+- No Phase 2 task has started.
+- Phase 1 is complete with backend, frontend, repository, documentation, environment, and initial Docker foundations verified and committed.
 
 FILES RELEVANT TO CURRENT TASK:
-.gitignore
-.editorconfig (planned; not created)
-.gitattributes (planned; not created)
-.dockerignore (planned; not created)
-README.md (planned; not created)
-docs/architecture/README.md (planned; not created)
-backend/Dockerfile (planned; not created)
-frontend/Dockerfile (planned; not created)
-frontend/.env.example (planned; not created)
+docker-compose.yml (planned; not created)
+.dockerignore
+backend/.env.example
+backend/pyproject.toml
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3166,16 +3158,16 @@ PostgreSQL, Redis: not configured.
 Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
-Continue the user's authorized request to complete Phase 1. Execute only the selected final Phase 1 foundation task, complete its two-commit checkpoint, and stop before Phase 2 implementation.
+Phase 1 completed. Commit this Layer 4 checkpoint and stop. The next continuation begins only the selected Phase 2 PostgreSQL Docker Compose task after Docker is available.
 
 LAST COMMAND:
-git commit -m "establish frontend tooling foundation"
+git commit -m "complete repository tooling foundation"
 
 CURRENT OUTPUT / ERROR:
-Commit A created as `55ea8e6`; working tree clean before this Layer 4-only update. No active error.
+Commit A created as `8e28883`; working tree clean before this Layer 4-only update. Docker CLI is unavailable, which blocks runtime verification of the next task but does not invalidate Phase 1's static Docker foundations.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Docker runtime verification is unavailable in this environment. Add valid initial Dockerfiles, verify their structure statically, and record the runtime limitation for the next phase rather than creating Phase 2 Compose services.
+No `docker-compose.yml` exists. Preserve the Phase 1 Dockerfiles and root-context build convention. The next task must add PostgreSQL only, verify its health independently, update the Layer 3 `docker-compose.yml` block in Commit A, and leave the remaining Phase 2 services for later checkpoints.
 
 ---
 
