@@ -76,6 +76,13 @@ class ConflictError(AppError):
     code = "conflict"
 
 
+class ServiceUnavailableError(AppError):
+    """A required service cannot currently handle the request."""
+
+    status_code = 503
+    code = "not_ready"
+
+
 def _response(
     status_code: int,
     code: str,
