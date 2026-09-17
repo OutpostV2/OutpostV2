@@ -2,9 +2,10 @@
 
 from dataclasses import dataclass
 
-from sqlalchemy import Engine, create_engine, text
+from sqlalchemy import Engine, text
 
 from app.core.config import Settings
+from app.db.session import create_engine_from_settings
 
 
 @dataclass(frozen=True, slots=True)
@@ -14,12 +15,6 @@ class DatabaseStatus:
     database: str
     user: str
     version: str
-
-
-def create_database_engine(settings: Settings) -> Engine:
-    """Create a SQLAlchemy engine for the configured PostgreSQL service."""
-
-    return create_engine(str(settings.database_url), pool_pre_ping=True)
 
 
 def probe_database(engine: Engine) -> DatabaseStatus:
@@ -36,7 +31,7 @@ def main() -> None:
     """Run the PostgreSQL probe using the local backend environment."""
 
     settings = Settings()
-    engine = create_database_engine(settings)
+    engine = create_engine_from_settings(settings)
     try:
         status = probe_database(engine)
     finally:
