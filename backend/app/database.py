@@ -2,21 +2,9 @@
 
 from dataclasses import dataclass
 
-from pydantic import PostgresDsn
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import Engine, create_engine, text
 
-
-class DatabaseSettings(BaseSettings):
-    """PostgreSQL settings loaded from Outpost environment variables."""
-
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_prefix="OUTPOST_",
-        extra="ignore",
-    )
-
-    database_url: PostgresDsn
+from app.core.config import Settings
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,7 +16,7 @@ class DatabaseStatus:
     version: str
 
 
-def create_database_engine(settings: DatabaseSettings) -> Engine:
+def create_database_engine(settings: Settings) -> Engine:
     """Create a SQLAlchemy engine for the configured PostgreSQL service."""
 
     return create_engine(str(settings.database_url), pool_pre_ping=True)
@@ -47,7 +35,7 @@ def probe_database(engine: Engine) -> DatabaseStatus:
 def main() -> None:
     """Run the PostgreSQL probe using the local backend environment."""
 
-    settings = DatabaseSettings()
+    settings = Settings()
     engine = create_database_engine(settings)
     try:
         status = probe_database(engine)
