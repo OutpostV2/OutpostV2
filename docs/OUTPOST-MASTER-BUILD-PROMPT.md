@@ -2701,16 +2701,53 @@ main
 
 # `backend/pyproject.toml`
 
-```text
-NOT CREATED YET — Phase 1
+```toml
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "outpost-backend"
+version = "0.1.0"
+description = "Outpost backend foundation"
+requires-python = ">=3.13"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2.2,<2",
+  "mypy>=1.15,<2",
+  "pytest>=8.3,<10",
+  "ruff>=0.11,<1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "SIM", "UP"]
+
+[tool.mypy]
+files = ["app", "tests"]
+python_version = "3.13"
+strict = true
 ```
 
 ---
 
 # `backend/.env.example`
 
-```text
-NOT CREATED YET — Phase 1
+```dotenv
+OUTPOST_ENV=development
+OUTPOST_LOG_LEVEL=INFO
 ```
 
 ---
