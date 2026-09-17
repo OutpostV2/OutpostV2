@@ -2807,6 +2807,7 @@ POSTGRES_DB=outpost
 POSTGRES_USER=outpost
 POSTGRES_PASSWORD=outpost-local-dev-only
 POSTGRES_PORT=5432
+VALKEY_PORT=6379
 ```
 
 ---
@@ -2837,8 +2838,26 @@ services:
     networks:
       - outpost
 
+  valkey:
+    image: valkey/valkey:9.1.2-alpine3.24
+    restart: unless-stopped
+    command: ["valkey-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    ports:
+      - "127.0.0.1:${VALKEY_PORT:-6379}:6379"
+    volumes:
+      - valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - outpost
+
 volumes:
   postgres_data:
+  valkey_data:
 
 networks:
   outpost:

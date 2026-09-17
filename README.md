@@ -54,7 +54,19 @@ docker compose exec --no-TTY postgres pg_isready -U outpost -d outpost
 docker compose exec --no-TTY postgres psql -U outpost -d outpost -c "SELECT current_database(), current_user;"
 ```
 
-Stop the service with `docker compose down`. The named volume preserves data between container recreations; use `docker compose down --volumes` only when intentionally deleting local database data.
+Stop the Compose stack with `docker compose down`. Named volumes preserve service data between container recreations; use `docker compose down --volumes` only when intentionally deleting all local service data.
+
+## Local Valkey
+
+Start and verify the Redis-compatible Valkey service from the repository root:
+
+```powershell
+docker compose up --detach --wait valkey
+docker compose ps valkey
+docker compose exec --no-TTY valkey valkey-cli ping
+```
+
+Valkey uses append-only persistence in the `valkey_data` named volume. `docker compose down` preserves this data; `docker compose down --volumes` deletes it intentionally.
 
 ## Container foundations
 
@@ -65,7 +77,7 @@ docker build --file backend/Dockerfile --tag outpost-backend:local .
 docker build --file frontend/Dockerfile --tag outpost-frontend:local .
 ```
 
-The backend image validates the installable package foundation. The frontend image builds the static application and serves it with Nginx. The Compose stack currently contains PostgreSQL only; Redis-compatible storage, object storage, and mail services are added in later Phase 2 checkpoints.
+The backend image validates the installable package foundation. The frontend image builds the static application and serves it with Nginx. The Compose stack currently contains PostgreSQL and Redis-compatible Valkey; object storage and mail services are added in later Phase 2 checkpoints.
 
 ## Architecture records
 
