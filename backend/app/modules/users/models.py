@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Enum, String, UniqueConstraint, Uuid, func, text
+from sqlalchemy import DateTime, Enum, Index, String, UniqueConstraint, Uuid, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -52,3 +52,7 @@ class User(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+
+
+Index("uq_users_primary_email_lower", func.lower(User.primary_email), unique=True)
+Index("uq_users_username_lower", func.lower(User.username), unique=True)

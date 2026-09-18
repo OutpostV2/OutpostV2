@@ -5,6 +5,8 @@ from typing import Literal
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from app.modules.auth.router import router as auth_router
+
 
 class ApiVersion(BaseModel):
     """Version discovery response."""
@@ -21,3 +23,6 @@ def api_version() -> ApiVersion:
     """Describe the mounted product API version."""
 
     return ApiVersion()
+
+
+router.include_router(auth_router)

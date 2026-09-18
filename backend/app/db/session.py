@@ -12,7 +12,7 @@ from app.core.config import Settings
 def create_engine_from_settings(settings: Settings) -> Engine:
     """Create the PostgreSQL engine from canonical application settings."""
 
-    return create_engine(str(settings.database_url), pool_pre_ping=True)
+    return create_engine(str(settings.database_url), pool_pre_ping=True, hide_parameters=True)
 
 
 def create_session_factory(engine: Engine) -> sessionmaker[Session]:

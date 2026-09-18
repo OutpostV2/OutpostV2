@@ -120,7 +120,7 @@ async def validation_error_handler(request: Request, error: RequestValidationErr
         422,
         "validation_error",
         "Request validation failed",
-        details=[dict(detail) for detail in error.errors()],
+        details=[{key: detail[key] for key in ("loc", "type")} for detail in error.errors()],
     )
 
 

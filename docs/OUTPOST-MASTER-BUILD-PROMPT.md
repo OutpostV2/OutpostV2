@@ -2713,6 +2713,8 @@ description = "Outpost backend foundation"
 requires-python = ">=3.13"
 dependencies = [
   "alembic>=1.20,<2",
+  "argon2-cffi>=25.1,<26",
+  "email-validator>=2.2,<3",
   "fastapi>=0.141.1,<1",
   "psycopg[binary]>=3.3.5,<4",
   "pydantic>=2.13.5,<3",
@@ -2910,7 +2912,7 @@ from app.core.config import Settings
 def create_engine_from_settings(settings: Settings) -> Engine:
     """Create the PostgreSQL engine from canonical application settings."""
 
-    return create_engine(str(settings.database_url), pool_pre_ping=True)
+    return create_engine(str(settings.database_url), pool_pre_ping=True, hide_parameters=True)
 
 
 def create_session_factory(engine: Engine) -> sessionmaker[Session]:
