@@ -3421,13 +3421,13 @@ D:\Shared Workspace\Projects\Outpost-New
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 4 — Alembic Foundation
+Phase 5 — Authentication Storage
 
 CURRENT TASK:
-Initialize Alembic and verify empty PostgreSQL upgrade and rollback (not started).
+Implement and verify the `users` storage model and migration (not started).
 
 TASK GOAL:
-Initialize Alembic as the exclusive schema owner, use the typed Outpost database configuration, and verify upgrade to head against an empty PostgreSQL database plus a clean rollback. Do not begin authentication storage or domain schemas.
+Define the canonical `users` SQLAlchemy model and Alembic migration with UUID identity, profile fields, email verification state, nullable unique username, account status, and timestamps. Write migration and PostgreSQL storage tests first. Do not begin password credentials or other authentication tables.
 
 Repository:
 Outpost
@@ -3439,32 +3439,31 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-f8c3ac11766a219045e93d792bba6999720894d9
+75b367ae13fc026777351d5af417ec446636f819
 
 CHECKPOINT FILE STATE:
-Phase 3 is complete. The versioned API router, stable framework 404 response, runnable Uvicorn container, tests, documentation, and affected canonical Layer 3 records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+Phase 4 is complete. Alembic configuration, typed runtime integration, baseline revision, migration template, isolated PostgreSQL migration test, container support, documentation, and affected canonical Layer 3 records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- `/api/v1` returns `Outpost API` / `v1`, is included in OpenAPI, and unknown API versions use the correlated structured `not_found` envelope.
-- The backend image boots Uvicorn and passed `/health`, PostgreSQL-backed `/ready`, and `/api/v1` probes from a temporary container on the Compose network.
-- Router tests (`3 passed`), the broader suite (`21 passed, 3 skipped`), live PostgreSQL integration (`3 passed`), Ruff formatting/lint, strict mypy (`26 source files`), and wheel/image builds succeeded.
-- PostgreSQL 17.11, Valkey, MinIO, and Mailpit are healthy after Docker Desktop recovery; no temporary backend container remains.
-- All Phase 3 requirements are implemented and verified.
+- Alembic 1.20 loads the database URL through typed `Settings`, uses `Base.metadata`, and owns schema evolution through revision `20260918_0001`.
+- An isolated empty PostgreSQL database upgraded to head, contained only `alembic_version`, downgraded to base with no revision row, and was removed.
+- The canonical development database is at `20260918_0001 (head)` with only `alembic_version`; host and container `alembic check` report no pending operations.
+- The broader suite (`21 passed, 4 skipped`), live PostgreSQL integration (`4 passed`), Ruff formatting/lint (`29 files`), strict mypy (`27 source files`), wheel build, Docker image build, offline SQL generation, and container migration checks succeeded.
+- All Phase 4 requirements are implemented and verified; Alembic is the exclusive schema owner.
 
 COMPLETED WITHIN CURRENT PHASE:
-None — Phase 4 is selected but not started.
+None — Phase 5 is selected but not started.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/alembic.ini (not created yet)
-backend/alembic/env.py (not created yet)
-backend/alembic/versions/ (not created yet)
+backend/app/modules/users/__init__.py (not created yet)
+backend/app/modules/users/models.py (not created yet)
 backend/app/db/base.py
-backend/app/db/session.py
-backend/pyproject.toml
-backend/tests/integration/test_migrations.py (not created yet)
+backend/alembic/env.py
+backend/alembic/versions/ (new users migration not created yet)
+backend/tests/integration/test_user_storage.py (not created yet)
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3478,16 +3477,16 @@ PostgreSQL 17.11 and the remaining Compose services are configured, healthy, and
 Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
-The user explicitly requested completion of Phase 3. Phase 3 is complete; Phase 4 is selected as the next chronological phase and has not been implemented.
+The user explicitly requested completion of Phase 4. Phase 4 is complete; Phase 5 is selected as the next chronological phase and has not been implemented.
 
 LAST COMMAND:
-git commit -m "add versioned API router"
+git commit -m "initialize Alembic migration foundation"
 
 CURRENT OUTPUT / ERROR:
-Commit A created as `f8c3ac1`; working tree clean before this Layer 4-only update. The complete Phase 3 host, database, package, image, and container verification gate passed.
+Commit A created as `75b367a`; working tree clean before this Layer 4-only update. The complete Phase 4 migration, PostgreSQL, quality, package, image, and container verification gate passed.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Alembic files and migration tests do not exist yet. Begin with test-first initialization on the next authorized run and keep schema ownership exclusively in Alembic.
+No application tables exist yet. The next task begins Phase 5 with `users`; preserve the ordered storage specification and let Alembic create the schema.
 
 ---
 
