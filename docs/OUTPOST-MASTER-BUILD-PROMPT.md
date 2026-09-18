@@ -3426,10 +3426,10 @@ CURRENT PHASE:
 Phase 6 — Password Authentication
 
 CURRENT TASK:
-Implement and verify password login credential resolution (not started).
+Implement and verify initial sessions and access credentials (not started).
 
 TASK GOAL:
-Resolve normalized email/username, verify Argon2id, and reject invalid credentials and inactive users consistently. Session issuance is the next bounded task.
+Expose password login with persisted refresh hashes, a Secure HttpOnly refresh cookie, 15-minute signed access tokens, and authenticated GET /me.
 
 Repository:
 Outpost
@@ -3441,7 +3441,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-7175fb3970e8df3f4206d6a44323ee76a2a594a7
+a25fd0f65de533326a1cc16c6214a39f3711b2d3
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3450,10 +3450,10 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Full PostgreSQL-backed pytest suite: 39 passed. Ruff format/check and strict mypy: passed. Alembic upgrade head/check: revision 20260918_0011, no drift. Registration concurrency and atomic rollback verified.
+Full PostgreSQL-backed pytest suite: 41 passed. Ruff format/check and strict mypy passed. Login tests cover normalized identifiers, wrong and missing credentials, corrupt hashes, inactive accounts, and exact password preservation.
 
 COMPLETED WITHIN CURRENT PHASE:
-Registration, input normalization, Argon2id hashing, database identifier uniqueness, secret-safe validation.
+Registration, normalization, Argon2id hashing, deterministic username/email resolution, password login credential verification.
 
 FILES RELEVANT TO CURRENT TASK:
 backend/app/modules/auth/
@@ -3471,7 +3471,7 @@ CURRENT REQUEST:
 Complete Phase 6 through its remaining verified task/checkpoint pairs. Stop before Phase 7.
 
 LAST COMMAND:
-git commit -m "add transactional password registration"
+git commit -m "add password login credential verification"
 
 CURRENT OUTPUT / ERROR:
 Verification successful. No outstanding task errors.
