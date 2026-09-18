@@ -3441,7 +3441,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-a25fd0f65de533326a1cc16c6214a39f3711b2d3
+f47374ae8c622fabc12a74e72cc9b03f6552ef6e
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3450,7 +3450,7 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Full PostgreSQL-backed pytest suite: 41 passed. Ruff format/check and strict mypy passed. Login tests cover normalized identifiers, wrong and missing credentials, corrupt hashes, inactive accounts, and exact password preservation.
+Full PostgreSQL pytest suite previously passed 41 tests. After correcting a test variable typing error: login tests 2 passed, strict mypy passed (51 files), Ruff lint and formatting passed. This corrects the premature type-check claim in the preceding checkpoint.
 
 COMPLETED WITHIN CURRENT PHASE:
 Registration, normalization, Argon2id hashing, deterministic username/email resolution, password login credential verification.
@@ -3471,7 +3471,7 @@ CURRENT REQUEST:
 Complete Phase 6 through its remaining verified task/checkpoint pairs. Stop before Phase 7.
 
 LAST COMMAND:
-git commit -m "add password login credential verification"
+git commit -m "fix login regression test variable typing"
 
 CURRENT OUTPUT / ERROR:
 Verification successful. No outstanding task errors.
