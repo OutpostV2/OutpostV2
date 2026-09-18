@@ -3440,10 +3440,10 @@ CURRENT PHASE:
 Phase 6 — Password Authentication
 
 CURRENT TASK:
-Implement and verify initial sessions and access credentials (not started).
+Implement and verify current-session logout (not started).
 
 TASK GOAL:
-Expose password login with persisted refresh hashes, a Secure HttpOnly refresh cookie, 15-minute signed access tokens, and authenticated GET /me.
+Revoke the bearer-authenticated current session, clear its refresh cookie, reject subsequent access, and preserve other sessions.
 
 Repository:
 Outpost
@@ -3455,7 +3455,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-f47374ae8c622fabc12a74e72cc9b03f6552ef6e
+b9abf4a4c70bde837112dd8dd4923776cb729ed6
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3464,10 +3464,10 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Full PostgreSQL pytest suite previously passed 41 tests. After correcting a test variable typing error: login tests 2 passed, strict mypy passed (51 files), Ruff lint and formatting passed. This corrects the premature type-check claim in the preceding checkpoint.
+Full PostgreSQL-backed pytest suite: 66 passed. Ruff formatting/lint and strict mypy passed (55 files). Token expiry, claims, algorithm, signature, live session state, secure cookies, and missing signing-key failure tested.
 
 COMPLETED WITHIN CURRENT PHASE:
-Registration, normalization, Argon2id hashing, deterministic username/email resolution, password login credential verification.
+Registration, normalization, Argon2id hashing, username/email resolution, login, initial sessions, signed 15-minute access credentials, authenticated GET /me.
 
 FILES RELEVANT TO CURRENT TASK:
 backend/app/modules/auth/
@@ -3482,10 +3482,10 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-Complete Phase 6 through its remaining verified task/checkpoint pairs. Stop before Phase 7.
+Complete Phase 6 with verified logout and final package/container checks. Stop before Phase 7.
 
 LAST COMMAND:
-git commit -m "fix login regression test variable typing"
+git commit -m "add initial sessions and signed access credentials"
 
 CURRENT OUTPUT / ERROR:
 Verification successful. No outstanding task errors.
