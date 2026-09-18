@@ -2,7 +2,7 @@
 
 from enum import StrEnum
 
-from pydantic import PostgresDsn
+from pydantic import PostgresDsn, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,3 +37,12 @@ class Settings(BaseSettings):
     env: Environment = Environment.DEVELOPMENT
     log_level: LogLevel = LogLevel.INFO
     database_url: PostgresDsn
+
+    auth_signing_key: SecretStr | None = None
+
+    @field_validator("auth_signing_key")
+    @classmethod
+    def strong_signing_key(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None and len(value.get_secret_value().encode("utf-8")) < 32:
+            raise ValueError("Authentication signing key requires at least 32 bytes")
+        return value

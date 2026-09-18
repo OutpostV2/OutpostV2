@@ -1,6 +1,7 @@
 """Validated authentication inputs and safe public outputs."""
 
 import re
+from typing import Literal
 from uuid import UUID
 
 from email_validator import validate_email
@@ -60,3 +61,15 @@ class UserOutput(BaseModel):
     display_name: str
     username: str | None
     primary_email: str | None
+
+
+class LoginInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    identifier: str = Field(min_length=1, max_length=320)
+    password: SecretStr = Field(min_length=1, max_length=1024)
+
+
+class TokenOutput(BaseModel):
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    expires_in: int = 900

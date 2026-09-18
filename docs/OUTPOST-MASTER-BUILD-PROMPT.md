@@ -2719,6 +2719,7 @@ dependencies = [
   "psycopg[binary]>=3.3.5,<4",
   "pydantic>=2.13.5,<3",
   "pydantic-settings>=2.15,<3",
+  "PyJWT>=2.12.1,<3",
   "sqlalchemy>=2.0.54,<2.1",
   "uvicorn[standard]>=0.53,<1",
 ]
@@ -2764,6 +2765,9 @@ strict = true
 OUTPOST_ENV=development
 OUTPOST_LOG_LEVEL=INFO
 OUTPOST_DATABASE_URL=postgresql+psycopg://outpost:outpost-local-dev-only@127.0.0.1:5433/outpost
+
+# Required for login: supply a cryptographically random secret of at least 32 bytes.
+# OUTPOST_AUTH_SIGNING_KEY=<set-in-local-env-or-secret-store>
 ```
 
 ---
@@ -2842,7 +2846,7 @@ else:
 
 from enum import StrEnum
 
-from pydantic import PostgresDsn
+from pydantic import PostgresDsn, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -2877,6 +2881,15 @@ class Settings(BaseSettings):
     env: Environment = Environment.DEVELOPMENT
     log_level: LogLevel = LogLevel.INFO
     database_url: PostgresDsn
+
+    auth_signing_key: SecretStr | None = None
+
+    @field_validator("auth_signing_key")
+    @classmethod
+    def strong_signing_key(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None and len(value.get_secret_value().encode("utf-8")) < 32:
+            raise ValueError("Authentication signing key requires at least 32 bytes")
+        return value
 ```
 
 ---
@@ -2990,6 +3003,7 @@ def create_app(
 
     app = FastAPI(title="Outpost API", version=__version__, lifespan=lifespan)
     app.state.database_engine = database_engine
+    app.state.settings = application_settings
     install_error_handlers(app)
     install_request_id_middleware(app)
     app.include_router(api_v1_router)

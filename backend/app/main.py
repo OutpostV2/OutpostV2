@@ -47,6 +47,7 @@ def create_app(
 
     app = FastAPI(title="Outpost API", version=__version__, lifespan=lifespan)
     app.state.database_engine = database_engine
+    app.state.settings = application_settings
     install_error_handlers(app)
     install_request_id_middleware(app)
     app.include_router(api_v1_router)

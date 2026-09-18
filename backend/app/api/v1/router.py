@@ -6,6 +6,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.modules.auth.router import router as auth_router
+from app.modules.auth.router import user_router
 
 
 class ApiVersion(BaseModel):
@@ -26,3 +27,5 @@ def api_version() -> ApiVersion:
 
 
 router.include_router(auth_router)
+
+router.include_router(user_router)
