@@ -3426,67 +3426,62 @@ CURRENT PHASE:
 Phase 6 — Password Authentication
 
 CURRENT TASK:
-Implement and verify password registration (not started).
+Implement and verify password login credential resolution (not started).
 
 TASK GOAL:
-Add transactional password registration using normalized email/username input, the established password policy, Argon2id hashing, canonical user creation, and password credential creation. Add security-focused regression tests. Do not implement login or session issuance yet.
+Resolve normalized email/username, verify Argon2id, and reject invalid credentials and inactive users consistently. Session issuance is the next bounded task.
+
+Repository:
+Outpost
+
+Project root:
+D:\Shared Workspace\Projects\Outpost-New
+
+Branch:
+main
 
 LAST VERIFIED PROJECT COMMIT:
-4c39afc
+7175fb3970e8df3f4206d6a44323ee76a2a594a7
 
 CHECKPOINT FILE STATE:
-Phase 5 authentication storage is complete and verified. Security event storage is committed in the project commit above. This separate checkpoint changes only Layer 4.
+Verified project work is committed above. This separate checkpoint updates only Layer 4.
 
 Working tree at last verification:
-Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
+Clean after Commit A, before this checkpoint; verify status after Commit B.
 
-COMPLETED PHASE:
-Phase 5 — Authentication Storage
+Last verified baseline:
+Full PostgreSQL-backed pytest suite: 39 passed. Ruff format/check and strict mypy: passed. Alembic upgrade head/check: revision 20260918_0011, no drift. Registration concurrency and atomic rollback verified.
 
-COMPLETED WITHIN PHASE 5:
-- Canonical users storage.
-- One-to-one password credentials.
-- Unique normalized phone identities.
-- OAuth identities keyed by provider and stable provider subject.
-- Rotating-refresh authentication session storage.
-- HMAC-protected OTP challenge storage.
-- Hash-only email verification tokens and user verification state.
-- Hash-only password reset tokens.
-- Retention-safe authentication security events.
-
-VERIFIED BASELINE:
-- Alembic revisions `20260918_0001` through `20260918_0010` form the canonical PostgreSQL migration chain.
-- Development PostgreSQL is at `20260918_0010 (head)`; Alembic reports no pending operations locally and from the built backend image.
-- Full PostgreSQL-backed backend suite passed: 34 tests.
-- Ruff formatting and lint passed; strict mypy passed for 44 source files.
-- Backend wheel and `outpost-backend:phase5` Docker image built successfully.
-- PostgreSQL 17.11, Valkey, MinIO, and Mailpit are healthy.
+COMPLETED WITHIN CURRENT PHASE:
+Registration, input normalization, Argon2id hashing, database identifier uniqueness, secret-safe validation.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/modules/auth/ (registration service and schemas not created yet)
+backend/app/modules/auth/
 backend/app/modules/users/models.py
-backend/app/modules/auth/models.py
-backend/tests/ (new registration tests)
-backend/pyproject.toml (Argon2 dependency not added yet)
+backend/tests/integration/
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
+FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
+This file (Layer 4 only) since Commit A.
+
 ENVIRONMENT:
-Windows / PowerShell; Git and Docker verified working.
-Working directory: D:\Shared Workspace\Projects\Outpost-New
+Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-Phase 5 is complete. Await instruction before beginning Phase 6.
+Complete Phase 6 through its remaining verified task/checkpoint pairs. Stop before Phase 7.
 
 LAST COMMAND:
-git commit -m "add authentication security event storage"
+git commit -m "add transactional password registration"
 
 CURRENT OUTPUT / ERROR:
-Commit A created as `4c39afc`; full Phase 5 verification passed.
+Verification successful. No outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Registration must create `users` and `password_credentials` atomically and must never persist or log a plaintext password.
+Never persist plaintext passwords or raw refresh tokens. Never disclose account existence on login.
 
----# SESSION OPERATING RULE
+---
+
+# SESSION OPERATING RULE
 
 Whenever this prompt is loaded, follow the Layer 1 Autonomous Verified Task Loop. Read Layer 4 first and then the entire prompt, confirm the canonical root, inspect repository/Git state, and determine whether Fresh Build Mode applies. Layers 1–3 govern architecture; repository contents establish implementation truth. Preserve verified work, execute only the current task, and complete the two-commit handoff before stopping under the Layer 1 Stop Boundary.
 
