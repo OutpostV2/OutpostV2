@@ -3,7 +3,17 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, Uuid, func, text
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    Uuid,
+    func,
+    text,
+)
+from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -64,3 +74,31 @@ class OAuthIdentity(Base):
     provider_subject: Mapped[str] = mapped_column(String(255))
     provider_email: Mapped[str | None] = mapped_column(String(320))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AuthSession(Base):
+    """A revocable rotating-refresh session."""
+
+    __tablename__ = "auth_sessions"
+    __table_args__ = (
+        CheckConstraint("expires_at > created_at", name="ck_auth_sessions_expiry_after_creation"),
+        UniqueConstraint("refresh_token_hash", name="uq_auth_sessions_refresh_token_hash"),
+    )
+
+    id: Mapped[UUID] = mapped_column(
+        Uuid, primary_key=True, default=uuid4, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", name="fk_auth_sessions_user_id_users", ondelete="CASCADE"),
+        index=True,
+    )
+    token_family_id: Mapped[UUID] = mapped_column(Uuid, default=uuid4, index=True)
+    refresh_token_hash: Mapped[str] = mapped_column(String(512))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_used_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    user_agent: Mapped[str | None] = mapped_column(String(512))
+    ip_address: Mapped[str | None] = mapped_column(INET)
