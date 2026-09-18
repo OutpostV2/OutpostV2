@@ -3421,32 +3421,68 @@ D:\Shared Workspace\Projects\Outpost-New
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 5 — Authentication Storage
+Phase 6 — Password Authentication
 
 CURRENT TASK:
-Implement and verify security event storage (not started).
+Implement and verify password registration (not started).
 
 TASK GOAL:
-Add append-oriented authentication security events with optional user/session attribution, event type, occurrence time, client metadata, structured details, PostgreSQL indexes, retention-safe foreign-key behavior, and rollback. Do not implement event emission behavior.
+Add transactional password registration using normalized email/username input, the established password policy, Argon2id hashing, canonical user creation, and password credential creation. Add security-focused regression tests. Do not implement login or session issuance yet.
 
 LAST VERIFIED PROJECT COMMIT:
-19b772b
+4c39afc
 
 CHECKPOINT FILE STATE:
-Password reset token storage is verified and committed. This checkpoint changes only Layer 4.
+Phase 5 authentication storage is complete and verified. Security event storage is committed in the project commit above. This separate checkpoint changes only Layer 4.
 
-COMPLETED WITHIN CURRENT PHASE:
-- Users, password credentials, phone identities, OAuth identities, authentication sessions, OTP challenges, email verification state/tokens, and password reset state/tokens.
+Working tree at last verification:
+Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
+
+COMPLETED PHASE:
+Phase 5 — Authentication Storage
+
+COMPLETED WITHIN PHASE 5:
+- Canonical users storage.
+- One-to-one password credentials.
+- Unique normalized phone identities.
+- OAuth identities keyed by provider and stable provider subject.
+- Rotating-refresh authentication session storage.
+- HMAC-protected OTP challenge storage.
+- Hash-only email verification tokens and user verification state.
+- Hash-only password reset tokens.
+- Retention-safe authentication security events.
 
 VERIFIED BASELINE:
-Revision `20260918_0009` is at development head. Password reset tokens store only unique protected hashes with user ownership, expiration, and single-use consumption state. Targeted PostgreSQL storage/rollback, Ruff, strict mypy, and Alembic drift checks passed.
+- Alembic revisions `20260918_0001` through `20260918_0010` form the canonical PostgreSQL migration chain.
+- Development PostgreSQL is at `20260918_0010 (head)`; Alembic reports no pending operations locally and from the built backend image.
+- Full PostgreSQL-backed backend suite passed: 34 tests.
+- Ruff formatting and lint passed; strict mypy passed for 44 source files.
+- Backend wheel and `outpost-backend:phase5` Docker image built successfully.
+- PostgreSQL 17.11, Valkey, MinIO, and Mailpit are healthy.
+
+FILES RELEVANT TO CURRENT TASK:
+backend/app/modules/auth/ (registration service and schemas not created yet)
+backend/app/modules/users/models.py
+backend/app/modules/auth/models.py
+backend/tests/ (new registration tests)
+backend/pyproject.toml (Argon2 dependency not added yet)
+docs/OUTPOST-MASTER-BUILD-PROMPT.md
+
+ENVIRONMENT:
+Windows / PowerShell; Git and Docker verified working.
+Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
-Complete the final Phase 5 storage task and its verified two-commit checkpoint; do not begin Phase 6.
+Phase 5 is complete. Await instruction before beginning Phase 6.
 
-Repository: Outpost
-Project root: D:\Shared Workspace\Projects\Outpost-New
-Branch: main
+LAST COMMAND:
+git commit -m "add authentication security event storage"
+
+CURRENT OUTPUT / ERROR:
+Commit A created as `4c39afc`; full Phase 5 verification passed.
+
+OPTIONAL CURRENT FILE/SNIPPET:
+Registration must create `users` and `password_credentials` atomically and must never persist or log a plaintext password.
 
 ---# SESSION OPERATING RULE
 
