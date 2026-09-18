@@ -2,7 +2,7 @@
 
 from alembic import context
 from app.core.config import Settings
-from app.db.base import Base
+from app.db.models import Base
 from app.db.session import create_engine_from_settings
 
 target_metadata = Base.metadata
