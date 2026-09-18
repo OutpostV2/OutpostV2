@@ -35,6 +35,18 @@ Run the assembled API from `backend/` after creating `backend/.env`:
 
 Operational endpoints are available at `/health` and `/ready`. Product APIs are mounted under `/api/v1`; `GET /api/v1` reports the active API version.
 
+## Database migrations
+
+Alembic exclusively owns schema changes. From `backend/`, with `backend/.env` configured:
+
+```powershell
+.\.venv\Scripts\python.exe -m alembic upgrade head
+.\.venv\Scripts\python.exe -m alembic current
+.\.venv\Scripts\python.exe -m alembic downgrade base
+```
+
+The initial revision establishes migration ownership before domain tables exist. Application startup must not call SQLAlchemy `create_all()`.
+
 ## Frontend
 
 Run the frontend setup and quality gate from `frontend/`:
