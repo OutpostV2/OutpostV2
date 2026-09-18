@@ -3424,25 +3424,25 @@ CURRENT PHASE:
 Phase 5 — Authentication Storage
 
 CURRENT TASK:
-Implement and verify password reset state/token storage (not started).
+Implement and verify security event storage (not started).
 
 TASK GOAL:
-Add expiring, single-use, hash-only password reset tokens owned by users, with PostgreSQL uniqueness/indexes, lifecycle constraints, and rollback. Do not implement recovery delivery, password replacement, or session revocation behavior.
+Add append-oriented authentication security events with optional user/session attribution, event type, occurrence time, client metadata, structured details, PostgreSQL indexes, retention-safe foreign-key behavior, and rollback. Do not implement event emission behavior.
 
 LAST VERIFIED PROJECT COMMIT:
-0db8c92
+19b772b
 
 CHECKPOINT FILE STATE:
-Email verification token storage is verified and committed. This checkpoint changes only Layer 4.
+Password reset token storage is verified and committed. This checkpoint changes only Layer 4.
 
 COMPLETED WITHIN CURRENT PHASE:
-- Users, password credentials, phone identities, OAuth identities, authentication sessions, OTP challenges, and email verification state/tokens.
+- Users, password credentials, phone identities, OAuth identities, authentication sessions, OTP challenges, email verification state/tokens, and password reset state/tokens.
 
 VERIFIED BASELINE:
-Revision `20260918_0008` is at development head. Email verification tokens bind a protected unique hash to a user and target email, with expiration and consumption state. Targeted PostgreSQL storage/rollback, Ruff, strict mypy, and Alembic drift checks passed.
+Revision `20260918_0009` is at development head. Password reset tokens store only unique protected hashes with user ownership, expiration, and single-use consumption state. Targeted PostgreSQL storage/rollback, Ruff, strict mypy, and Alembic drift checks passed.
 
 CURRENT REQUEST:
-Complete all remaining Phase 5 storage tasks through verified two-commit checkpoints; do not begin Phase 6.
+Complete the final Phase 5 storage task and its verified two-commit checkpoint; do not begin Phase 6.
 
 Repository: Outpost
 Project root: D:\Shared Workspace\Projects\Outpost-New
