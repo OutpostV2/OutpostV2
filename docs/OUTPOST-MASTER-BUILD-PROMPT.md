@@ -3424,65 +3424,33 @@ CURRENT PHASE:
 Phase 5 — Authentication Storage
 
 CURRENT TASK:
-Implement and verify `phone_identities` storage (not started).
+Implement and verify `oauth_identities` storage (not started).
 
 TASK GOAL:
-Add the canonical one-to-many phone identity model and migration with normalized E.164 identity, verified state, uniqueness, user ownership, timestamps, PostgreSQL constraints, and rollback. Do not implement OTP behavior.
-
-Repository:
-Outpost
-
-Project root:
-D:\Shared Workspace\Projects\Outpost-New
-
-Branch:
-main
+Add provider identities keyed by provider plus stable provider subject, with optional provider email, user ownership, timestamps, PostgreSQL constraints, and rollback. Do not implement OAuth flows.
 
 LAST VERIFIED PROJECT COMMIT:
-986d273
+ed806bd
 
 CHECKPOINT FILE STATE:
-Password credential storage is verified and committed. This separate checkpoint changes only Layer 4.
-
-Working tree at last verification:
-Clean after Commit A, before this Layer 4 update.
-
-Last verified baseline:
-- `password_credentials` is one-to-one with `users` through a primary-key foreign key with cascading deletion.
-- Only the protected password hash is stored, with timezone-aware password-change and creation timestamps.
-- Revision `20260918_0003` upgrades and rolls back cleanly; the development database is at head and `alembic check` reports no pending operations.
-- Full PostgreSQL-backed tests passed (27 passed); Ruff formatting/lint and strict mypy passed.
+Phone identity storage is verified and committed. This checkpoint changes only Layer 4.
 
 COMPLETED WITHIN CURRENT PHASE:
-- Canonical users storage model and migration.
-- Password credential storage model and migration.
+- Canonical users storage.
+- Password credential storage.
+- Phone identity storage.
 
-FILES RELEVANT TO CURRENT TASK:
-backend/app/modules/auth/models.py
-backend/app/db/models.py
-backend/alembic/versions/ (new phone identities migration)
-backend/tests/integration/ (new phone identity storage test)
-docs/OUTPOST-MASTER-BUILD-PROMPT.md
-
-ENVIRONMENT:
-Windows / PowerShell; Git and Docker verified working.
-PostgreSQL 17.11 and remaining Compose services are healthy.
-Working directory: D:\Shared Workspace\Projects\Outpost-New
+VERIFIED BASELINE:
+Revision `20260918_0004` is at development head. Phone numbers are unique, normalized E.164 identifiers owned by users; ownership cascades on deletion. Targeted PostgreSQL storage/rollback, Ruff, strict mypy, and Alembic drift checks passed.
 
 CURRENT REQUEST:
-The user explicitly requested completion of Phase 5. Continue through its remaining bounded storage tasks after each verified two-commit checkpoint; do not begin Phase 6.
+Complete all remaining Phase 5 storage tasks through verified two-commit checkpoints; do not begin Phase 6.
 
-LAST COMMAND:
-git commit -m "add password credential storage"
+Repository: Outpost
+Project root: D:\Shared Workspace\Projects\Outpost-New
+Branch: main
 
-CURRENT OUTPUT / ERROR:
-Commit A created as `986d273`; task verification passed.
-
-OPTIONAL CURRENT FILE/SNIPPET:
-Phone identity must use normalized E.164 form as its unique authentication identifier.
-
----
-# SESSION OPERATING RULE
+---# SESSION OPERATING RULE
 
 Whenever this prompt is loaded, follow the Layer 1 Autonomous Verified Task Loop. Read Layer 4 first and then the entire prompt, confirm the canonical root, inspect repository/Git state, and determine whether Fresh Build Mode applies. Layers 1–3 govern architecture; repository contents establish implementation truth. Preserve verified work, execute only the current task, and complete the two-commit handoff before stopping under the Layer 1 Stop Boundary.
 
