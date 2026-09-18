@@ -3437,13 +3437,13 @@ D:\Shared Workspace\Projects\Outpost-New
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 6 — Password Authentication
+Phase 7 — Refresh and Session Security
 
 CURRENT TASK:
-Implement and verify current-session logout (not started).
+Implement and verify refresh-token rotation (not started).
 
 TASK GOAL:
-Revoke the bearer-authenticated current session, clear its refresh cookie, reject subsequent access, and preserve other sessions.
+Implement transactional POST /api/v1/auth/refresh using hashed cookie tokens and token families. Preserve prior-token evidence for replay detection and revoke a replayed family atomically. Add concurrency and security regression tests before implementation.
 
 Repository:
 Outpost
@@ -3455,7 +3455,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-b9abf4a4c70bde837112dd8dd4923776cb729ed6
+8624b306c6a34e83eb042a144e46897cc8a1870b
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3464,10 +3464,21 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Full PostgreSQL-backed pytest suite: 66 passed. Ruff formatting/lint and strict mypy passed (55 files). Token expiry, claims, algorithm, signature, live session state, secure cookies, and missing signing-key failure tested.
+Phase 6 complete. Exact final verification from backend:
+- python -m pytest --basetemp=.pytest-tmp-phase6-final with OUTPOST_TEST_DATABASE_URL: 67 passed.
+- python -m ruff check . and python -m ruff format --check .: passed (68 files formatted).
+- python -m mypy: passed (56 source files).
+- alembic current/check: 20260918_0011 (head), no pending operations; migration rollback and concurrent uniqueness tested.
+- python -m build --wheel: successful.
+- docker build -f backend/Dockerfile -t outpost-backend:phase6 .: successful.
+- Built-image Alembic current/check on the Compose network: head confirmed, no drift.
+- Container HTTP smoke on an isolated migrated database: readiness, registration, login, /me, logout, revoked access passed; database cleaned up.
+- Independent security review: no critical or important findings; ADR clarification resolved.
+- All four Compose infrastructure services healthy. Local signing key configured in ignored backend/.env; never display or commit it.
+Phase 6 delivers atomic registration, normalized unique identifiers, Argon2id hashing/verification, generic login failures, initial sessions, secure refresh cookies, signed 15-minute access JWTs, live session/user checks, and current-session logout.
 
 COMPLETED WITHIN CURRENT PHASE:
-Registration, normalization, Argon2id hashing, username/email resolution, login, initial sessions, signed 15-minute access credentials, authenticated GET /me.
+Phase 7 not started. Phase 6 requirements complete; refresh rotation and replay handling are selected next.
 
 FILES RELEVANT TO CURRENT TASK:
 backend/app/modules/auth/
@@ -3482,10 +3493,10 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-Complete Phase 6 with verified logout and final package/container checks. Stop before Phase 7.
+User requested completion of Phase 6. Completed; await instruction before executing Phase 7.
 
 LAST COMMAND:
-git commit -m "add initial sessions and signed access credentials"
+git commit -m "add current-session logout and complete password authentication"
 
 CURRENT OUTPUT / ERROR:
 Verification successful. No outstanding task errors.
