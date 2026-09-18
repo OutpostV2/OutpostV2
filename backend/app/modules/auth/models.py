@@ -17,7 +17,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import INET
+from sqlalchemy.dialects.postgresql import INET, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -197,3 +197,37 @@ class PasswordResetToken(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class SecurityEvent(Base):
+    """An append-oriented authentication security audit event."""
+
+    __tablename__ = "security_events"
+    __table_args__ = (
+        Index("ix_security_events_user_occurred_at", "user_id", "occurred_at"),
+        Index("ix_security_events_type_occurred_at", "event_type", "occurred_at"),
+    )
+
+    id: Mapped[UUID] = mapped_column(
+        Uuid, primary_key=True, default=uuid4, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", name="fk_security_events_user_id_users", ondelete="SET NULL")
+    )
+    session_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey(
+            "auth_sessions.id",
+            name="fk_security_events_session_id_auth_sessions",
+            ondelete="SET NULL",
+        ),
+        index=True,
+    )
+    event_type: Mapped[str] = mapped_column(String(100))
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    ip_address: Mapped[str | None] = mapped_column(INET)
+    user_agent: Mapped[str | None] = mapped_column(String(512))
+    event_data: Mapped[dict[str, object]] = mapped_column(
+        "event_metadata", JSONB, server_default=text("'{}'::jsonb")
+    )

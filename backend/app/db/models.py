@@ -9,6 +9,7 @@ from app.modules.auth.models import (
     PasswordCredential,
     PasswordResetToken,
     PhoneIdentity,
+    SecurityEvent,
 )
 from app.modules.users.models import User
 
@@ -21,5 +22,6 @@ __all__ = [
     "PasswordResetToken",
     "PasswordCredential",
     "PhoneIdentity",
+    "SecurityEvent",
     "User",
 ]
