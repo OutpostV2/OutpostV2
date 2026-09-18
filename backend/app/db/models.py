@@ -7,6 +7,7 @@ from app.modules.auth.models import (
     OAuthIdentity,
     OtpChallenge,
     PasswordCredential,
+    PasswordResetToken,
     PhoneIdentity,
 )
 from app.modules.users.models import User
@@ -17,6 +18,7 @@ __all__ = [
     "Base",
     "OAuthIdentity",
     "OtpChallenge",
+    "PasswordResetToken",
     "PasswordCredential",
     "PhoneIdentity",
     "User",
