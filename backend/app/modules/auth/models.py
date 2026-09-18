@@ -1,12 +1,16 @@
 """Authentication persistence models."""
 
 from datetime import datetime
+from enum import StrEnum
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
+    Enum,
     ForeignKey,
+    Index,
+    Integer,
     String,
     UniqueConstraint,
     Uuid,
@@ -102,3 +106,45 @@ class AuthSession(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     user_agent: Mapped[str | None] = mapped_column(String(512))
     ip_address: Mapped[str | None] = mapped_column(INET)
+
+
+class OtpPurpose(StrEnum):
+    """Supported phone challenge purposes."""
+
+    LOGIN = "login"
+    LINK_PHONE = "link_phone"
+
+
+class OtpChallenge(Base):
+    """A short-lived phone challenge protected by a server-held HMAC."""
+
+    __tablename__ = "otp_challenges"
+    __table_args__ = (
+        CheckConstraint(
+            "attempt_count >= 0 AND attempt_count <= 5",
+            name="ck_otp_challenges_attempt_count",
+        ),
+        CheckConstraint("expires_at > created_at", name="ck_otp_challenges_expiry"),
+        CheckConstraint(
+            "resend_available_at >= created_at", name="ck_otp_challenges_resend_cooldown"
+        ),
+        Index("ix_otp_challenges_phone_purpose", "phone_e164", "purpose"),
+    )
+
+    id: Mapped[UUID] = mapped_column(
+        Uuid, primary_key=True, default=uuid4, server_default=text("gen_random_uuid()")
+    )
+    phone_e164: Mapped[str] = mapped_column(String(32))
+    purpose: Mapped[OtpPurpose] = mapped_column(
+        Enum(
+            OtpPurpose,
+            name="otp_purpose",
+            values_callable=lambda enum_type: [member.value for member in enum_type],
+        )
+    )
+    otp_digest: Mapped[str] = mapped_column(String(128))
+    attempt_count: Mapped[int] = mapped_column(Integer, server_default=text("0"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    resend_available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
