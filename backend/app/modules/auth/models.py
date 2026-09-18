@@ -104,6 +104,14 @@ class AuthSession(Base):
     )
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    replaced_by_session_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey(
+            "auth_sessions.id",
+            name="fk_auth_sessions_replaced_by_session_id_auth_sessions",
+            ondelete="SET NULL",
+        ),
+        unique=True,
+    )
     user_agent: Mapped[str | None] = mapped_column(String(512))
     ip_address: Mapped[str | None] = mapped_column(INET)
 

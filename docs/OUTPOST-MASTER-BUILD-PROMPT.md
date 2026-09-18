@@ -1360,6 +1360,7 @@ id                  UUID PK
 user_id             UUID FK
 token_family_id     UUID
 refresh_token_hash  String
+replaced_by_session_id UUID nullable FK → auth_sessions.id
 created_at          Timestamp
 last_used_at        Timestamp
 expires_at          Timestamp
