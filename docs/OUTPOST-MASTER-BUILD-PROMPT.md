@@ -3424,22 +3424,22 @@ CURRENT PHASE:
 Phase 5 — Authentication Storage
 
 CURRENT TASK:
-Implement and verify OTP challenge storage (not started).
+Implement and verify email verification state/token storage (not started).
 
 TASK GOAL:
-Add protected phone OTP challenge persistence with purpose, HMAC digest only, expiration, single-use state, attempt limits, resend cooldown state, PostgreSQL constraints/indexes, and rollback. Do not implement OTP generation, delivery, or verification behavior.
+Add expiring, single-use, hash-only email verification tokens owned by users, with PostgreSQL uniqueness/indexes, lifecycle constraints, and rollback. Do not implement email delivery or verification behavior.
 
 LAST VERIFIED PROJECT COMMIT:
-c753732
+8982222
 
 CHECKPOINT FILE STATE:
-Authentication session storage is verified and committed. This checkpoint changes only Layer 4.
+OTP challenge storage is verified and committed. This checkpoint changes only Layer 4.
 
 COMPLETED WITHIN CURRENT PHASE:
-- Users, password credentials, phone identities, OAuth identities, and authentication sessions.
+- Users, password credentials, phone identities, OAuth identities, authentication sessions, and OTP challenges.
 
 VERIFIED BASELINE:
-Revision `20260918_0006` is at development head. Sessions use hash-only refresh token storage, token-family tracking, revocation/expiry lifecycle, client metadata, and indexed lookup fields. Targeted PostgreSQL storage/rollback, Ruff, strict mypy, and Alembic drift checks passed.
+Revision `20260918_0007` is at development head. OTP challenges persist only an HMAC digest and enforce expiration, five-attempt maximum, resend cooldown state, purpose, and single-use consumption state. Targeted PostgreSQL storage/rollback, Ruff, strict mypy, and Alembic drift checks passed.
 
 CURRENT REQUEST:
 Complete all remaining Phase 5 storage tasks through verified two-commit checkpoints; do not begin Phase 6.
