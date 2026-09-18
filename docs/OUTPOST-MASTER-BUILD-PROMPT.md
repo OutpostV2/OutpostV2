@@ -3424,25 +3424,22 @@ CURRENT PHASE:
 Phase 5 — Authentication Storage
 
 CURRENT TASK:
-Implement and verify `auth_sessions` storage (not started).
+Implement and verify OTP challenge storage (not started).
 
 TASK GOAL:
-Add refresh-session persistence with user ownership, token families, hash-only refresh token storage, lifecycle timestamps, optional client metadata, PostgreSQL indexes/constraints, and rollback. Do not implement token issuance or rotation behavior.
+Add protected phone OTP challenge persistence with purpose, HMAC digest only, expiration, single-use state, attempt limits, resend cooldown state, PostgreSQL constraints/indexes, and rollback. Do not implement OTP generation, delivery, or verification behavior.
 
 LAST VERIFIED PROJECT COMMIT:
-e62a765
+c753732
 
 CHECKPOINT FILE STATE:
-OAuth identity storage is verified and committed. This checkpoint changes only Layer 4.
+Authentication session storage is verified and committed. This checkpoint changes only Layer 4.
 
 COMPLETED WITHIN CURRENT PHASE:
-- Users.
-- Password credentials.
-- Phone identities.
-- OAuth identities.
+- Users, password credentials, phone identities, OAuth identities, and authentication sessions.
 
 VERIFIED BASELINE:
-Revision `20260918_0005` is at development head. Provider identity uniqueness is keyed by provider plus stable provider subject, independent of provider email. Targeted PostgreSQL storage/rollback, Ruff, strict mypy, and Alembic drift checks passed.
+Revision `20260918_0006` is at development head. Sessions use hash-only refresh token storage, token-family tracking, revocation/expiry lifecycle, client metadata, and indexed lookup fields. Targeted PostgreSQL storage/rollback, Ruff, strict mypy, and Alembic drift checks passed.
 
 CURRENT REQUEST:
 Complete all remaining Phase 5 storage tasks through verified two-commit checkpoints; do not begin Phase 6.
