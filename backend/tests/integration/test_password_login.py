@@ -47,9 +47,9 @@ def test_login_resolves_email_username_and_hides_failure_reasons(
         assert str(error.value) == "Invalid credentials"
     for status in (UserStatus.SUSPENDED, UserStatus.DELETED):
         with Session(engine) as session, session.begin():
-            user = session.get(User, user_id)
-            assert user is not None
-            user.status = status
+            stored_user = session.get(User, user_id)
+            assert stored_user is not None
+            stored_user.status = status
         with (
             Session(engine) as session,
             pytest.raises(UnauthorizedError, match="Invalid credentials"),
