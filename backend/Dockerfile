@@ -10,4 +10,4 @@ COPY backend/app ./app
 
 RUN python -m pip install --no-cache-dir .
 
-CMD ["python", "-c", "import app; print('Outpost backend foundation ready')"]
+CMD ["python", "-m", "uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

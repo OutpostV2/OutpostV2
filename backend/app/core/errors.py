@@ -8,6 +8,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.middleware import get_request_id
 
@@ -123,6 +124,15 @@ async def validation_error_handler(request: Request, error: RequestValidationErr
     )
 
 
+async def http_error_handler(request: Request, error: StarletteHTTPException) -> JSONResponse:
+    """Serialize framework HTTP failures through the stable error envelope."""
+
+    del request
+    code = "not_found" if error.status_code == 404 else "http_error"
+    message = error.detail if isinstance(error.detail, str) else "Request failed"
+    return _response(error.status_code, code, message)
+
+
 async def unhandled_error_handler(request: Request, error: Exception) -> JSONResponse:
     """Return a safe response for unexpected failures."""
 
@@ -146,9 +156,16 @@ async def _dispatch_validation_error(request: Request, error: Exception) -> JSON
     return await validation_error_handler(request, error)
 
 
+async def _dispatch_http_error(request: Request, error: Exception) -> JSONResponse:
+    if not isinstance(error, StarletteHTTPException):
+        raise TypeError("HTTP handler received an incompatible exception")
+    return await http_error_handler(request, error)
+
+
 def install_error_handlers(app: FastAPI) -> None:
     """Install the Outpost error contract on a FastAPI application."""
 
     app.add_exception_handler(AppError, _dispatch_app_error)
     app.add_exception_handler(RequestValidationError, _dispatch_validation_error)
+    app.add_exception_handler(StarletteHTTPException, _dispatch_http_error)
     app.add_exception_handler(Exception, unhandled_error_handler)

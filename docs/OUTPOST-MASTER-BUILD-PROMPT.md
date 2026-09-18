@@ -2717,6 +2717,7 @@ dependencies = [
   "pydantic>=2.13.5,<3",
   "pydantic-settings>=2.15,<3",
   "sqlalchemy>=2.0.54,<2.1",
+  "uvicorn[standard]>=0.53,<1",
 ]
 
 [project.optional-dependencies]
@@ -2898,6 +2899,7 @@ from sqlalchemy import Engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import __version__
+from app.api.v1.router import router as api_v1_router
 from app.core.config import Settings
 from app.core.errors import ServiceUnavailableError, install_error_handlers
 from app.core.logging import configure_logging
@@ -2912,18 +2914,19 @@ class OperationalStatus(BaseModel):
 
 
 def create_app(
-    settings: Settings,
+    settings: Settings | None = None,
     *,
     engine: Engine | None = None,
     configure_logs: bool = True,
 ) -> FastAPI:
     """Build the Outpost API with its verified core infrastructure."""
 
+    application_settings = settings or Settings()
     if configure_logs:
-        configure_logging(settings)
+        configure_logging(application_settings)
 
     owns_engine = engine is None
-    database_engine = engine or create_engine_from_settings(settings)
+    database_engine = engine or create_engine_from_settings(application_settings)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -2935,6 +2938,7 @@ def create_app(
     app.state.database_engine = database_engine
     install_error_handlers(app)
     install_request_id_middleware(app)
+    app.include_router(api_v1_router)
 
     @app.get("/health", response_model=OperationalStatus, include_in_schema=False)
     def health() -> OperationalStatus:

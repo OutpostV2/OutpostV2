@@ -27,6 +27,14 @@ Run the backend quality gate from `backend/`:
 .\.venv\Scripts\python.exe -m build --wheel
 ```
 
+Run the assembled API from `backend/` after creating `backend/.env`:
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8000
+```
+
+Operational endpoints are available at `/health` and `/ready`. Product APIs are mounted under `/api/v1`; `GET /api/v1` reports the active API version.
+
 ## Frontend
 
 Run the frontend setup and quality gate from `frontend/`:
@@ -112,7 +120,7 @@ docker build --file backend/Dockerfile --tag outpost-backend:local .
 docker build --file frontend/Dockerfile --tag outpost-frontend:local .
 ```
 
-The backend image validates the installable package foundation. The frontend image builds the static application and serves it with Nginx. The local Compose stack contains PostgreSQL, Redis-compatible Valkey, MinIO object storage, and Mailpit email capture.
+The backend image runs the FastAPI application on port 8000. The frontend image builds the static application and serves it with Nginx. The local Compose stack contains PostgreSQL, Redis-compatible Valkey, MinIO object storage, and Mailpit email capture.
 
 ## Architecture records
 
