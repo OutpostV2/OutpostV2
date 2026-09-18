@@ -3424,10 +3424,10 @@ CURRENT PHASE:
 Phase 5 — Authentication Storage
 
 CURRENT TASK:
-Implement and verify the `users` storage model and migration (not started).
+Implement and verify `password_credentials` storage (not started).
 
 TASK GOAL:
-Define the canonical `users` SQLAlchemy model and Alembic migration with UUID identity, profile fields, email verification state, nullable unique username, account status, and timestamps. Write migration and PostgreSQL storage tests first. Do not begin password credentials or other authentication tables.
+Add the one-to-one password credential model and migration with `user_id` as both primary key and foreign key, protected password hash storage, password-change time, and creation time. Verify PostgreSQL constraints and rollback. Do not implement hashing or password authentication behavior.
 
 Repository:
 Outpost
@@ -3439,31 +3439,30 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-75b367ae13fc026777351d5af417ec446636f819
+6466084673fd04e4a10a7ba018b81227f5c1f815
 
 CHECKPOINT FILE STATE:
-Phase 4 is complete. Alembic configuration, typed runtime integration, baseline revision, migration template, isolated PostgreSQL migration test, container support, documentation, and affected canonical Layer 3 records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+The canonical `users` model, PostgreSQL enum, Alembic registry, users migration, isolated migration/storage tests, and canonical Alembic environment update are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- Alembic 1.20 loads the database URL through typed `Settings`, uses `Base.metadata`, and owns schema evolution through revision `20260918_0001`.
-- An isolated empty PostgreSQL database upgraded to head, contained only `alembic_version`, downgraded to base with no revision row, and was removed.
-- The canonical development database is at `20260918_0001 (head)` with only `alembic_version`; host and container `alembic check` report no pending operations.
-- The broader suite (`21 passed, 4 skipped`), live PostgreSQL integration (`4 passed`), Ruff formatting/lint (`29 files`), strict mypy (`27 source files`), wheel build, Docker image build, offline SQL generation, and container migration checks succeeded.
-- All Phase 4 requirements are implemented and verified; Alembic is the exclusive schema owner.
+- `users` has UUID identity, required display name, nullable primary email and verified timestamp, nullable unique username, lifecycle enum, and timezone-aware timestamps; it contains no authorization role.
+- Revision `20260918_0002` upgrades and rolls back cleanly; the development database is at that head and `alembic check` reports no pending operations.
+- Users and baseline migration tests passed (`2 passed`); broader tests passed (`21 passed, 5 skipped`), live integration passed (`5 passed`), Ruff and strict mypy passed, and the wheel built successfully.
+- Phase 4 remains verified and Alembic remains the exclusive schema owner.
 
 COMPLETED WITHIN CURRENT PHASE:
-None — Phase 5 is selected but not started.
+- Canonical users storage model and migration.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/modules/users/__init__.py (not created yet)
-backend/app/modules/users/models.py (not created yet)
-backend/app/db/base.py
-backend/alembic/env.py
-backend/alembic/versions/ (new users migration not created yet)
-backend/tests/integration/test_user_storage.py (not created yet)
+backend/app/modules/auth/__init__.py (not created yet)
+backend/app/modules/auth/models.py (not created yet)
+backend/app/modules/users/models.py
+backend/app/db/models.py
+backend/alembic/versions/ (new password credentials migration not created yet)
+backend/tests/integration/test_auth_storage.py (not created yet)
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3477,16 +3476,16 @@ PostgreSQL 17.11 and the remaining Compose services are configured, healthy, and
 Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
-The user explicitly requested completion of Phase 4. Phase 4 is complete; Phase 5 is selected as the next chronological phase and has not been implemented.
+The user explicitly requested completion of Phase 5. Continue through its remaining bounded storage tasks after each verified two-commit checkpoint; do not begin Phase 6.
 
 LAST COMMAND:
-git commit -m "initialize Alembic migration foundation"
+git commit -m "add canonical user storage"
 
 CURRENT OUTPUT / ERROR:
-Commit A created as `75b367a`; working tree clean before this Layer 4-only update. The complete Phase 4 migration, PostgreSQL, quality, package, image, and container verification gate passed.
+Commit A created as `6466084`; working tree clean before this Layer 4-only update. Users migration, PostgreSQL storage, rollback, quality, and package verification passed.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-No application tables exist yet. The next task begins Phase 5 with `users`; preserve the ordered storage specification and let Alembic create the schema.
+Store only password hashes, never plaintext passwords. Password hashing behavior belongs to Phase 6; this task establishes storage and referential integrity only.
 
 ---
 
