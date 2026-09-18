@@ -3,6 +3,7 @@
 from app.db.base import Base
 from app.modules.auth.models import (
     AuthSession,
+    EmailVerificationToken,
     OAuthIdentity,
     OtpChallenge,
     PasswordCredential,
@@ -12,6 +13,7 @@ from app.modules.users.models import User
 
 __all__ = [
     "AuthSession",
+    "EmailVerificationToken",
     "Base",
     "OAuthIdentity",
     "OtpChallenge",
