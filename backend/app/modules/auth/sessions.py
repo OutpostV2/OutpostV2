@@ -9,7 +9,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
-from app.core.errors import UnauthorizedError
+from app.core.errors import NotFoundError, UnauthorizedError
 from app.modules.auth.models import AuthSession, SecurityEvent
 from app.modules.auth.schemas import LoginInput
 from app.modules.auth.service import authenticate_password
@@ -195,6 +195,56 @@ def list_active_sessions(session: Session, user_id: UUID) -> list[AuthSession]:
             )
         )
     )
+
+
+def revoke_owned_session(
+    session: Session,
+    user_id: UUID,
+    session_id: UUID,
+    *,
+    is_current: bool,
+) -> bool:
+    """Idempotently revoke an owned logical session family and one audit event."""
+    owner_id = session.scalar(select(User.id).where(User.id == user_id).with_for_update())
+    if owner_id is None:
+        raise NotFoundError("Session not found")
+    target = session.scalars(
+        select(AuthSession)
+        .where(AuthSession.id == session_id, AuthSession.user_id == user_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).one_or_none()
+    if target is None:
+        raise NotFoundError("Session not found")
+    active_family = list(
+        session.scalars(
+            select(AuthSession)
+            .where(
+                AuthSession.token_family_id == target.token_family_id,
+                AuthSession.revoked_at.is_(None),
+            )
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    )
+    changed = bool(active_family)
+    if changed:
+        now = datetime.now(UTC)
+        for member in active_family:
+            member.revoked_at = now
+        session.add(
+            SecurityEvent(
+                user_id=user_id,
+                session_id=target.id,
+                event_type="authentication.session_revoked",
+                event_data={
+                    "current": is_current,
+                    "token_family_id": str(target.token_family_id),
+                },
+            )
+        )
+    session.commit()
+    return changed
 
 
 def revoke_current_session(session: Session, auth_session: AuthSession) -> None:

@@ -2,6 +2,7 @@
 
 from contextlib import suppress
 from ipaddress import ip_address
+from uuid import UUID
 
 from fastapi import APIRouter, Request, Response
 
@@ -22,6 +23,7 @@ from app.modules.auth.sessions import (
     list_active_sessions,
     password_login,
     revoke_current_session,
+    revoke_owned_session,
     rotate_refresh_session,
 )
 
@@ -117,6 +119,31 @@ def sessions(
         )
         for item in list_active_sessions(session, auth[0].id)
     ]
+
+
+@router.delete("/sessions/{session_id}", status_code=204)
+def revoke_session(
+    session_id: UUID,
+    auth: CurrentAuth,
+    session: DatabaseSession,
+) -> Response:
+    is_current = session_id == auth[1].id
+    revoke_owned_session(
+        session,
+        auth[0].id,
+        session_id,
+        is_current=is_current,
+    )
+    response = Response(status_code=204, headers={"Cache-Control": "no-store"})
+    if is_current:
+        response.delete_cookie(
+            REFRESH_COOKIE,
+            path=COOKIE_PATH,
+            secure=True,
+            httponly=True,
+            samesite="strict",
+        )
+    return response
 
 
 user_router = APIRouter(tags=["users"])
