@@ -3424,10 +3424,10 @@ CURRENT PHASE:
 Phase 5 — Authentication Storage
 
 CURRENT TASK:
-Implement and verify `password_credentials` storage (not started).
+Implement and verify `phone_identities` storage (not started).
 
 TASK GOAL:
-Add the one-to-one password credential model and migration with `user_id` as both primary key and foreign key, protected password hash storage, password-change time, and creation time. Verify PostgreSQL constraints and rollback. Do not implement hashing or password authentication behavior.
+Add the canonical one-to-many phone identity model and migration with normalized E.164 identity, verified state, uniqueness, user ownership, timestamps, PostgreSQL constraints, and rollback. Do not implement OTP behavior.
 
 Repository:
 Outpost
@@ -3439,56 +3439,50 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-6466084673fd04e4a10a7ba018b81227f5c1f815
+986d273
 
 CHECKPOINT FILE STATE:
-The canonical `users` model, PostgreSQL enum, Alembic registry, users migration, isolated migration/storage tests, and canonical Alembic environment update are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+Password credential storage is verified and committed. This separate checkpoint changes only Layer 4.
 
 Working tree at last verification:
-Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
+Clean after Commit A, before this Layer 4 update.
 
 Last verified baseline:
-- `users` has UUID identity, required display name, nullable primary email and verified timestamp, nullable unique username, lifecycle enum, and timezone-aware timestamps; it contains no authorization role.
-- Revision `20260918_0002` upgrades and rolls back cleanly; the development database is at that head and `alembic check` reports no pending operations.
-- Users and baseline migration tests passed (`2 passed`); broader tests passed (`21 passed, 5 skipped`), live integration passed (`5 passed`), Ruff and strict mypy passed, and the wheel built successfully.
-- Phase 4 remains verified and Alembic remains the exclusive schema owner.
+- `password_credentials` is one-to-one with `users` through a primary-key foreign key with cascading deletion.
+- Only the protected password hash is stored, with timezone-aware password-change and creation timestamps.
+- Revision `20260918_0003` upgrades and rolls back cleanly; the development database is at head and `alembic check` reports no pending operations.
+- Full PostgreSQL-backed tests passed (27 passed); Ruff formatting/lint and strict mypy passed.
 
 COMPLETED WITHIN CURRENT PHASE:
 - Canonical users storage model and migration.
+- Password credential storage model and migration.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/modules/auth/__init__.py (not created yet)
-backend/app/modules/auth/models.py (not created yet)
-backend/app/modules/users/models.py
+backend/app/modules/auth/models.py
 backend/app/db/models.py
-backend/alembic/versions/ (new password credentials migration not created yet)
-backend/tests/integration/test_auth_storage.py (not created yet)
+backend/alembic/versions/ (new phone identities migration)
+backend/tests/integration/ (new phone identity storage test)
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
-FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
-Since Commit A above: docs/OUTPOST-MASTER-BUILD-PROMPT.md (Layer 4 only).
-
 ENVIRONMENT:
-Windows / PowerShell; Git verified working.
-Python 3.13.15, Node 26.7.0, npm 12.0.2 verified.
-Docker Desktop 4.91.0; Docker Engine/CLI 29.8.0; Docker Compose 5.5.1; WSL 2.7.14.0 verified.
-PostgreSQL 17.11 and the remaining Compose services are configured, healthy, and running. Backend PostgreSQL host and container probes are verified.
+Windows / PowerShell; Git and Docker verified working.
+PostgreSQL 17.11 and remaining Compose services are healthy.
 Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
 The user explicitly requested completion of Phase 5. Continue through its remaining bounded storage tasks after each verified two-commit checkpoint; do not begin Phase 6.
 
 LAST COMMAND:
-git commit -m "add canonical user storage"
+git commit -m "add password credential storage"
 
 CURRENT OUTPUT / ERROR:
-Commit A created as `6466084`; working tree clean before this Layer 4-only update. Users migration, PostgreSQL storage, rollback, quality, and package verification passed.
+Commit A created as `986d273`; task verification passed.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Store only password hashes, never plaintext passwords. Password hashing behavior belongs to Phase 6; this task establishes storage and referential integrity only.
+Phone identity must use normalized E.164 form as its unique authentication identifier.
 
 ---
-
 # SESSION OPERATING RULE
 
 Whenever this prompt is loaded, follow the Layer 1 Autonomous Verified Task Loop. Read Layer 4 first and then the entire prompt, confirm the canonical root, inspect repository/Git state, and determine whether Fresh Build Mode applies. Layers 1–3 govern architecture; repository contents establish implementation truth. Preserve verified work, execute only the current task, and complete the two-commit handoff before stopping under the Layer 1 Stop Boundary.
+
