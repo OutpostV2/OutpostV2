@@ -3369,13 +3369,13 @@ D:\Shared Workspace\Projects\Outpost-New
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 3 — Backend Core
+Phase 4 — Alembic Foundation
 
 CURRENT TASK:
-Implement and verify the `/api/v1` router foundation (not started).
+Initialize Alembic and verify empty PostgreSQL upgrade and rollback (not started).
 
 TASK GOAL:
-Create and mount the versioned `/api/v1` router, expose a minimal version discovery response, and make the backend container run the assembled FastAPI application. Verify the complete Phase 3 runtime from host tests and a container on the Compose network. Do not begin Alembic, schemas, migrations, or domain modules.
+Initialize Alembic as the exclusive schema owner, use the typed Outpost database configuration, and verify upgrade to head against an empty PostgreSQL database plus a clean rollback. Do not begin authentication storage or domain schemas.
 
 Repository:
 Outpost
@@ -3387,34 +3387,32 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-5e9c2f2344474a3b00a8a6e90b8e9668d7735cfb
+f8c3ac11766a219045e93d792bba6999720894d9
 
 CHECKPOINT FILE STATE:
-The FastAPI application factory, liveness endpoint, PostgreSQL-backed readiness endpoint, structured unavailable response, API/integration tests, and canonical Layer 3 application record are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
+Phase 3 is complete. The versioned API router, stable framework 404 response, runnable Uvicorn container, tests, documentation, and affected canonical Layer 3 records are verified and committed in Commit A above. This separate checkpoint changes only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean after Commit A, before this Layer 4 update. Verify and report final Git status after Commit B.
 
 Last verified baseline:
-- `create_app` assembles settings-driven logging, structured errors, request ID middleware, and a PostgreSQL engine without requiring global mutable application state.
-- `/health` reports process liveness without database access; `/ready` executes `SELECT 1` and returns either `ready` or a correlated structured 503.
-- Ruff formatting/lint, strict mypy, the broader suite (`18 passed, 3 skipped`), and live PostgreSQL/API integration tests (`3 passed`) succeeded.
-- Configuration, database sessions, structured errors, request IDs, logging, and Phase 2 services remain verified.
+- `/api/v1` returns `Outpost API` / `v1`, is included in OpenAPI, and unknown API versions use the correlated structured `not_found` envelope.
+- The backend image boots Uvicorn and passed `/health`, PostgreSQL-backed `/ready`, and `/api/v1` probes from a temporary container on the Compose network.
+- Router tests (`3 passed`), the broader suite (`21 passed, 3 skipped`), live PostgreSQL integration (`3 passed`), Ruff formatting/lint, strict mypy (`26 source files`), and wheel/image builds succeeded.
+- PostgreSQL 17.11, Valkey, MinIO, and Mailpit are healthy after Docker Desktop recovery; no temporary backend container remains.
+- All Phase 3 requirements are implemented and verified.
 
 COMPLETED WITHIN CURRENT PHASE:
-- Typed backend application configuration.
-- SQLAlchemy engine, declarative base, and transaction-safe session lifecycle.
-- Structured application and validation error contract.
-- Request ID generation, validation, request scope, response propagation, and error correlation.
-- Structured JSON logging and correlated HTTP completion/error records.
-- FastAPI application factory with liveness and PostgreSQL-backed readiness endpoints.
+None — Phase 4 is selected but not started.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/api/v1/router.py (not created yet)
-backend/app/main.py
-backend/tests/test_router.py (not created yet)
-backend/Dockerfile
+backend/alembic.ini (not created yet)
+backend/alembic/env.py (not created yet)
+backend/alembic/versions/ (not created yet)
+backend/app/db/base.py
+backend/app/db/session.py
 backend/pyproject.toml
+backend/tests/integration/test_migrations.py (not created yet)
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3428,16 +3426,16 @@ PostgreSQL 17.11 and the remaining Compose services are configured, healthy, and
 Working directory: D:\Shared Workspace\Projects\Outpost-New
 
 CURRENT REQUEST:
-The user explicitly requested completion of Phase 3. After this checkpoint, continue with the selected database session task and subsequent verified Phase 3 tasks; do not begin Phase 4.
+The user explicitly requested completion of Phase 3. Phase 3 is complete; Phase 4 is selected as the next chronological phase and has not been implemented.
 
 LAST COMMAND:
-git commit -m "add health and readiness endpoints"
+git commit -m "add versioned API router"
 
 CURRENT OUTPUT / ERROR:
-Commit A created as `5e9c2f2`; working tree clean before this Layer 4-only update. Liveness, unavailable-readiness, live PostgreSQL readiness, and the full backend quality gate passed.
+Commit A created as `f8c3ac1`; working tree clean before this Layer 4-only update. The complete Phase 3 host, database, package, image, and container verification gate passed.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Preserve operational endpoints at the root and mount product routing only under `/api/v1`. This final Phase 3 task should prove the assembled host and container runtime, then advance Layer 4 to Phase 4 without implementing it.
+Alembic files and migration tests do not exist yet. Begin with test-first initialization on the next authorized run and keep schema ownership exclusively in Alembic.
 
 ---
 
