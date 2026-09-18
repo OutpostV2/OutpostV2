@@ -3424,24 +3424,25 @@ CURRENT PHASE:
 Phase 5 — Authentication Storage
 
 CURRENT TASK:
-Implement and verify `oauth_identities` storage (not started).
+Implement and verify `auth_sessions` storage (not started).
 
 TASK GOAL:
-Add provider identities keyed by provider plus stable provider subject, with optional provider email, user ownership, timestamps, PostgreSQL constraints, and rollback. Do not implement OAuth flows.
+Add refresh-session persistence with user ownership, token families, hash-only refresh token storage, lifecycle timestamps, optional client metadata, PostgreSQL indexes/constraints, and rollback. Do not implement token issuance or rotation behavior.
 
 LAST VERIFIED PROJECT COMMIT:
-ed806bd
+e62a765
 
 CHECKPOINT FILE STATE:
-Phone identity storage is verified and committed. This checkpoint changes only Layer 4.
+OAuth identity storage is verified and committed. This checkpoint changes only Layer 4.
 
 COMPLETED WITHIN CURRENT PHASE:
-- Canonical users storage.
-- Password credential storage.
-- Phone identity storage.
+- Users.
+- Password credentials.
+- Phone identities.
+- OAuth identities.
 
 VERIFIED BASELINE:
-Revision `20260918_0004` is at development head. Phone numbers are unique, normalized E.164 identifiers owned by users; ownership cascades on deletion. Targeted PostgreSQL storage/rollback, Ruff, strict mypy, and Alembic drift checks passed.
+Revision `20260918_0005` is at development head. Provider identity uniqueness is keyed by provider plus stable provider subject, independent of provider email. Targeted PostgreSQL storage/rollback, Ruff, strict mypy, and Alembic drift checks passed.
 
 CURRENT REQUEST:
 Complete all remaining Phase 5 storage tasks through verified two-commit checkpoints; do not begin Phase 6.
