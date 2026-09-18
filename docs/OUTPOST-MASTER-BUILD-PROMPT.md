@@ -3441,10 +3441,10 @@ CURRENT PHASE:
 Phase 7 — Refresh and Session Security
 
 CURRENT TASK:
-Implement and verify authenticated session revocation (not started).
+Implement and verify logout-all session revocation (not started).
 
 TASK GOAL:
-Implement DELETE /api/v1/auth/sessions/{session_id} so an authenticated user can revoke a session they own without exposing whether another user's session exists. Preserve idempotent security semantics, record the revocation event atomically, and verify current-session, cross-user, repeated-request, and concurrency behavior.
+Implement POST /api/v1/auth/logout-all to revoke every active session family owned by the authenticated user, clear the caller's refresh cookie, and record the security action atomically. Verify cross-user isolation, access and refresh invalidation, idempotency, rollback, and concurrency with refresh rotation.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-6936bd59ab885ae74ddeefaa6ff23c9d8541fab9
+c4e7badcb51f1aca7c35eb8e1495f12ae1a56a2a
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,29 +3465,28 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 7 authenticated session-listing task complete. Exact final verification:
-- .venv\Scripts\python.exe -m pytest -o addopts='' -q --basetemp=.pytest-tmp-session-list-final with OUTPOST_TEST_DATABASE_URL: all 73 collected backend tests passed.
-- Targeted session-listing integration test: 1 passed; active-leaf visibility, revoked/expired/rotated exclusion, cross-user isolation, deterministic ordering, current-session marking, safe fields, authentication, and three-SELECT bound verified.
-- python -m ruff check app tests alembic and python -m ruff format --check app tests alembic: passed (71 files formatted).
-- python -m mypy: passed (58 source files).
+Phase 7 authenticated session-revocation task complete. Exact final verification:
+- .venv\Scripts\python.exe -m pytest -o addopts='' -q --basetemp=.pytest-tmp-session-revoke-final3 with OUTPOST_TEST_DATABASE_URL: all 76 collected backend tests passed.
+- Targeted session-revocation suite: 3 passed; ownership isolation, foreign/missing nondisclosure, idempotency, current-cookie clearing, family revocation across rotation, concurrent cached-state handling, single-event behavior, and transactional rollback verified.
+- python -m ruff check app tests alembic and python -m ruff format --check app tests alembic: passed (72 files formatted).
+- python -m mypy: passed (59 source files).
 - alembic current/check: 20260918_0012 (head), no pending operations.
 - python -m build --wheel: successful.
-- docker build -f backend/Dockerfile -t outpost-backend:phase7-sessions .: successful.
-- Built-image isolated-database smoke: migration, readiness, registration, two logins, safe session listing, and current-session marking passed; temporary container and database removed.
-- Independent review found no critical or important issues.
+- docker build -f backend/Dockerfile -t outpost-backend:phase7-revoke .: successful.
+- Built-image isolated-database smoke: rotated-family revocation and successor access invalidation passed; temporary container and database removed.
+- Independent review identified stale rotated-family, lock-order, and ORM-cache concurrency issues; all were fixed and re-review found no remaining critical or important issues.
 - All four Compose infrastructure services healthy. Local signing key remains in ignored backend/.env; never display or commit it.
-Phase 7 now provides hashed rotating refresh cookies, durable token-family lineage, atomic replay-family revocation, concurrency-safe refresh transitions, and authenticated active-session listing.
+Phase 7 now provides hashed rotating refresh cookies, durable token-family lineage, atomic replay-family revocation, concurrency-safe refresh transitions, active-session listing, and ownership-scoped logical-session revocation.
 
 COMPLETED WITHIN CURRENT PHASE:
-Refresh hashes, rotation, token families, replay detection, and session listing complete. Session revocation is selected next.
+Refresh hashes, rotation, token families, replay detection, session listing, and session revocation complete. Logout all is selected next.
 
 FILES RELEVANT TO CURRENT TASK:
 backend/app/modules/auth/models.py
 backend/app/modules/auth/router.py
-backend/app/modules/auth/schemas.py
 backend/app/modules/auth/sessions.py
-backend/tests/integration/test_session_listing.py
 backend/tests/integration/test_session_revocation.py
+backend/tests/integration/test_logout_all.py
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3497,10 +3496,10 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User requested continuation. Authenticated session listing completed; await instruction before session revocation.
+User requested continuation. Authenticated session revocation completed; await instruction before logout all.
 
 LAST COMMAND:
-git commit -m "add authenticated session listing"
+git commit -m "add authenticated session revocation"
 
 CURRENT OUTPUT / ERROR:
 Verification successful. No outstanding task errors.
