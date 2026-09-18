@@ -3441,10 +3441,10 @@ CURRENT PHASE:
 Phase 7 — Refresh and Session Security
 
 CURRENT TASK:
-Implement and verify refresh-token rotation (not started).
+Implement and verify authenticated session listing (not started).
 
 TASK GOAL:
-Implement transactional POST /api/v1/auth/refresh using hashed cookie tokens and token families. Preserve prior-token evidence for replay detection and revoke a replayed family atomically. Add concurrency and security regression tests before implementation.
+Implement GET /api/v1/auth/sessions for the authenticated user with safe session metadata, deterministic ordering, and a current-session indicator. Define and test the visibility policy for active, rotated, expired, and revoked sessions; verify cross-user isolation and bounded query behavior.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-8624b306c6a34e83eb042a144e46897cc8a1870b
+7e794d9cdc2f10243678dd74290b9b0181b680b1
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,26 +3465,29 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 6 complete. Exact final verification from backend:
-- python -m pytest --basetemp=.pytest-tmp-phase6-final with OUTPOST_TEST_DATABASE_URL: 67 passed.
-- python -m ruff check . and python -m ruff format --check .: passed (68 files formatted).
-- python -m mypy: passed (56 source files).
-- alembic current/check: 20260918_0011 (head), no pending operations; migration rollback and concurrent uniqueness tested.
+Phase 7 refresh-token rotation task complete. Exact final verification:
+- .venv\Scripts\python.exe -m pytest -o addopts='' -q --basetemp=.pytest-tmp-phase7-final2 with OUTPOST_TEST_DATABASE_URL: all 72 collected backend tests passed.
+- Targeted refresh suite: 5 passed, covering rotation, replay, same-token concurrency, ancestor-replay/descendant-rotation concurrency, transactional rollback, and migration rollback.
+- python -m ruff check app tests alembic and python -m ruff format --check app tests alembic: passed (70 files formatted).
+- python -m mypy: passed (57 source files).
+- alembic current/check: 20260918_0012 (head), no pending operations.
 - python -m build --wheel: successful.
-- docker build -f backend/Dockerfile -t outpost-backend:phase6 .: successful.
-- Built-image Alembic current/check on the Compose network: head confirmed, no drift.
-- Container HTTP smoke on an isolated migrated database: readiness, registration, login, /me, logout, revoked access passed; database cleaned up.
-- Independent security review: no critical or important findings; ADR clarification resolved.
-- All four Compose infrastructure services healthy. Local signing key configured in ignored backend/.env; never display or commit it.
-Phase 6 delivers atomic registration, normalized unique identifiers, Argon2id hashing/verification, generic login failures, initial sessions, secure refresh cookies, signed 15-minute access JWTs, live session/user checks, and current-session logout.
+- docker build -f backend/Dockerfile -t outpost-backend:phase7-refresh .: successful.
+- Built-image isolated-database smoke: migration, readiness, registration, login, refresh rotation, and replay-family revocation passed; temporary container and database removed.
+- Independent security review found an ancestor/descendant concurrency race; shared user-row serialization and a forced interleaving regression resolved it. Re-review found no remaining critical or important issues.
+- All four Compose infrastructure services healthy. Local signing key remains in ignored backend/.env; never display or commit it.
+Phase 7 now provides hashed rotating refresh cookies, durable token-family lineage, atomic replay-family revocation, security events, and concurrency-safe refresh transitions.
 
 COMPLETED WITHIN CURRENT PHASE:
-Phase 7 not started. Phase 6 requirements complete; refresh rotation and replay handling are selected next.
+Refresh hashes, rotation, token families, and replay detection complete. Session listing is selected next.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/modules/auth/
-backend/app/modules/users/models.py
-backend/tests/integration/
+backend/app/modules/auth/models.py
+backend/app/modules/auth/router.py
+backend/app/modules/auth/schemas.py
+backend/app/modules/auth/sessions.py
+backend/tests/integration/test_refresh_rotation.py
+backend/tests/integration/test_session_listing.py
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3494,16 +3497,16 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User requested completion of Phase 6. Completed; await instruction before executing Phase 7.
+User requested continuation. Refresh-token rotation and replay protection completed; await instruction before session listing.
 
 LAST COMMAND:
-git commit -m "add current-session logout and complete password authentication"
+git commit -m "add refresh token rotation and replay protection"
 
 CURRENT OUTPUT / ERROR:
 Verification successful. No outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Never persist plaintext passwords or raw refresh tokens. Never disclose account existence on login.
+Never return refresh hashes, token-family identifiers, replacement lineage, or raw refresh tokens from session-listing APIs.
 
 ---
 
