@@ -18,7 +18,7 @@
 - Test persisted refresh hashes, secure cookie attributes, signed access validation, expiry, tampering, account state, and configuration failures.
 - Issue a random 256-bit refresh value only through a Secure HttpOnly SameSite=Strict cookie scoped to /api/v1/auth.
 - Sign 15-minute HS256 access JWTs with required issuer, audience, subject, session id, timestamps, token type, and unique id; require an external minimum-32-byte signing secret.
-- Validate access against the live session and active user; expose /auth/me.
+- Validate access against the live session and active user; expose /api/v1/me.
 - Verify and checkpoint logout next.
 
 ## Logout

@@ -8,7 +8,13 @@ from fastapi import APIRouter, Request, Response
 from app.modules.auth.dependencies import AuthSettings, CurrentAuth, DatabaseSession
 from app.modules.auth.schemas import LoginInput, RegistrationInput, TokenOutput, UserOutput
 from app.modules.auth.service import register_user
-from app.modules.auth.sessions import COOKIE_PATH, REFRESH_COOKIE, REFRESH_SECONDS, password_login
+from app.modules.auth.sessions import (
+    COOKIE_PATH,
+    REFRESH_COOKIE,
+    REFRESH_SECONDS,
+    password_login,
+    revoke_current_session,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -59,3 +65,17 @@ user_router = APIRouter(tags=["users"])
 def me(auth: CurrentAuth, response: Response) -> UserOutput:
     response.headers["Cache-Control"] = "no-store"
     return UserOutput.model_validate(auth[0])
+
+
+@router.post("/logout", status_code=204)
+def logout(auth: CurrentAuth, session: DatabaseSession) -> Response:
+    revoke_current_session(session, auth[1])
+    response = Response(status_code=204, headers={"Cache-Control": "no-store"})
+    response.delete_cookie(
+        REFRESH_COOKIE,
+        path=COOKIE_PATH,
+        secure=True,
+        httponly=True,
+        samesite="strict",
+    )
+    return response

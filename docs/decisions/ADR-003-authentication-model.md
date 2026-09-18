@@ -2,7 +2,7 @@
 
 Status: Accepted (formalizes the authentication architecture approved in Layers 1–2).
 Date: 2026-09-17.
-Scope: Phase 0 authentication identity, credential, linking, and session invariants only.
+Scope: Authentication identity, credential, linking, and session invariants; Phase 6 access enforcement clarification.
 
 ## Context
 
@@ -73,7 +73,7 @@ Authentication endpoints must use structured errors, request IDs, validation res
 - Automatic account merging by matching email: rejected because email coincidence or provider metadata is not proof of control of both established accounts.
 - OAuth email as the Google identity key: rejected because Google's stable subject is the durable provider identifier.
 - Long-lived bearer tokens in browser storage: rejected because rotation, server-side revocation, replay detection, and `HttpOnly` cookie protection are required.
-- Stateful access-token lookup on every request: not selected for the initial model; short access lifetime plus stateful rotating refresh sessions provides the approved balance. Exact access-token representation remains an implementation choice consistent with these invariants.
+- Self-contained access verification without consulting live session state: initially considered in Phase 0. Phase 6 uses signed 15-minute access JWTs plus database checks of session ownership, expiry, revocation, and active user status. This makes logout and account suspension effective on subsequent requests at the cost of database reads; refresh-session and token-family architecture remains unchanged.
 
 ## Consequences
 
@@ -97,4 +97,4 @@ When implementation exists, security-sensitive behavior requires regression test
 - verification/recovery token expiry and single use, generic account-existence responses, and the defined password-reset session response;
 - proof that authentication never grants a global role or bypasses ADR-002 tenant authorization.
 
-These are future acceptance criteria, not tests claimed to pass in this documentation-only repository. The current task creates only this decision record and its index entry.
+The original Phase 0 record established these acceptance criteria. Phase 6 implements password registration/login, initial sessions, signed access credentials, and current-session logout with regression tests. Refresh rotation, linking, OTP, OAuth, and recovery enforcement remain assigned to their later phases.

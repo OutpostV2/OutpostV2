@@ -77,3 +77,17 @@ def authenticated_session(
     ):
         raise UnauthorizedError("Invalid or expired access credential")
     return user, auth_session
+
+
+def revoke_current_session(session: Session, auth_session: AuthSession) -> None:
+    """Revoke only the authenticated session and commit its audit event atomically."""
+    auth_session.revoked_at = datetime.now(UTC)
+    session.add(
+        SecurityEvent(
+            user_id=auth_session.user_id,
+            session_id=auth_session.id,
+            event_type="authentication.logout",
+            event_data={},
+        )
+    )
+    session.commit()
