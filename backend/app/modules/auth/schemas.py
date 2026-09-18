@@ -1,6 +1,7 @@
 """Validated authentication inputs and safe public outputs."""
 
 import re
+from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
@@ -73,3 +74,13 @@ class TokenOutput(BaseModel):
     access_token: str
     token_type: Literal["bearer"] = "bearer"
     expires_in: int = 900
+
+
+class SessionOutput(BaseModel):
+    id: UUID
+    created_at: datetime
+    last_used_at: datetime
+    expires_at: datetime
+    user_agent: str | None
+    ip_address: str | None
+    is_current: bool

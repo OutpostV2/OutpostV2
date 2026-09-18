@@ -3,7 +3,7 @@
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
@@ -174,6 +174,27 @@ def authenticated_session(
     ):
         raise UnauthorizedError("Invalid or expired access credential")
     return user, auth_session
+
+
+def list_active_sessions(session: Session, user_id: UUID) -> list[AuthSession]:
+    """Return usable leaf sessions without exposing token-family history."""
+    now = datetime.now(UTC)
+    return list(
+        session.scalars(
+            select(AuthSession)
+            .where(
+                AuthSession.user_id == user_id,
+                AuthSession.revoked_at.is_(None),
+                AuthSession.expires_at > now,
+                AuthSession.replaced_by_session_id.is_(None),
+            )
+            .order_by(
+                AuthSession.last_used_at.desc(),
+                AuthSession.created_at.desc(),
+                AuthSession.id.desc(),
+            )
+        )
+    )
 
 
 def revoke_current_session(session: Session, auth_session: AuthSession) -> None:

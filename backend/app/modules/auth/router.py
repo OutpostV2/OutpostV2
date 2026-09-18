@@ -7,12 +7,19 @@ from fastapi import APIRouter, Request, Response
 
 from app.core.errors import UnauthorizedError
 from app.modules.auth.dependencies import AuthSettings, CurrentAuth, DatabaseSession
-from app.modules.auth.schemas import LoginInput, RegistrationInput, TokenOutput, UserOutput
+from app.modules.auth.schemas import (
+    LoginInput,
+    RegistrationInput,
+    SessionOutput,
+    TokenOutput,
+    UserOutput,
+)
 from app.modules.auth.service import register_user
 from app.modules.auth.sessions import (
     COOKIE_PATH,
     REFRESH_COOKIE,
     REFRESH_SECONDS,
+    list_active_sessions,
     password_login,
     revoke_current_session,
     rotate_refresh_session,
@@ -88,6 +95,28 @@ def refresh(
     response.headers["Pragma"] = "no-cache"
     _set_refresh_cookie(response, next_refresh)
     return TokenOutput(access_token=access)
+
+
+@router.get("/sessions", response_model=list[SessionOutput])
+def sessions(
+    auth: CurrentAuth,
+    session: DatabaseSession,
+    response: Response,
+) -> list[SessionOutput]:
+    response.headers["Cache-Control"] = "no-store"
+    current_session = auth[1]
+    return [
+        SessionOutput(
+            id=item.id,
+            created_at=item.created_at,
+            last_used_at=item.last_used_at,
+            expires_at=item.expires_at,
+            user_agent=item.user_agent,
+            ip_address=str(item.ip_address) if item.ip_address is not None else None,
+            is_current=item.id == current_session.id,
+        )
+        for item in list_active_sessions(session, auth[0].id)
+    ]
 
 
 user_router = APIRouter(tags=["users"])
