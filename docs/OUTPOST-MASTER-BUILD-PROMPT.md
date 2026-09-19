@@ -3441,10 +3441,10 @@ CURRENT PHASE:
 Phase 8 — Email Verification and Recovery
 
 CURRENT TASK:
-Implement and verify forgot-password request handling (not started).
+Implement and verify password-reset consumption and its required session response (not started).
 
 TASK GOAL:
-Implement nondisclosing forgot-password requests using the existing password-reset token storage and EmailProvider boundary, with protected expiring tokens, replacement behavior, delivery-failure handling, and tests. Do not begin password-reset consumption or session revocation.
+Consume one valid password-reset token, replace the password credential with Argon2id, define and enforce the explicit session-revocation policy, and record the security event in one atomic transaction. Test invalid, expired, replaced, reused, and concurrent tokens plus rollback and session behavior. Do not begin Phase 9.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-7183b97b3944b6bc6f1546573201406608541cd1
+5a02f41cf94b7ee75279ecaf9a583d5306a8c7d4
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,30 +3465,31 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 8 email verification complete. Exact final verification:
-- Full PostgreSQL-backed backend suite: 103 passed in 68.58s.
-- Email-verification integration suite: 5 passed; protected issuance, delivery content, normalized lookup, replacement, expiration, single use, verified-user and unknown-user nondisclosure, delivery-failure nondisclosure, atomic rollback, and concurrent consumption verified.
-- Verification-link configuration and SMTP error normalization: 4 passed; embedded credentials and token parameters rejected, production HTTPS required, and provider errors normalized without recipient disclosure.
-- python -m ruff check --no-cache app tests alembic and python -m ruff format --check --no-cache app tests alembic: passed (79 files formatted).
-- python -m mypy with an external cache directory: passed (66 source files).
+Phase 8 forgot-password request handling complete. Exact final verification:
+- Full PostgreSQL-backed backend suite: 110 passed in 56.58s.
+- Focused forgot-password and link-configuration suite: 10 passed; normalized lookup, empty no-store 202 responses, hash-only one-hour token storage, replacement, concurrent issuance, account/ineligibility nondisclosure, and delivery-failure nondisclosure verified.
+- python -m ruff check --no-cache app tests alembic and python -m ruff format --check --no-cache app tests alembic: passed (81 files formatted).
+- python -m mypy with an external cache directory: passed (68 source files).
 - alembic current/check: 20260918_0012 (head), no pending operations.
 - python -m build --wheel: successful.
-- docker build -f backend/Dockerfile -t outpost-backend:phase8-email-verification .: successful.
-- Live request, Mailpit delivery, raw-token confirmation, and persisted verification succeeded against a temporary PostgreSQL database.
-- Built-image OpenAPI smoke verified both email-verification routes.
+- docker build -f backend/Dockerfile -t outpost-backend:phase8-forgot-password .: successful.
+- Live forgot-password request, SMTP/Mailpit delivery, and persisted SHA-256 token verification succeeded against a temporary PostgreSQL database.
+- Built-image OpenAPI smoke verified POST /api/v1/auth/password/forgot.
 - All four Compose infrastructure services healthy. Local signing key remains in ignored backend/.env; never display or commit it.
-Email verification now exposes nondisclosing request and single-use confirmation endpoints, stores only SHA-256 token hashes, serializes requests and confirmations with user-first locking, records successful verification, and exposes email_verified_at in safe user output. Ignored backend/.env is configured for local Mailpit and the verification URL.
+Forgot-password requests now expose POST /api/v1/auth/password/forgot, return identical empty 202 responses for unknown, suspended, passwordless, and delivery-failed cases, store only SHA-256 token hashes, expire after one hour, replace outstanding tokens under a user-first lock, and deliver through EmailProvider. Reset URLs reject embedded credentials and preconfigured token parameters and require HTTPS in staging/production.
 
 COMPLETED WITHIN CURRENT PHASE:
-EmailProvider abstraction, Mailpit SMTP adapter, and secure email verification. Forgot-password request handling is selected next.
+EmailProvider abstraction, Mailpit SMTP adapter, secure email verification, and nondisclosing forgot-password request handling. Password-reset consumption and its session response are selected next.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/modules/auth/email.py
 backend/app/modules/auth/models.py
-backend/app/modules/auth/email_verification.py
+backend/app/modules/auth/password_reset.py
 backend/app/modules/auth/router.py
 backend/app/modules/auth/schemas.py
+backend/app/modules/auth/service.py
+backend/app/modules/auth/sessions.py
 backend/tests/
+docs/decisions/ADR-003-authentication-model.md
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3498,16 +3499,16 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User requested continuation and approved the bounded email-verification design. Email verification completed; await instruction before forgot-password request handling.
+User approved and requested completion of the bounded forgot-password request task. That task is complete; await instruction before password-reset consumption and session response.
 
 LAST COMMAND:
-git commit -m "add secure email verification flow"
+git commit -m "add secure forgot-password requests"
 
 CURRENT OUTPUT / ERROR:
 Verification successful. No outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Forgot-password responses must remain identical for unknown, ineligible, and delivery-failed accounts; never store or log raw reset tokens.
+Password replacement, token consumption, required session revocation, and the security event must commit or roll back together; never store or log raw reset tokens or plaintext passwords.
 
 ---
 
