@@ -61,6 +61,9 @@ class Settings(BaseSettings):
     email_verification_url: AnyHttpUrl = Field(
         default=AnyHttpUrl("http://localhost:5173/verify-email")
     )
+    password_reset_url: AnyHttpUrl = Field(
+        default=AnyHttpUrl("http://localhost:5173/reset-password")
+    )
     email_smtp_host: str = Field(default="127.0.0.1", min_length=1, max_length=253)
     email_smtp_port: int = Field(default=1025, ge=1, le=65_535)
     email_smtp_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
@@ -110,6 +113,18 @@ class Settings(BaseSettings):
             )
         return value
 
+    @field_validator("password_reset_url")
+    @classmethod
+    def safe_password_reset_url(cls, value: AnyHttpUrl) -> AnyHttpUrl:
+        has_token_parameter = any(
+            name.lower() == "token" for name, _ in parse_qsl(value.query or "")
+        )
+        if value.username is not None or value.password is not None or has_token_parameter:
+            raise ValueError(
+                "The password reset URL cannot contain credentials or a token parameter"
+            )
+        return value
+
     @model_validator(mode="after")
     def environment_safety(self) -> "Settings":
         if self.email_provider is EmailProviderKind.DEVELOPMENT and self.env not in {
@@ -125,4 +140,8 @@ class Settings(BaseSettings):
             self.email_verification_url.scheme != "https"
         ):
             raise ValueError("Staging and production require an HTTPS email verification URL")
+        if self.env in {Environment.STAGING, Environment.PRODUCTION} and (
+            self.password_reset_url.scheme != "https"
+        ):
+            raise ValueError("Staging and production require an HTTPS password reset URL")
         return self

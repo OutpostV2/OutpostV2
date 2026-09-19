@@ -17,9 +17,11 @@ from app.modules.auth.email_verification import (
     confirm_email_verification,
     request_email_verification,
 )
+from app.modules.auth.password_reset import request_password_reset
 from app.modules.auth.schemas import (
     EmailVerificationConfirmInput,
     EmailVerificationRequestInput,
+    ForgotPasswordInput,
     LoginInput,
     RegistrationInput,
     SessionOutput,
@@ -85,6 +87,17 @@ def confirm_verification(
 ) -> Response:
     confirm_email_verification(session, data.token.get_secret_value())
     return Response(status_code=204, headers={"Cache-Control": "no-store"})
+
+
+@router.post("/password/forgot", status_code=202)
+def forgot_password(
+    data: ForgotPasswordInput,
+    session: DatabaseSession,
+    settings: AuthSettings,
+    provider: OutboundEmail,
+) -> Response:
+    request_password_reset(session, settings, provider, data.email)
+    return Response(status_code=202, headers={"Cache-Control": "no-store"})
 
 
 @router.post("/password/login", response_model=TokenOutput)
