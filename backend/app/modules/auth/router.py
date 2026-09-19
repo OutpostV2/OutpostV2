@@ -7,8 +7,19 @@ from uuid import UUID
 from fastapi import APIRouter, Request, Response
 
 from app.core.errors import UnauthorizedError
-from app.modules.auth.dependencies import AuthSettings, CurrentAuth, DatabaseSession
+from app.modules.auth.dependencies import (
+    AuthSettings,
+    CurrentAuth,
+    DatabaseSession,
+    OutboundEmail,
+)
+from app.modules.auth.email_verification import (
+    confirm_email_verification,
+    request_email_verification,
+)
 from app.modules.auth.schemas import (
+    EmailVerificationConfirmInput,
+    EmailVerificationRequestInput,
     LoginInput,
     RegistrationInput,
     SessionOutput,
@@ -54,6 +65,26 @@ def _set_refresh_cookie(response: Response, refresh: str) -> None:
 def register(data: RegistrationInput, session: DatabaseSession, response: Response) -> UserOutput:
     response.headers["Cache-Control"] = "no-store"
     return UserOutput.model_validate(register_user(session, data))
+
+
+@router.post("/email-verification/request", status_code=202)
+def request_verification(
+    data: EmailVerificationRequestInput,
+    session: DatabaseSession,
+    settings: AuthSettings,
+    provider: OutboundEmail,
+) -> Response:
+    request_email_verification(session, settings, provider, data.email)
+    return Response(status_code=202, headers={"Cache-Control": "no-store"})
+
+
+@router.post("/email-verification/confirm", status_code=204)
+def confirm_verification(
+    data: EmailVerificationConfirmInput,
+    session: DatabaseSession,
+) -> Response:
+    confirm_email_verification(session, data.token.get_secret_value())
+    return Response(status_code=204, headers={"Cache-Control": "no-store"})
 
 
 @router.post("/password/login", response_model=TokenOutput)

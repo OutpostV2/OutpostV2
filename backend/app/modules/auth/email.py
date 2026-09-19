@@ -21,6 +21,10 @@ class EmailMessage(BaseModel):
     html_body: str | None = Field(default=None, min_length=1, max_length=200_000)
 
 
+class EmailDeliveryError(RuntimeError):
+    """A provider could not accept an outbound message."""
+
+
 @runtime_checkable
 class EmailProvider(Protocol):
     """Outbound email boundary used by application services."""
@@ -48,7 +52,7 @@ class DisabledEmailProvider:
 
     def send(self, message: EmailMessage) -> None:
         del message
-        raise RuntimeError("Outbound email is disabled")
+        raise EmailDeliveryError("Outbound email is disabled")
 
 
 class SmtpEmailProvider:
@@ -84,18 +88,21 @@ class SmtpEmailProvider:
         if message.html_body is not None:
             mime_message.add_alternative(message.html_body, subtype="html")
 
-        with smtplib.SMTP(
-            host=self._host,
-            port=self._port,
-            timeout=self._timeout_seconds,
-        ) as client:
-            if self._starttls:
-                client.ehlo()
-                client.starttls(context=ssl.create_default_context())
-                client.ehlo()
-            if self._username is not None and self._password is not None:
-                client.login(self._username, self._password)
-            client.send_message(mime_message)
+        try:
+            with smtplib.SMTP(
+                host=self._host,
+                port=self._port,
+                timeout=self._timeout_seconds,
+            ) as client:
+                if self._starttls:
+                    client.ehlo()
+                    client.starttls(context=ssl.create_default_context())
+                    client.ehlo()
+                if self._username is not None and self._password is not None:
+                    client.login(self._username, self._password)
+                client.send_message(mime_message)
+        except (OSError, smtplib.SMTPException) as error:
+            raise EmailDeliveryError("Outbound email delivery failed") from error
 
 
 def build_email_provider(settings: Settings) -> EmailProvider:

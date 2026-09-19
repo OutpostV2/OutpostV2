@@ -8,7 +8,12 @@ import pytest
 from pydantic import ValidationError
 
 from app.core.config import Settings
-from app.modules.auth.email import EmailMessage, SmtpEmailProvider, build_email_provider
+from app.modules.auth.email import (
+    EmailDeliveryError,
+    EmailMessage,
+    SmtpEmailProvider,
+    build_email_provider,
+)
 
 DATABASE_URL = "postgresql+psycopg://outpost:local-password@127.0.0.1:5433/outpost"
 
@@ -110,6 +115,26 @@ def test_smtp_provider_negotiates_starttls_before_authentication() -> None:
         ("send_message", ()),
     ]
     assert isinstance(RecordingSmtp.instances[0].tls_context, ssl.SSLContext)
+
+
+def test_smtp_provider_normalizes_transport_failures(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fail_connection(*args: object, **kwargs: object) -> None:
+        del args, kwargs
+        raise OSError("provider detail for person@example.com")
+
+    monkeypatch.setattr(smtplib, "SMTP", fail_connection)
+    provider = SmtpEmailProvider(
+        sender="no-reply@example.com",
+        host="smtp.example.com",
+        port=587,
+        timeout_seconds=10,
+    )
+
+    with pytest.raises(EmailDeliveryError) as captured:
+        provider.send(EmailMessage(to="person@example.com", subject="Subject", text_body="Body"))
+
+    assert str(captured.value) == "Outbound email delivery failed"
+    assert "person@example.com" not in str(captured.value)
 
 
 def test_factory_builds_smtp_provider_from_validated_settings() -> None:

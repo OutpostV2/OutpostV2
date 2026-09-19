@@ -62,6 +62,22 @@ class UserOutput(BaseModel):
     display_name: str
     username: str | None
     primary_email: str | None
+    email_verified_at: datetime | None
+
+
+class EmailVerificationRequestInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: str
+
+    @field_validator("email")
+    @classmethod
+    def clean_email(cls, value: str) -> str:
+        return normalize_email(value)
+
+
+class EmailVerificationConfirmInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: SecretStr = Field(min_length=43, max_length=512)
 
 
 class LoginInput(BaseModel):

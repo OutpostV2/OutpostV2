@@ -16,6 +16,7 @@ from app.core.errors import ServiceUnavailableError, install_error_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import install_request_id_middleware
 from app.db.session import create_engine_from_settings
+from app.modules.auth.email import EmailProvider, build_email_provider
 
 
 class OperationalStatus(BaseModel):
@@ -28,6 +29,7 @@ def create_app(
     settings: Settings | None = None,
     *,
     engine: Engine | None = None,
+    email_provider: EmailProvider | None = None,
     configure_logs: bool = True,
 ) -> FastAPI:
     """Build the Outpost API with its verified core infrastructure."""
@@ -48,6 +50,9 @@ def create_app(
     app = FastAPI(title="Outpost API", version=__version__, lifespan=lifespan)
     app.state.database_engine = database_engine
     app.state.settings = application_settings
+    app.state.email_provider = (
+        email_provider if email_provider is not None else build_email_provider(application_settings)
+    )
     install_error_handlers(app)
     install_request_id_middleware(app)
     app.include_router(api_v1_router)

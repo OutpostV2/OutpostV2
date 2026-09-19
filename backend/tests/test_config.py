@@ -16,6 +16,7 @@ def test_settings_load_typed_values_from_an_env_file(tmp_path: Path) -> None:
                 "OUTPOST_ENV=production",
                 "OUTPOST_LOG_LEVEL=WARNING",
                 f"OUTPOST_DATABASE_URL={DATABASE_URL}",
+                "OUTPOST_EMAIL_VERIFICATION_URL=https://app.example.com/verify-email",
             )
         ),
         encoding="utf-8",

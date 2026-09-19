@@ -1,8 +1,17 @@
 """Typed runtime configuration for the Outpost backend."""
 
 from enum import StrEnum
+from urllib.parse import parse_qsl
 
-from pydantic import EmailStr, Field, PostgresDsn, SecretStr, field_validator, model_validator
+from pydantic import (
+    AnyHttpUrl,
+    EmailStr,
+    Field,
+    PostgresDsn,
+    SecretStr,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -49,6 +58,9 @@ class Settings(BaseSettings):
     auth_signing_key: SecretStr | None = None
     email_provider: EmailProviderKind = EmailProviderKind.DISABLED
     email_from_address: EmailStr = Field(default="no-reply@outpost.example")
+    email_verification_url: AnyHttpUrl = Field(
+        default=AnyHttpUrl("http://localhost:5173/verify-email")
+    )
     email_smtp_host: str = Field(default="127.0.0.1", min_length=1, max_length=253)
     email_smtp_port: int = Field(default=1025, ge=1, le=65_535)
     email_smtp_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
@@ -86,8 +98,20 @@ class Settings(BaseSettings):
             raise ValueError("email_smtp_password must not be empty")
         return value
 
+    @field_validator("email_verification_url")
+    @classmethod
+    def safe_email_verification_url(cls, value: AnyHttpUrl) -> AnyHttpUrl:
+        has_token_parameter = any(
+            name.lower() == "token" for name, _ in parse_qsl(value.query or "")
+        )
+        if value.username is not None or value.password is not None or has_token_parameter:
+            raise ValueError(
+                "The email verification URL cannot contain credentials or a token parameter"
+            )
+        return value
+
     @model_validator(mode="after")
-    def development_email_is_local_only(self) -> "Settings":
+    def environment_safety(self) -> "Settings":
         if self.email_provider is EmailProviderKind.DEVELOPMENT and self.env not in {
             Environment.DEVELOPMENT,
             Environment.TEST,
@@ -97,4 +121,8 @@ class Settings(BaseSettings):
             )
         if (self.email_smtp_username is None) is not (self.email_smtp_password is None):
             raise ValueError("SMTP username and password must be configured together")
+        if self.env in {Environment.STAGING, Environment.PRODUCTION} and (
+            self.email_verification_url.scheme != "https"
+        ):
+            raise ValueError("Staging and production require an HTTPS email verification URL")
         return self

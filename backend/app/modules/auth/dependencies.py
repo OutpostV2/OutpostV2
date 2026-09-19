@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings
 from app.core.errors import UnauthorizedError
+from app.modules.auth.email import EmailProvider
 from app.modules.auth.models import AuthSession
 from app.modules.auth.sessions import authenticated_session
 from app.modules.users.models import User
@@ -27,6 +28,13 @@ def auth_settings(request: Request) -> Settings:
 
 
 AuthSettings = Annotated[Settings, Depends(auth_settings)]
+
+
+def email_provider(request: Request) -> EmailProvider:
+    return cast(EmailProvider, request.app.state.email_provider)
+
+
+OutboundEmail = Annotated[EmailProvider, Depends(email_provider)]
 _bearer = HTTPBearer(auto_error=False)
 
 
