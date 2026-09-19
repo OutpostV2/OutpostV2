@@ -3441,10 +3441,10 @@ CURRENT PHASE:
 Phase 8 — Email Verification and Recovery
 
 CURRENT TASK:
-Implement and verify the EmailProvider abstraction (not started).
+Implement and verify the Mailpit email adapter (not started).
 
 TASK GOAL:
-Define the EmailProvider interface and a development-safe provider implementation with configuration validation and unit tests. Do not begin verification, forgot-password, or reset endpoints.
+Implement an SMTP adapter for the EmailProvider abstraction, configure it for local Mailpit with validated host, port, and transport settings, and verify delivery against the local Mailpit service. Do not begin verification, forgot-password, or reset endpoints.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-cf53d3dd33c80ad2c0b97415b5f9b4e5e5e3ab5d
+ff7fb1485d29da769bda6d1b544ca9092b1e4e45
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,26 +3465,28 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 7 complete after logout-all implementation. Exact final verification:
-- .venv\Scripts\python.exe -m pytest -o addopts='' -q --basetemp=.pytest-tmp-phase7-final with OUTPOST_TEST_DATABASE_URL: full backend suite passed after Commit A.
-- Targeted session-revocation suite: 3 passed; ownership isolation, foreign/missing nondisclosure, idempotency, current-cookie clearing, family revocation across rotation, concurrent cached-state handling, single-event behavior, and transactional rollback verified.
-- python -m ruff check app tests alembic and python -m ruff format --check app tests alembic: passed (72 files formatted).
-- python -m mypy: passed (59 source files).
+Phase 8 EmailProvider abstraction complete. Exact final verification:
+- .venv\Scripts\python.exe -m pytest -o addopts='' -q --basetemp=.pytest-tmp-email-provider-final2 with OUTPOST_TEST_DATABASE_URL: full backend suite passed after final formatting.
+- Targeted EmailProvider and configuration suite: 8 passed; validated immutable messages, protocol conformance, output-free development capture, environment restrictions, and sender validation verified.
+- python -m ruff check app tests alembic and python -m ruff format --check app tests alembic: passed (75 files formatted).
+- python -m mypy: passed (62 source files).
 - alembic current/check: 20260918_0012 (head), no pending operations.
 - python -m build --wheel: successful.
-- docker build -f backend/Dockerfile -t outpost-backend:phase7-revoke .: successful.
-- Built-image isolated-database smoke: rotated-family revocation and successor access invalidation passed; temporary container and database removed.
-- Independent review identified stale rotated-family, lock-order, and ORM-cache concurrency issues; all were fixed and re-review found no remaining critical or important issues.
+- docker build -f backend/Dockerfile -t outpost-backend:phase8-email-provider .: successful.
+- Built-image smoke imported the provider, captured a validated message, and passed.
+- Independent review found no critical or important issues.
 - All four Compose infrastructure services healthy. Local signing key remains in ignored backend/.env; never display or commit it.
-Phase 7 now provides hashed rotating refresh cookies, durable token-family lineage, replay protection, session listing, selected-session revocation, current logout, and atomic logout all with one user-first lock protocol.
+The provider-neutral boundary now supports a fail-closed disabled provider and a non-networked development provider. Development capture is rejected in staging and production.
 
 COMPLETED WITHIN CURRENT PHASE:
-Phase 7 complete: refresh hashes, rotation, token families, replay detection, session listing, session revocation, and logout all. Phase 8 EmailProvider is selected next.
+EmailProvider protocol, validated message contract, fail-closed disabled provider, development-safe in-memory provider, configuration validation, factory selection, and unit tests. The Mailpit adapter is selected next.
 
 FILES RELEVANT TO CURRENT TASK:
 backend/app/core/config.py
-backend/app/modules/auth/
-backend/tests/
+backend/app/modules/auth/email.py
+backend/tests/test_email_provider.py
+backend/.env.example
+docker-compose.yml
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3494,16 +3496,16 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User requested continuation. Logout all and Phase 7 completed; await instruction before Phase 8 EmailProvider.
+User requested continuation. EmailProvider abstraction completed; await instruction before the Mailpit adapter.
 
 LAST COMMAND:
-git commit -m "add logout all session revocation"
+git commit -m "add email provider abstraction"
 
 CURRENT OUTPUT / ERROR:
 Verification successful. No outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Never return refresh hashes, token-family identifiers, replacement lineage, or raw refresh tokens from session-listing APIs.
+Keep SMTP details inside the adapter; application services depend only on EmailProvider.
 
 ---
 
