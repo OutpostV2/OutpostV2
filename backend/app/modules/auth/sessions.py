@@ -247,15 +247,80 @@ def revoke_owned_session(
     return changed
 
 
-def revoke_current_session(session: Session, auth_session: AuthSession) -> None:
-    """Revoke only the authenticated session and commit its audit event atomically."""
-    auth_session.revoked_at = datetime.now(UTC)
-    session.add(
-        SecurityEvent(
-            user_id=auth_session.user_id,
-            session_id=auth_session.id,
-            event_type="authentication.logout",
-            event_data={},
+def revoke_all_sessions(
+    session: Session,
+    user_id: UUID,
+    *,
+    current_session_id: UUID | None,
+) -> int:
+    """Revoke every active session for one user in a single transaction."""
+    owner_id = session.scalar(select(User.id).where(User.id == user_id).with_for_update())
+    if owner_id is None:
+        return 0
+    active = list(
+        session.scalars(
+            select(AuthSession)
+            .where(AuthSession.user_id == user_id, AuthSession.revoked_at.is_(None))
+            .order_by(AuthSession.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
         )
     )
+    if active:
+        now = datetime.now(UTC)
+        for auth_session in active:
+            auth_session.revoked_at = now
+        session.add(
+            SecurityEvent(
+                user_id=user_id,
+                session_id=current_session_id,
+                event_type="authentication.logout_all",
+                event_data={"revoked_count": len(active)},
+            )
+        )
     session.commit()
+    return len(active)
+
+
+def revoke_current_session(session: Session, auth_session: AuthSession) -> bool:
+    """Revoke only the authenticated session and commit its audit event atomically."""
+    owner_id = session.scalar(
+        select(User.id).where(User.id == auth_session.user_id).with_for_update()
+    )
+    current = session.scalars(
+        select(AuthSession)
+        .where(
+            AuthSession.id == auth_session.id,
+            AuthSession.user_id == auth_session.user_id,
+        )
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).one_or_none()
+    active_family: list[AuthSession] = []
+    if owner_id is not None and current is not None:
+        active_family = list(
+            session.scalars(
+                select(AuthSession)
+                .where(
+                    AuthSession.token_family_id == current.token_family_id,
+                    AuthSession.revoked_at.is_(None),
+                )
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        )
+    changed = bool(active_family)
+    if changed and current is not None:
+        now = datetime.now(UTC)
+        for member in active_family:
+            member.revoked_at = now
+        session.add(
+            SecurityEvent(
+                user_id=current.user_id,
+                session_id=current.id,
+                event_type="authentication.logout",
+                event_data={},
+            )
+        )
+    session.commit()
+    return changed

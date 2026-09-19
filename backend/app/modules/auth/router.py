@@ -22,6 +22,7 @@ from app.modules.auth.sessions import (
     REFRESH_SECONDS,
     list_active_sessions,
     password_login,
+    revoke_all_sessions,
     revoke_current_session,
     revoke_owned_session,
     rotate_refresh_session,
@@ -143,6 +144,24 @@ def revoke_session(
             httponly=True,
             samesite="strict",
         )
+    return response
+
+
+@router.post("/logout-all", status_code=204)
+def logout_all(auth: CurrentAuth, session: DatabaseSession) -> Response:
+    revoke_all_sessions(
+        session,
+        auth[0].id,
+        current_session_id=auth[1].id,
+    )
+    response = Response(status_code=204, headers={"Cache-Control": "no-store"})
+    response.delete_cookie(
+        REFRESH_COOKIE,
+        path=COOKIE_PATH,
+        secure=True,
+        httponly=True,
+        samesite="strict",
+    )
     return response
 
 
