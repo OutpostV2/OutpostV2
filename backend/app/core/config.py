@@ -42,6 +42,12 @@ class EmailProviderKind(StrEnum):
     SMTP = "smtp"
 
 
+class SmsProviderKind(StrEnum):
+    """Configured outbound SMS implementation."""
+
+    DISABLED = "disabled"
+
+
 class Settings(BaseSettings):
     """Outpost settings loaded from environment variables or a local env file."""
 
@@ -56,6 +62,7 @@ class Settings(BaseSettings):
     database_url: PostgresDsn
 
     auth_signing_key: SecretStr | None = None
+    sms_provider: SmsProviderKind = SmsProviderKind.DISABLED
     email_provider: EmailProviderKind = EmailProviderKind.DISABLED
     email_from_address: EmailStr = Field(default="no-reply@outpost.example")
     email_verification_url: AnyHttpUrl = Field(

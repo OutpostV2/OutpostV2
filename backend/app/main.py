@@ -17,6 +17,7 @@ from app.core.logging import configure_logging
 from app.core.middleware import install_request_id_middleware
 from app.db.session import create_engine_from_settings
 from app.modules.auth.email import EmailProvider, build_email_provider
+from app.modules.auth.sms import SmsProvider, build_sms_provider
 
 
 class OperationalStatus(BaseModel):
@@ -30,6 +31,7 @@ def create_app(
     *,
     engine: Engine | None = None,
     email_provider: EmailProvider | None = None,
+    sms_provider: SmsProvider | None = None,
     configure_logs: bool = True,
 ) -> FastAPI:
     """Build the Outpost API with its verified core infrastructure."""
@@ -52,6 +54,9 @@ def create_app(
     app.state.settings = application_settings
     app.state.email_provider = (
         email_provider if email_provider is not None else build_email_provider(application_settings)
+    )
+    app.state.sms_provider = (
+        sms_provider if sms_provider is not None else build_sms_provider(application_settings)
     )
     install_error_handlers(app)
     install_request_id_middleware(app)

@@ -12,6 +12,7 @@ from app.core.errors import UnauthorizedError
 from app.modules.auth.email import EmailProvider
 from app.modules.auth.models import AuthSession
 from app.modules.auth.sessions import authenticated_session
+from app.modules.auth.sms import SmsProvider
 from app.modules.users.models import User
 
 
@@ -35,6 +36,13 @@ def email_provider(request: Request) -> EmailProvider:
 
 
 OutboundEmail = Annotated[EmailProvider, Depends(email_provider)]
+
+
+def sms_provider(request: Request) -> SmsProvider:
+    return cast(SmsProvider, request.app.state.sms_provider)
+
+
+OutboundSms = Annotated[SmsProvider, Depends(sms_provider)]
 _bearer = HTTPBearer(auto_error=False)
 
 
