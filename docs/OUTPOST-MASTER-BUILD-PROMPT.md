@@ -3441,10 +3441,10 @@ CURRENT PHASE:
 Phase 8 — Email Verification and Recovery
 
 CURRENT TASK:
-Implement and verify email verification (not started).
+Implement and verify forgot-password request handling (not started).
 
 TASK GOAL:
-Implement secure email-verification issuance and single-use confirmation using the existing token storage and EmailProvider boundary, including expiration and nondisclosure tests. Do not begin forgot-password or password-reset endpoints.
+Implement nondisclosing forgot-password requests using the existing password-reset token storage and EmailProvider boundary, with protected expiring tokens, replacement behavior, delivery-failure handling, and tests. Do not begin password-reset consumption or session revocation.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-7abf8407392ed64e14f58c42d3e7b812b202dc10
+7183b97b3944b6bc6f1546573201406608541cd1
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,27 +3465,29 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 8 Mailpit SMTP adapter complete. Exact final verification:
-- Full PostgreSQL-backed backend suite: 94 passed in 55.91s.
-- Targeted email-provider and configuration suite: 16 passed; MIME plain/HTML construction, sender and recipient headers, factory selection, host/port/timeout validation, credential pairing, STARTTLS ordering, verified TLS context, and authentication verified.
-- python -m ruff check --no-cache app tests alembic and python -m ruff format --check --no-cache app tests alembic: passed (76 files formatted).
-- python -m mypy with an external cache directory: passed (63 source files).
+Phase 8 email verification complete. Exact final verification:
+- Full PostgreSQL-backed backend suite: 103 passed in 68.58s.
+- Email-verification integration suite: 5 passed; protected issuance, delivery content, normalized lookup, replacement, expiration, single use, verified-user and unknown-user nondisclosure, delivery-failure nondisclosure, atomic rollback, and concurrent consumption verified.
+- Verification-link configuration and SMTP error normalization: 4 passed; embedded credentials and token parameters rejected, production HTTPS required, and provider errors normalized without recipient disclosure.
+- python -m ruff check --no-cache app tests alembic and python -m ruff format --check --no-cache app tests alembic: passed (79 files formatted).
+- python -m mypy with an external cache directory: passed (66 source files).
 - alembic current/check: 20260918_0012 (head), no pending operations.
 - python -m build --wheel: successful.
-- docker build -f backend/Dockerfile -t outpost-backend:phase8-mailpit .: successful.
-- Live host and built-image SMTP deliveries reached healthy Mailpit with verified sender, recipient, subject, plain text, and HTML content.
+- docker build -f backend/Dockerfile -t outpost-backend:phase8-email-verification .: successful.
+- Live request, Mailpit delivery, raw-token confirmation, and persisted verification succeeded against a temporary PostgreSQL database.
+- Built-image OpenAPI smoke verified both email-verification routes.
 - All four Compose infrastructure services healthy. Local signing key remains in ignored backend/.env; never display or commit it.
-The provider-neutral boundary now also supports SMTP with bounded connection timeouts, optional authenticated STARTTLS, explicit certificate verification, and validated secrets. Ignored backend/.env is configured for local Mailpit.
+Email verification now exposes nondisclosing request and single-use confirmation endpoints, stores only SHA-256 token hashes, serializes requests and confirmations with user-first locking, records successful verification, and exposes email_verified_at in safe user output. Ignored backend/.env is configured for local Mailpit and the verification URL.
 
 COMPLETED WITHIN CURRENT PHASE:
-EmailProvider abstraction and Mailpit SMTP adapter, including local configuration, MIME delivery, optional authenticated STARTTLS, unit tests, and live delivery verification. Email verification is selected next.
+EmailProvider abstraction, Mailpit SMTP adapter, and secure email verification. Forgot-password request handling is selected next.
 
 FILES RELEVANT TO CURRENT TASK:
 backend/app/modules/auth/email.py
 backend/app/modules/auth/models.py
-backend/app/modules/auth/repository.py
-backend/app/modules/auth/service.py
-backend/app/modules/auth/routes.py
+backend/app/modules/auth/email_verification.py
+backend/app/modules/auth/router.py
+backend/app/modules/auth/schemas.py
 backend/tests/
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
@@ -3496,16 +3498,16 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User requested continuation and approved the bounded Mailpit adapter design. Mailpit adapter completed; await instruction before email verification.
+User requested continuation and approved the bounded email-verification design. Email verification completed; await instruction before forgot-password request handling.
 
 LAST COMMAND:
-git commit -m "add Mailpit SMTP email adapter"
+git commit -m "add secure email verification flow"
 
 CURRENT OUTPUT / ERROR:
 Verification successful. No outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Store only hashed verification tokens, make them single-use and expiring, and keep account-existence responses nondisclosing.
+Forgot-password responses must remain identical for unknown, ineligible, and delivery-failed accounts; never store or log raw reset tokens.
 
 ---
 
