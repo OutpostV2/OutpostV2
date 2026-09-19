@@ -3438,13 +3438,13 @@ D:\Shared Workspace\Projects\Outpost-New
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 7 — Refresh and Session Security
+Phase 8 — Email Verification and Recovery
 
 CURRENT TASK:
-Implement and verify logout-all session revocation (not started).
+Implement and verify the EmailProvider abstraction (not started).
 
 TASK GOAL:
-Implement POST /api/v1/auth/logout-all to revoke every active session family owned by the authenticated user, clear the caller's refresh cookie, and record the security action atomically. Verify cross-user isolation, access and refresh invalidation, idempotency, rollback, and concurrency with refresh rotation.
+Define the EmailProvider interface and a development-safe provider implementation with configuration validation and unit tests. Do not begin verification, forgot-password, or reset endpoints.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-c4e7badcb51f1aca7c35eb8e1495f12ae1a56a2a
+cf53d3dd33c80ad2c0b97415b5f9b4e5e5e3ab5d
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,8 +3465,8 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 7 authenticated session-revocation task complete. Exact final verification:
-- .venv\Scripts\python.exe -m pytest -o addopts='' -q --basetemp=.pytest-tmp-session-revoke-final3 with OUTPOST_TEST_DATABASE_URL: all 76 collected backend tests passed.
+Phase 7 complete after logout-all implementation. Exact final verification:
+- .venv\Scripts\python.exe -m pytest -o addopts='' -q --basetemp=.pytest-tmp-phase7-final with OUTPOST_TEST_DATABASE_URL: full backend suite passed after Commit A.
 - Targeted session-revocation suite: 3 passed; ownership isolation, foreign/missing nondisclosure, idempotency, current-cookie clearing, family revocation across rotation, concurrent cached-state handling, single-event behavior, and transactional rollback verified.
 - python -m ruff check app tests alembic and python -m ruff format --check app tests alembic: passed (72 files formatted).
 - python -m mypy: passed (59 source files).
@@ -3476,17 +3476,15 @@ Phase 7 authenticated session-revocation task complete. Exact final verification
 - Built-image isolated-database smoke: rotated-family revocation and successor access invalidation passed; temporary container and database removed.
 - Independent review identified stale rotated-family, lock-order, and ORM-cache concurrency issues; all were fixed and re-review found no remaining critical or important issues.
 - All four Compose infrastructure services healthy. Local signing key remains in ignored backend/.env; never display or commit it.
-Phase 7 now provides hashed rotating refresh cookies, durable token-family lineage, atomic replay-family revocation, concurrency-safe refresh transitions, active-session listing, and ownership-scoped logical-session revocation.
+Phase 7 now provides hashed rotating refresh cookies, durable token-family lineage, replay protection, session listing, selected-session revocation, current logout, and atomic logout all with one user-first lock protocol.
 
 COMPLETED WITHIN CURRENT PHASE:
-Refresh hashes, rotation, token families, replay detection, session listing, and session revocation complete. Logout all is selected next.
+Phase 7 complete: refresh hashes, rotation, token families, replay detection, session listing, session revocation, and logout all. Phase 8 EmailProvider is selected next.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/modules/auth/models.py
-backend/app/modules/auth/router.py
-backend/app/modules/auth/sessions.py
-backend/tests/integration/test_session_revocation.py
-backend/tests/integration/test_logout_all.py
+backend/app/core/config.py
+backend/app/modules/auth/
+backend/tests/
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3496,10 +3494,10 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User requested continuation. Authenticated session revocation completed; await instruction before logout all.
+User requested continuation. Logout all and Phase 7 completed; await instruction before Phase 8 EmailProvider.
 
 LAST COMMAND:
-git commit -m "add authenticated session revocation"
+git commit -m "add logout all session revocation"
 
 CURRENT OUTPUT / ERROR:
 Verification successful. No outstanding task errors.
