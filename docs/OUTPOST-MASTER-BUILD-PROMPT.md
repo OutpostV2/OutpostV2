@@ -3438,13 +3438,13 @@ D:\Shared Workspace\Projects\Outpost-New
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 8 — Email Verification and Recovery
+Phase 9 — Phone OTP
 
 CURRENT TASK:
-Implement and verify password-reset consumption and its required session response (not started).
+Implement and verify the provider-neutral SmsProvider abstraction (not started).
 
 TASK GOAL:
-Consume one valid password-reset token, replace the password credential with Argon2id, define and enforce the explicit session-revocation policy, and record the security event in one atomic transaction. Test invalid, expired, replaced, reused, and concurrent tokens plus rollback and session behavior. Do not begin Phase 9.
+Define the provider-neutral outbound SMS contract, validated message boundary, fail-closed disabled provider, configuration selection, application injection, and focused tests. Do not begin the development adapter, OTP generation, challenge handling, or phone login.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-5a02f41cf94b7ee75279ecaf9a583d5306a8c7d4
+7ddae4bfc36f39681180309d9ea7947704e30da4
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,30 +3465,28 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 8 forgot-password request handling complete. Exact final verification:
-- Full PostgreSQL-backed backend suite: 110 passed in 56.58s.
-- Focused forgot-password and link-configuration suite: 10 passed; normalized lookup, empty no-store 202 responses, hash-only one-hour token storage, replacement, concurrent issuance, account/ineligibility nondisclosure, and delivery-failure nondisclosure verified.
+Phase 8 email verification and recovery complete. Exact final verification:
+- Full PostgreSQL-backed backend suite: 115 passed in 88.75s.
+- Focused password-reset integration suite: 9 passed; request nondisclosure, hash-only issuance, replacement, expiration, password policy, single use, generic errors, concurrent consumption, atomic rollback, Argon2id replacement, complete session revocation, cookie clearing, and fresh-login behavior verified.
 - python -m ruff check --no-cache app tests alembic and python -m ruff format --check --no-cache app tests alembic: passed (81 files formatted).
 - python -m mypy with an external cache directory: passed (68 source files).
 - alembic current/check: 20260918_0012 (head), no pending operations.
 - python -m build --wheel: successful.
-- docker build -f backend/Dockerfile -t outpost-backend:phase8-forgot-password .: successful.
-- Live forgot-password request, SMTP/Mailpit delivery, and persisted SHA-256 token verification succeeded against a temporary PostgreSQL database.
-- Built-image OpenAPI smoke verified POST /api/v1/auth/password/forgot.
+- docker build -f backend/Dockerfile -t outpost-backend:phase8-password-reset .: successful.
+- Live SMTP/Mailpit reset flow replaced the Argon2id credential, consumed the SHA-256 token, revoked the old access/refresh session, cleared the refresh cookie, rejected the old password, and accepted the new password against a temporary PostgreSQL database.
+- Built-image OpenAPI smoke verified POST /api/v1/auth/password/reset.
 - All four Compose infrastructure services healthy. Local signing key remains in ignored backend/.env; never display or commit it.
-Forgot-password requests now expose POST /api/v1/auth/password/forgot, return identical empty 202 responses for unknown, suspended, passwordless, and delivery-failed cases, store only SHA-256 token hashes, expire after one hour, replace outstanding tokens under a user-first lock, and deliver through EmailProvider. Reset URLs reject embedded credentials and preconfigured token parameters and require HTTPS in staging/production.
+Password reset now exposes POST /api/v1/auth/password/reset. A valid token atomically replaces the Argon2id credential, consumes all outstanding reset tokens, revokes every unrevoked session, and records authentication.password_reset with the revocation count. The response is empty/no-store, clears the refresh cookie, and requires fresh login. Invalid, expired, replaced, reused, suspended-account, and concurrent attempts use one generic error without leaking credentials or recovery secrets.
 
 COMPLETED WITHIN CURRENT PHASE:
-EmailProvider abstraction, Mailpit SMTP adapter, secure email verification, and nondisclosing forgot-password request handling. Password-reset consumption and its session response are selected next.
+No Phase 9 tasks completed. Phase 8 is complete: EmailProvider, Mailpit SMTP, email verification, forgot-password requests, atomic password reset, and the required session response.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/modules/auth/models.py
-backend/app/modules/auth/password_reset.py
-backend/app/modules/auth/router.py
-backend/app/modules/auth/schemas.py
-backend/app/modules/auth/service.py
-backend/app/modules/auth/sessions.py
+backend/app/core/config.py
+backend/app/main.py
+backend/app/modules/auth/
 backend/tests/
+backend/.env.example
 docs/decisions/ADR-003-authentication-model.md
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
@@ -3499,16 +3497,16 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User approved and requested completion of the bounded forgot-password request task. That task is complete; await instruction before password-reset consumption and session response.
+User approved the explicit revoke-all-sessions policy and requested continuation. Phase 8 is complete; await instruction before the Phase 9 SmsProvider abstraction.
 
 LAST COMMAND:
-git commit -m "add secure forgot-password requests"
+git commit -m "add atomic password reset flow"
 
 CURRENT OUTPUT / ERROR:
 Verification successful. No outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Password replacement, token consumption, required session revocation, and the security event must commit or roll back together; never store or log raw reset tokens or plaintext passwords.
+SmsProvider must keep domain/application code independent of a specific SMS vendor. Production OTP values must never be logged; the development adapter is a separate next task.
 
 ---
 
