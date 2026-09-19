@@ -3441,10 +3441,10 @@ CURRENT PHASE:
 Phase 9 — Phone OTP
 
 CURRENT TASK:
-Implement and verify the provider-neutral SmsProvider abstraction (not started).
+Implement and verify the development SMS adapter (not started).
 
 TASK GOAL:
-Define the provider-neutral outbound SMS contract, validated message boundary, fail-closed disabled provider, configuration selection, application injection, and focused tests. Do not begin the development adapter, OTP generation, challenge handling, or phone login.
+Implement a non-networked development SmsProvider adapter that safely captures validated messages without logging message content, restrict it to development/test configuration, wire provider selection, and add focused tests. Do not begin OTP generation, challenge handling, rate limiting, phone identity flows, or phone login.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-7ddae4bfc36f39681180309d9ea7947704e30da4
+53373e8791284dc57c21535b3f5757283b23699c
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,29 +3465,27 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 8 email verification and recovery complete. Exact final verification:
-- Full PostgreSQL-backed backend suite: 115 passed in 88.75s.
-- Focused password-reset integration suite: 9 passed; request nondisclosure, hash-only issuance, replacement, expiration, password policy, single use, generic errors, concurrent consumption, atomic rollback, Argon2id replacement, complete session revocation, cookie clearing, and fresh-login behavior verified.
-- python -m ruff check --no-cache app tests alembic and python -m ruff format --check --no-cache app tests alembic: passed (81 files formatted).
-- python -m mypy with an external cache directory: passed (68 source files).
+Phase 9 SmsProvider abstraction complete. Exact final verification:
+- Full PostgreSQL-backed backend suite: 120 passed in 69.39s.
+- Focused SmsProvider suite: 5 passed; E.164 destination and bounded-body validation, protocol compatibility, fail-closed delivery, disabled configuration selection, unknown-adapter rejection, and application injection verified.
+- python -m ruff check --no-cache app tests alembic and python -m ruff format --check --no-cache app tests alembic: passed (83 files formatted).
+- python -m mypy with an external cache directory: passed (70 source files).
 - alembic current/check: 20260918_0012 (head), no pending operations.
 - python -m build --wheel: successful.
-- docker build -f backend/Dockerfile -t outpost-backend:phase8-password-reset .: successful.
-- Live SMTP/Mailpit reset flow replaced the Argon2id credential, consumed the SHA-256 token, revoked the old access/refresh session, cleared the refresh cookie, rejected the old password, and accepted the new password against a temporary PostgreSQL database.
-- Built-image OpenAPI smoke verified POST /api/v1/auth/password/reset.
+- docker build -f backend/Dockerfile -t outpost-backend:phase9-sms-provider .: successful.
+- Built-image smoke verified default DisabledSmsProvider injection and fail-closed SmsDeliveryError behavior.
 - All four Compose infrastructure services healthy. Local signing key remains in ignored backend/.env; never display or commit it.
-Password reset now exposes POST /api/v1/auth/password/reset. A valid token atomically replaces the Argon2id credential, consumes all outstanding reset tokens, revokes every unrevoked session, and records authentication.password_reset with the revocation count. The response is empty/no-store, clears the refresh cookie, and requires fresh login. Invalid, expired, replaced, reused, suspended-account, and concurrent attempts use one generic error without leaking credentials or recovery secrets.
+SmsProvider now defines a provider-neutral, runtime-checkable delivery contract with validated E.164 destinations and bounded message bodies. DisabledSmsProvider fails closed through the application-owned SmsDeliveryError. Typed configuration defaults to disabled, startup supports configured or explicit provider injection, and OutboundSms exposes the dependency boundary. No development adapter or OTP behavior exists yet.
 
 COMPLETED WITHIN CURRENT PHASE:
-No Phase 9 tasks completed. Phase 8 is complete: EmailProvider, Mailpit SMTP, email verification, forgot-password requests, atomic password reset, and the required session response.
+Provider-neutral SmsProvider abstraction with validated message contract, fail-closed disabled provider, configuration selection, application injection, and dependency wiring. Development SMS adapter is selected next.
 
 FILES RELEVANT TO CURRENT TASK:
 backend/app/core/config.py
 backend/app/main.py
-backend/app/modules/auth/
+backend/app/modules/auth/sms.py
 backend/tests/
 backend/.env.example
-docs/decisions/ADR-003-authentication-model.md
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3497,16 +3495,16 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User approved the explicit revoke-all-sessions policy and requested continuation. Phase 8 is complete; await instruction before the Phase 9 SmsProvider abstraction.
+User approved and requested completion of the bounded SmsProvider abstraction. That task is complete; await instruction before the development SMS adapter.
 
 LAST COMMAND:
-git commit -m "add atomic password reset flow"
+git commit -m "add provider-neutral SMS boundary"
 
 CURRENT OUTPUT / ERROR:
 Verification successful. No outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-SmsProvider must keep domain/application code independent of a specific SMS vendor. Production OTP values must never be logged; the development adapter is a separate next task.
+The development adapter may retain messages in memory for tests/local use but must never print or log their destination or content. It must be rejected in staging and production.
 
 ---
 
