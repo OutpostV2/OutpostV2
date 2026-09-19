@@ -23,6 +23,12 @@ def normalize_username(value: str) -> str:
     return value
 
 
+def validate_password(value: SecretStr) -> SecretStr:
+    if not 12 <= len(value.get_secret_value()) <= 1024:
+        raise ValueError("Password must contain 12–1024 characters")
+    return value
+
+
 class RegistrationInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     display_name: str = Field(min_length=1, max_length=200)
@@ -51,9 +57,7 @@ class RegistrationInput(BaseModel):
     @field_validator("password")
     @classmethod
     def password_policy(cls, value: SecretStr) -> SecretStr:
-        if not 12 <= len(value.get_secret_value()) <= 1024:
-            raise ValueError("Password must contain 12–1024 characters")
-        return value
+        return validate_password(value)
 
 
 class UserOutput(BaseModel):
@@ -83,6 +87,17 @@ class ForgotPasswordInput(BaseModel):
     @classmethod
     def clean_email(cls, value: str) -> str:
         return normalize_email(value)
+
+
+class PasswordResetInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: SecretStr = Field(min_length=43, max_length=512)
+    password: SecretStr
+
+    @field_validator("password")
+    @classmethod
+    def password_policy(cls, value: SecretStr) -> SecretStr:
+        return validate_password(value)
 
 
 class EmailVerificationConfirmInput(BaseModel):

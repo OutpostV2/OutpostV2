@@ -11,11 +11,19 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
+from app.core.errors import BadRequestError
 from app.modules.auth.email import EmailDeliveryError, EmailMessage, EmailProvider
-from app.modules.auth.models import PasswordCredential, PasswordResetToken
+from app.modules.auth.models import (
+    AuthSession,
+    PasswordCredential,
+    PasswordResetToken,
+    SecurityEvent,
+)
+from app.modules.auth.passwords import hash_password
 from app.modules.users.models import User, UserStatus
 
 PASSWORD_RESET_TTL = timedelta(hours=1)
+INVALID_RESET_MESSAGE = "Invalid or expired password reset token"
 _logger = logging.getLogger("outpost.auth.password_reset")
 
 
@@ -91,3 +99,65 @@ def request_password_reset(
         )
     except EmailDeliveryError:
         _logger.error("password_reset.delivery_failed")
+
+
+def reset_password(session: Session, raw_token: str, new_password: str) -> None:
+    """Replace a password and revoke every session in one atomic transaction."""
+    token_hash = _token_hash(raw_token)
+    password_hash = hash_password(new_password)
+    with session.begin():
+        user_id = session.scalar(
+            select(PasswordResetToken.user_id).where(PasswordResetToken.token_hash == token_hash)
+        )
+        if user_id is None:
+            raise BadRequestError(INVALID_RESET_MESSAGE)
+        user = session.scalars(select(User).where(User.id == user_id).with_for_update()).one()
+        token = session.scalars(
+            select(PasswordResetToken)
+            .where(PasswordResetToken.token_hash == token_hash)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        ).one()
+        credential = session.scalars(
+            select(PasswordCredential)
+            .where(PasswordCredential.user_id == user.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        ).one_or_none()
+        now = datetime.now(UTC)
+        if (
+            token.consumed_at is not None
+            or token.expires_at <= now
+            or user.status is not UserStatus.ACTIVE
+            or credential is None
+        ):
+            raise BadRequestError(INVALID_RESET_MESSAGE)
+
+        active_sessions = list(
+            session.scalars(
+                select(AuthSession)
+                .where(AuthSession.user_id == user.id, AuthSession.revoked_at.is_(None))
+                .order_by(AuthSession.id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        )
+        credential.password_hash = password_hash
+        credential.password_changed_at = now
+        session.execute(
+            update(PasswordResetToken)
+            .where(
+                PasswordResetToken.user_id == user.id,
+                PasswordResetToken.consumed_at.is_(None),
+            )
+            .values(consumed_at=now)
+        )
+        for auth_session in active_sessions:
+            auth_session.revoked_at = now
+        session.add(
+            SecurityEvent(
+                user_id=user.id,
+                event_type="authentication.password_reset",
+                event_data={"revoked_session_count": len(active_sessions)},
+            )
+        )
