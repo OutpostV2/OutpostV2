@@ -28,6 +28,20 @@ class SmsProvider(Protocol):
         """Deliver a validated message without exposing its contents."""
 
 
+class DevelopmentSmsProvider:
+    """Non-networked provider that retains messages without logging their contents."""
+
+    def __init__(self) -> None:
+        self._outbox: list[SmsMessage] = []
+
+    @property
+    def outbox(self) -> tuple[SmsMessage, ...]:
+        return tuple(self._outbox)
+
+    def send(self, message: SmsMessage) -> None:
+        self._outbox.append(message)
+
+
 class DisabledSmsProvider:
     """Fail-closed provider used until an outbound adapter is configured."""
 
@@ -38,6 +52,8 @@ class DisabledSmsProvider:
 
 def build_sms_provider(settings: Settings) -> SmsProvider:
     """Build the configured provider from validated settings."""
+    if settings.sms_provider is SmsProviderKind.DEVELOPMENT:
+        return DevelopmentSmsProvider()
     if settings.sms_provider is SmsProviderKind.DISABLED:
         return DisabledSmsProvider()
     raise ValueError(f"Unsupported SMS provider: {settings.sms_provider}")

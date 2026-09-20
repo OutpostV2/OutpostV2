@@ -5,6 +5,7 @@ from app.core.config import Settings, SmsProviderKind
 from app.db.session import create_engine_from_settings
 from app.main import create_app
 from app.modules.auth.sms import (
+    DevelopmentSmsProvider,
     DisabledSmsProvider,
     SmsDeliveryError,
     SmsMessage,
@@ -13,6 +14,19 @@ from app.modules.auth.sms import (
 )
 
 DATABASE_URL = "postgresql+psycopg://outpost:local-password@127.0.0.1:5433/outpost"
+
+
+def test_development_sms_provider_captures_messages_without_output(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    provider = DevelopmentSmsProvider()
+    message = SmsMessage(to="+14155552671", text_body="Your Outpost code is 123456.")
+
+    provider.send(message)
+
+    assert provider.outbox == (message,)
+    assert isinstance(provider, SmsProvider)
+    assert capsys.readouterr() == ("", "")
 
 
 def test_sms_message_accepts_only_e164_destinations_and_bounded_text() -> None:
@@ -54,6 +68,32 @@ def test_sms_provider_factory_defaults_to_disabled() -> None:
 
     assert settings.sms_provider is SmsProviderKind.DISABLED
     assert isinstance(provider, DisabledSmsProvider)
+
+
+def test_sms_provider_factory_uses_validated_development_configuration() -> None:
+    settings = Settings(
+        database_url=DATABASE_URL,
+        sms_provider="development",
+        _env_file=None,
+    )
+
+    provider = build_sms_provider(settings)
+
+    assert settings.sms_provider is SmsProviderKind.DEVELOPMENT
+    assert isinstance(provider, DevelopmentSmsProvider)
+
+
+@pytest.mark.parametrize("environment", ("staging", "production"))
+def test_development_sms_provider_is_rejected_outside_safe_environments(
+    environment: str,
+) -> None:
+    with pytest.raises(ValidationError, match="development SMS provider"):
+        Settings(
+            env=environment,
+            database_url=DATABASE_URL,
+            sms_provider="development",
+            _env_file=None,
+        )
 
 
 def test_sms_provider_configuration_rejects_unknown_adapter() -> None:

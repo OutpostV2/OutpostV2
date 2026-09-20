@@ -46,6 +46,7 @@ class SmsProviderKind(StrEnum):
     """Configured outbound SMS implementation."""
 
     DISABLED = "disabled"
+    DEVELOPMENT = "development"
 
 
 class Settings(BaseSettings):
@@ -134,6 +135,11 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def environment_safety(self) -> "Settings":
+        if self.sms_provider is SmsProviderKind.DEVELOPMENT and self.env not in {
+            Environment.DEVELOPMENT,
+            Environment.TEST,
+        }:
+            raise ValueError("The development SMS provider is allowed only in development or test")
         if self.email_provider is EmailProviderKind.DEVELOPMENT and self.env not in {
             Environment.DEVELOPMENT,
             Environment.TEST,
