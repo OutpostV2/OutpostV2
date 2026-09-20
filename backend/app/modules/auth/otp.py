@@ -4,12 +4,14 @@ import hashlib
 import hmac
 import re
 import secrets
+from datetime import datetime, timedelta
 
 from app.core.config import Settings
 from app.core.errors import ServiceUnavailableError
 from app.modules.auth.models import OtpPurpose
 
 OTP_DIGEST_PREFIX = "hmac-sha256:v1:"
+OTP_CHALLENGE_LIFETIME = timedelta(minutes=5)
 _PHONE_PATTERN = re.compile(r"^\+[1-9][0-9]{1,14}$")
 _CODE_PATTERN = re.compile(r"^[0-9]{6}$")
 
@@ -17,6 +19,19 @@ _CODE_PATTERN = re.compile(r"^[0-9]{6}$")
 def generate_otp() -> str:
     """Return a uniformly generated six-digit decimal code."""
     return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def otp_challenge_expires_at(created_at: datetime) -> datetime:
+    """Return the expiration time for a newly created OTP challenge."""
+    _require_aware_timestamp(created_at)
+    return created_at + OTP_CHALLENGE_LIFETIME
+
+
+def is_otp_challenge_expired(*, expires_at: datetime, now: datetime) -> bool:
+    """Return whether an OTP challenge has reached its expiration boundary."""
+    _require_aware_timestamp(expires_at)
+    _require_aware_timestamp(now)
+    return now >= expires_at
 
 
 def create_otp_digest(
@@ -67,3 +82,8 @@ def _challenge_payload(*, phone_e164: str, purpose: OtpPurpose, code: str) -> by
             code.encode("ascii"),
         )
     )
+
+
+def _require_aware_timestamp(value: datetime) -> None:
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("OTP challenge timestamps must be timezone-aware")

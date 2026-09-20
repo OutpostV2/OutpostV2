@@ -1,6 +1,7 @@
 import hmac
 import logging
 import secrets
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pydantic import SecretStr, ValidationError
@@ -186,3 +187,39 @@ def test_otp_digest_fails_closed_without_a_configured_secret() -> None:
 def test_short_otp_hmac_key_is_rejected() -> None:
     with pytest.raises(ValidationError, match="OTP HMAC key requires at least 32 bytes"):
         otp_settings("too-short")
+
+
+def test_otp_challenge_expiration_is_exactly_five_minutes() -> None:
+    created_at = datetime(2026, 9, 20, 12, 0, tzinfo=UTC)
+
+    assert timedelta(minutes=5) == otp.OTP_CHALLENGE_LIFETIME
+    assert otp.otp_challenge_expires_at(created_at) == datetime(2026, 9, 20, 12, 5, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    ("offset", "expected"),
+    (
+        (timedelta(microseconds=-1), False),
+        (timedelta(0), True),
+        (timedelta(microseconds=1), True),
+    ),
+)
+def test_otp_challenge_expiration_boundary(
+    offset: timedelta,
+    expected: bool,
+) -> None:
+    expires_at = datetime(2026, 9, 20, 12, 5, tzinfo=UTC)
+
+    assert otp.is_otp_challenge_expired(expires_at=expires_at, now=expires_at + offset) is expected
+
+
+def test_otp_challenge_expiration_requires_timezone_aware_timestamps() -> None:
+    aware = datetime(2026, 9, 20, 12, 0, tzinfo=UTC)
+    naive = datetime(2026, 9, 20, 12, 0)
+
+    with pytest.raises(ValueError, match="OTP challenge timestamps must be timezone-aware"):
+        otp.otp_challenge_expires_at(naive)
+    with pytest.raises(ValueError, match="OTP challenge timestamps must be timezone-aware"):
+        otp.is_otp_challenge_expired(expires_at=naive, now=aware)
+    with pytest.raises(ValueError, match="OTP challenge timestamps must be timezone-aware"):
+        otp.is_otp_challenge_expired(expires_at=aware, now=naive)
