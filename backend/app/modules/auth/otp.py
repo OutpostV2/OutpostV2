@@ -12,6 +12,7 @@ from app.modules.auth.models import OtpPurpose
 
 OTP_DIGEST_PREFIX = "hmac-sha256:v1:"
 OTP_CHALLENGE_LIFETIME = timedelta(minutes=5)
+OTP_MAX_ATTEMPTS = 5
 _PHONE_PATTERN = re.compile(r"^\+[1-9][0-9]{1,14}$")
 _CODE_PATTERN = re.compile(r"^[0-9]{6}$")
 
@@ -32,6 +33,19 @@ def is_otp_challenge_expired(*, expires_at: datetime, now: datetime) -> bool:
     _require_aware_timestamp(expires_at)
     _require_aware_timestamp(now)
     return now >= expires_at
+
+
+def otp_attempts_remaining(attempt_count: int) -> int:
+    """Return how many attempts remain for a valid stored attempt count."""
+    _require_valid_attempt_count(attempt_count)
+    return OTP_MAX_ATTEMPTS - attempt_count
+
+
+def next_otp_attempt_count(attempt_count: int) -> int:
+    """Advance an attempt count without exceeding the challenge limit."""
+    if otp_attempts_remaining(attempt_count) == 0:
+        raise ValueError("OTP challenge attempt limit reached")
+    return attempt_count + 1
 
 
 def create_otp_digest(
@@ -82,6 +96,11 @@ def _challenge_payload(*, phone_e164: str, purpose: OtpPurpose, code: str) -> by
             code.encode("ascii"),
         )
     )
+
+
+def _require_valid_attempt_count(attempt_count: int) -> None:
+    if not 0 <= attempt_count <= OTP_MAX_ATTEMPTS:
+        raise ValueError("Invalid OTP challenge attempt count")
 
 
 def _require_aware_timestamp(value: datetime) -> None:

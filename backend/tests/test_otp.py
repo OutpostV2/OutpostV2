@@ -223,3 +223,36 @@ def test_otp_challenge_expiration_requires_timezone_aware_timestamps() -> None:
         otp.is_otp_challenge_expired(expires_at=naive, now=aware)
     with pytest.raises(ValueError, match="OTP challenge timestamps must be timezone-aware"):
         otp.is_otp_challenge_expired(expires_at=aware, now=naive)
+
+
+@pytest.mark.parametrize(
+    ("attempt_count", "remaining"),
+    ((0, 5), (1, 4), (4, 1), (5, 0)),
+)
+def test_otp_attempts_remaining_uses_five_attempt_cap(
+    attempt_count: int,
+    remaining: int,
+) -> None:
+    assert otp.OTP_MAX_ATTEMPTS == 5
+    assert remaining == otp.otp_attempts_remaining(attempt_count)
+
+
+@pytest.mark.parametrize(("attempt_count", "next_count"), ((0, 1), (4, 5)))
+def test_next_otp_attempt_count_advances_within_limit(
+    attempt_count: int,
+    next_count: int,
+) -> None:
+    assert next_count == otp.next_otp_attempt_count(attempt_count)
+
+
+def test_next_otp_attempt_count_rejects_attempt_at_limit() -> None:
+    with pytest.raises(ValueError, match="OTP challenge attempt limit reached"):
+        otp.next_otp_attempt_count(5)
+
+
+@pytest.mark.parametrize("attempt_count", (-1, 6))
+def test_otp_attempt_policy_rejects_invalid_stored_count(attempt_count: int) -> None:
+    with pytest.raises(ValueError, match="Invalid OTP challenge attempt count"):
+        otp.otp_attempts_remaining(attempt_count)
+    with pytest.raises(ValueError, match="Invalid OTP challenge attempt count"):
+        otp.next_otp_attempt_count(attempt_count)
