@@ -3438,13 +3438,13 @@ D:\Shared Workspace\Projects\Outpost-New
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 9 — Phone OTP
+Phase 10 — Google Authentication
 
 CURRENT TASK:
-Implement and verify passwordless phone OTP login (not started).
+Implement and verify Google OAuth/OIDC authorization initiation with state and nonce (not started).
 
 TASK GOAL:
-Add generic phone OTP request and verification endpoints that use canonical E.164 identities, distributed phone/IP rate limits, resend cooldown, protected challenges, expiration and attempt limits. Verification must consume a challenge exactly once, resolve or create the verified phone identity transactionally, and issue the standard access/refresh session without disclosing account state.
+Add provider-neutral Google OAuth/OIDC configuration and an authorization initiation endpoint that creates cryptographically strong state and nonce, stores their short-lived single-use correlation in Redis-compatible infrastructure, and constructs a validated Google authorization redirect. Do not implement the callback, code exchange, identity resolution, or session issuance in this task.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-4d39588a78b526600c555e83589e69c38aa51d57
+5376884d028130b9a95cbefeb83d9c60ffa62f2c
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,32 +3465,30 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 9 phone identity normalization and resolution complete. Exact final verification:
-- Focused phone identity unit and PostgreSQL concurrency suites: 10 passed.
-- Full backend suite: 176 passed in 852.46s; two cache-write warnings only.
-- Ruff check/format: passed (93 files formatted); mypy passed (80 source files).
+Phase 9 phone OTP is complete. Exact final verification:
+- Focused passwordless phone OTP PostgreSQL suite: 4 passed.
+- Full backend suite: all 180 collected tests passed.
+- Ruff check/format: passed (95 files formatted); mypy passed (82 source files).
 - Alembic current/check: 20260918_0012 (head), no pending operations.
-- Wheel and outpost-backend:phase9-phone-identity image builds: successful.
-- Built-image smoke canonicalized international input to E.164.
+- Wheel and outpost-backend:phase9-phone-otp image builds: successful.
+- Built-image smoke verified E.164 normalization and both packaged phone OTP routes.
 - PostgreSQL, Valkey, MinIO, and Mailpit Compose services healthy.
-Phone inputs now normalize through libphonenumber, and PostgreSQL advisory transaction locking serializes canonical user and verified PhoneIdentity resolution for the same phone. Inactive identities fail with the generic OTP authentication error. No OTP HTTP endpoints or phone session issuance exists yet.
+Phone OTP request and verification endpoints now enforce distributed rate limits, cooldown, protected challenge storage, expiration, five persisted attempts, generic failures, single-use concurrent consumption, verified phone identity resolution, and standard access/refresh session issuance. SMS delivery failures remain nondisclosing and do not log phone numbers or codes.
 
 COMPLETED WITHIN CURRENT PHASE:
-SmsProvider and development adapter, secure OTP generation, protected challenge digests, expiration, attempt limits, resend cooldown, distributed request rate limits, and phone identity normalization/resolution. Passwordless login is selected next.
+Phase 10 has not started. Google OAuth/OIDC authorization initiation with state and nonce is selected first.
 
 FILES RELEVANT TO CURRENT TASK:
+backend/app/core/config.py
+backend/app/main.py
+backend/app/infrastructure/valkey_oauth_state.py
+backend/app/modules/auth/dependencies.py
+backend/app/modules/auth/google.py
 backend/app/modules/auth/router.py
 backend/app/modules/auth/schemas.py
-backend/app/modules/auth/dependencies.py
-backend/app/modules/auth/models.py
-backend/app/modules/auth/otp.py
-backend/app/modules/auth/phone_identities.py
-backend/app/modules/auth/rate_limits.py
-backend/app/modules/auth/sessions.py
-backend/app/modules/auth/tokens.py
-backend/app/providers/sms.py
-backend/tests/test_router.py
-backend/tests/integration/test_phone_otp_login.py
+backend/tests/test_google_oauth.py
+backend/tests/integration/test_google_oauth_state.py
+.env.example
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3500,16 +3498,16 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 and Valkey 9.1.2 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User requested completion of Phase 9. Phone identity resolution is complete; continue through passwordless phone OTP login and stop before Phase 10 implementation.
+User requested completion of Phase 9. Phase 9 is complete; Phase 10 is selected but must not be implemented in this checkpoint.
 
 LAST COMMAND:
-git commit -m "add verified phone identity resolution"
+git commit -m "add passwordless phone OTP login"
 
 CURRENT OUTPUT / ERROR:
-Commit A 4d39588a78b526600c555e83589e69c38aa51d57 created successfully. Verification successful; no outstanding task errors.
+Commit A 5376884d028130b9a95cbefeb83d9c60ffa62f2c created successfully. Verification successful; no outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Keep request responses generic, persist every failed verification attempt, serialize challenge consumption, and reuse the established session/token response contract.
+Begin Phase 10 with distributed, short-lived state/nonce correlation and a validated authorization redirect; defer callback behavior to the following task.
 
 ---
 
