@@ -3441,10 +3441,10 @@ CURRENT PHASE:
 Phase 9 — Phone OTP
 
 CURRENT TASK:
-Implement and verify the development SMS adapter (not started).
+Implement and verify secure six-digit OTP generation (not started).
 
 TASK GOAL:
-Implement a non-networked development SmsProvider adapter that safely captures validated messages without logging message content, restrict it to development/test configuration, wire provider selection, and add focused tests. Do not begin OTP generation, challenge handling, rate limiting, phone identity flows, or phone login.
+Implement a cryptographically secure generator that returns exactly six decimal digits, preserves leading zeros, and never logs or persists generated values. Add focused tests for format, boundary behavior, and use of an unbiased cryptographic source. Do not begin protected challenge storage, expiration, attempt limits, resend cooldown, rate limits, SMS delivery flows, phone identity flows, or phone login.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-53373e8791284dc57c21535b3f5757283b23699c
+a461da28632a950b26ff74e24066a5776210c8e5
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,27 +3465,24 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 9 SmsProvider abstraction complete. Exact final verification:
-- Full PostgreSQL-backed backend suite: 120 passed in 69.39s.
-- Focused SmsProvider suite: 5 passed; E.164 destination and bounded-body validation, protocol compatibility, fail-closed delivery, disabled configuration selection, unknown-adapter rejection, and application injection verified.
+Phase 9 development SMS adapter complete. Exact final verification:
+- Full PostgreSQL-backed backend suite: 124 passed in 60.55s.
+- Focused SmsProvider suite: 9 passed; in-memory capture without stdout/stderr output, protocol compatibility, factory selection, and staging/production rejection verified alongside the existing provider boundary.
 - python -m ruff check --no-cache app tests alembic and python -m ruff format --check --no-cache app tests alembic: passed (83 files formatted).
 - python -m mypy with an external cache directory: passed (70 source files).
 - alembic current/check: 20260918_0012 (head), no pending operations.
 - python -m build --wheel: successful.
-- docker build -f backend/Dockerfile -t outpost-backend:phase9-sms-provider .: successful.
-- Built-image smoke verified default DisabledSmsProvider injection and fail-closed SmsDeliveryError behavior.
-- All four Compose infrastructure services healthy. Local signing key remains in ignored backend/.env; never display or commit it.
-SmsProvider now defines a provider-neutral, runtime-checkable delivery contract with validated E.164 destinations and bounded message bodies. DisabledSmsProvider fails closed through the application-owned SmsDeliveryError. Typed configuration defaults to disabled, startup supports configured or explicit provider injection, and OutboundSms exposes the dependency boundary. No development adapter or OTP behavior exists yet.
+- docker build -f backend/Dockerfile -t outpost-backend:phase9-sms-development .: successful.
+- Built-image smoke verified configured DevelopmentSmsProvider selection and in-memory capture.
+- Docker Desktop 29.8.0 was restored after its engine stopped; all four Compose infrastructure services are healthy. Local signing key remains in ignored backend/.env; never display or commit it.
+DevelopmentSmsProvider now captures validated messages in a private in-memory outbox exposed as an immutable tuple and emits no output. Typed configuration selects it only in development/test and rejects it in staging/production. The local environment example selects the development adapter. No OTP generation or challenge behavior exists yet.
 
 COMPLETED WITHIN CURRENT PHASE:
-Provider-neutral SmsProvider abstraction with validated message contract, fail-closed disabled provider, configuration selection, application injection, and dependency wiring. Development SMS adapter is selected next.
+Provider-neutral SmsProvider abstraction and non-networked development adapter with safe environment restrictions, configuration selection, application injection, and focused tests. Secure six-digit OTP generation is selected next.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/core/config.py
-backend/app/main.py
-backend/app/modules/auth/sms.py
+backend/app/modules/auth/
 backend/tests/
-backend/.env.example
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3495,16 +3492,16 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User approved and requested completion of the bounded SmsProvider abstraction. That task is complete; await instruction before the development SMS adapter.
+User approved and requested completion of the bounded development SMS adapter. That task is complete; await instruction before secure OTP generation.
 
 LAST COMMAND:
-git commit -m "add provider-neutral SMS boundary"
+git commit -m "add development SMS adapter"
 
 CURRENT OUTPUT / ERROR:
 Verification successful. No outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-The development adapter may retain messages in memory for tests/local use but must never print or log their destination or content. It must be rejected in staging and production.
+Generate uniformly from the complete 000000–999999 space with a cryptographically secure source, preserve leading zeros, and keep generation separate from later challenge protection and persistence.
 
 ---
 
