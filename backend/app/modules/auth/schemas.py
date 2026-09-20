@@ -8,6 +8,8 @@ from uuid import UUID
 from email_validator import validate_email
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 
+from app.modules.auth.phone_identities import normalize_phone
+
 
 def normalize_email(value: str) -> str:
     """Validate without network I/O and use case-insensitive account identifiers."""
@@ -103,6 +105,27 @@ class PasswordResetInput(BaseModel):
 class EmailVerificationConfirmInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     token: SecretStr = Field(min_length=43, max_length=512)
+
+
+class PhoneOtpRequestInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    phone: str
+
+    @field_validator("phone")
+    @classmethod
+    def clean_phone(cls, value: str) -> str:
+        return normalize_phone(value)
+
+
+class PhoneOtpVerifyInput(PhoneOtpRequestInput):
+    code: SecretStr = Field(min_length=6, max_length=6)
+
+    @field_validator("code")
+    @classmethod
+    def valid_code(cls, value: SecretStr) -> SecretStr:
+        if not value.get_secret_value().isdigit():
+            raise ValueError("Code must contain exactly six digits")
+        return value
 
 
 class LoginInput(BaseModel):

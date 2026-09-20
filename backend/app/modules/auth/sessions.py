@@ -3,6 +3,7 @@
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 from uuid import UUID, uuid4
 
 from sqlalchemy import select, update
@@ -25,6 +26,47 @@ def _refresh_hash(refresh: str) -> str:
     return hashlib.sha256(refresh.encode()).hexdigest()
 
 
+def issue_authenticated_session(
+    session: Session,
+    settings: Settings,
+    user: User,
+    method: Literal["password", "phone_otp"],
+    *,
+    user_agent: str | None,
+    ip_address: str | None,
+) -> tuple[str, str]:
+    """Stage one initial session and audit event in the caller's transaction."""
+    signing_key(settings)
+    if user.status is not UserStatus.ACTIVE:
+        raise UnauthorizedError("Authentication failed")
+    now = datetime.now(UTC)
+    refresh = secrets.token_urlsafe(32)
+    auth_session = AuthSession(
+        id=uuid4(),
+        user_id=user.id,
+        token_family_id=uuid4(),
+        refresh_token_hash=_refresh_hash(refresh),
+        created_at=now,
+        last_used_at=now,
+        expires_at=now + timedelta(seconds=REFRESH_SECONDS),
+        user_agent=user_agent,
+        ip_address=ip_address,
+    )
+    session.add(auth_session)
+    session.flush()
+    session.add(
+        SecurityEvent(
+            user_id=user.id,
+            session_id=auth_session.id,
+            event_type="authentication.succeeded",
+            user_agent=user_agent,
+            ip_address=ip_address,
+            event_data={"method": method},
+        )
+    )
+    return issue_access_token(settings, user.id, auth_session.id), refresh
+
+
 def password_login(
     session: Session,
     settings: Settings,
@@ -37,30 +79,14 @@ def password_login(
     signing_key(settings)
     with session.begin():
         user = authenticate_password(session, data.identifier, data.password.get_secret_value())
-        now = datetime.now(UTC)
-        refresh = secrets.token_urlsafe(32)
-        auth_session = AuthSession(
-            id=uuid4(),
-            user_id=user.id,
-            token_family_id=uuid4(),
-            refresh_token_hash=_refresh_hash(refresh),
-            created_at=now,
-            last_used_at=now,
-            expires_at=now + timedelta(seconds=REFRESH_SECONDS),
+        access, refresh = issue_authenticated_session(
+            session,
+            settings,
+            user,
+            "password",
             user_agent=user_agent,
             ip_address=ip_address,
         )
-        session.add(auth_session)
-        session.flush()
-        session.add(
-            SecurityEvent(
-                user_id=user.id,
-                session_id=auth_session.id,
-                event_type="authentication.succeeded",
-                event_data={"method": "password"},
-            )
-        )
-        access = issue_access_token(settings, user.id, auth_session.id)
     return access, refresh
 
 

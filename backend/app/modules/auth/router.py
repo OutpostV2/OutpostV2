@@ -11,19 +11,24 @@ from app.modules.auth.dependencies import (
     AuthSettings,
     CurrentAuth,
     DatabaseSession,
+    OtpRateLimits,
     OutboundEmail,
+    OutboundSms,
 )
 from app.modules.auth.email_verification import (
     confirm_email_verification,
     request_email_verification,
 )
 from app.modules.auth.password_reset import request_password_reset, reset_password
+from app.modules.auth.phone_login import request_phone_otp, verify_phone_otp
 from app.modules.auth.schemas import (
     EmailVerificationConfirmInput,
     EmailVerificationRequestInput,
     ForgotPasswordInput,
     LoginInput,
     PasswordResetInput,
+    PhoneOtpRequestInput,
+    PhoneOtpVerifyInput,
     RegistrationInput,
     SessionOutput,
     TokenOutput,
@@ -120,6 +125,45 @@ def consume_password_reset(
         samesite="strict",
     )
     return response
+
+
+@router.post("/phone/request", status_code=202)
+def request_phone_code(
+    data: PhoneOtpRequestInput,
+    session: DatabaseSession,
+    settings: AuthSettings,
+    provider: OutboundSms,
+    rate_limits: OtpRateLimits,
+    request: Request,
+) -> Response:
+    rate_limits.check(
+        phone_e164=data.phone,
+        ip_address=_client_ip(request) or "unknown",
+    )
+    request_phone_otp(session, settings, provider, data.phone)
+    return Response(status_code=202, headers={"Cache-Control": "no-store"})
+
+
+@router.post("/phone/verify", response_model=TokenOutput)
+def verify_phone_code(
+    data: PhoneOtpVerifyInput,
+    session: DatabaseSession,
+    settings: AuthSettings,
+    request: Request,
+    response: Response,
+) -> TokenOutput:
+    access, refresh = verify_phone_otp(
+        session,
+        settings,
+        phone_e164=data.phone,
+        code=data.code.get_secret_value(),
+        user_agent=request.headers.get("user-agent", "")[:512] or None,
+        ip_address=_client_ip(request),
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    _set_refresh_cookie(response, refresh)
+    return TokenOutput(access_token=access)
 
 
 @router.post("/password/login", response_model=TokenOutput)
