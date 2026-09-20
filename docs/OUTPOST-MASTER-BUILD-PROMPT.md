@@ -3441,10 +3441,10 @@ CURRENT PHASE:
 Phase 9 — Phone OTP
 
 CURRENT TASK:
-Implement and verify OTP request rate limits (not started).
+Implement and verify phone identity normalization and resolution (not started).
 
 TASK GOAL:
-Add provider-neutral, atomic OTP request rate limiting with explicit per-phone and per-IP windows, generic rate-limit errors, identifier-safe keys, and focused tests. Integrate the limiter through application dependency injection so the later issuance endpoint cannot bypass it. Do not implement OTP issuance, phone identity creation, or passwordless login in this task.
+Normalize international phone input to canonical E.164 with libphonenumber, then transactionally resolve an existing active phone identity or create a new canonical user and verified PhoneIdentity after proof of phone control. Serialize concurrent creation for the same phone and add focused PostgreSQL-backed tests. Do not add OTP HTTP endpoints or session issuance in this task.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-47c4e476e628c62db80dd5e9116a0bef475faf5e
+cde456dab68edca211c69c6c1b96223e0cb65769
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,29 +3465,27 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 9 60-second OTP resend cooldown policy complete. Exact final verification:
-- Focused OTP suite: 36 passed.
-- Full PostgreSQL-backed backend suite: 160 passed in 86.56s.
-- Ruff check and format validation: passed (85 files formatted).
-- mypy: passed (72 source files).
+Phase 9 distributed OTP request rate limits complete. Exact final verification:
+- Focused unit and live-Valkey rate-limit suites: 6 passed.
+- Full backend suite: 166 passed in 71.24s.
+- Ruff check/format: passed (90 files formatted); mypy passed (77 source files).
 - alembic current/check: 20260918_0012 (head), no pending operations.
-- Wheel and outpost-backend:phase9-otp-cooldown image builds: successful.
-- Built-image smoke verified unavailability immediately before the cooldown boundary and availability exactly at it.
+- Wheel and outpost-backend:phase9-otp-ratelimits image builds: successful.
+- Built-image smoke exercised a real Valkey-backed phone/IP rate-limit check.
 - All four Compose infrastructure services healthy.
-OTP resend policy now uses an exact 60-second duration, derives resend_available_at from timezone-aware creation timestamps, treats now >= resend_available_at as available, and rejects naive timestamps. No issuance workflow, request rate limit, phone identity creation, or passwordless login exists yet.
+OTP request limits now use atomic fixed-window counters, five requests per normalized phone and twenty per client IP per 15 minutes, HMAC-protected cache keys, generic 429 errors, fail-closed Valkey handling, and application dependency injection. No OTP issuance endpoint, phone identity resolution, or passwordless login exists yet.
 
 COMPLETED WITHIN CURRENT PHASE:
-Provider-neutral SmsProvider, development adapter, secure OTP generation, protected challenge digests, five-minute expiration, five-attempt policy, and 60-second resend cooldown. Request rate limits are selected next.
+SmsProvider and development adapter, secure OTP generation, protected challenge digests, expiration, attempt limits, resend cooldown, and distributed request rate limits. Phone identity normalization and resolution are selected next.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/core/config.py
-backend/app/core/errors.py
-backend/app/main.py
-backend/app/modules/auth/dependencies.py
-backend/app/modules/auth/rate_limits.py
-backend/tests/test_otp_rate_limits.py
+backend/app/modules/auth/phone_identities.py
+backend/app/modules/auth/models.py
+backend/app/modules/auth/schemas.py
+backend/app/modules/users/models.py
+backend/tests/test_phone_identities.py
+backend/tests/integration/test_phone_identity_resolution.py
 backend/pyproject.toml
-backend/.env.example
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3497,16 +3495,16 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 and Valkey 9.1.2 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User requested completion of Phase 9. The resend cooldown is complete; continue through rate limits, phone identity, and passwordless login.
+User requested completion of Phase 9. Rate limits are complete; continue through phone identity and passwordless login.
 
 LAST COMMAND:
-git commit -m "add OTP resend cooldown policy"
+git commit -m "add distributed OTP request rate limits"
 
 CURRENT OUTPUT / ERROR:
-Commit A 47c4e476e628c62db80dd5e9116a0bef475faf5e created successfully. Verification successful; no outstanding task errors.
+Commit A cde456dab68edca211c69c6c1b96223e0cb65769 created successfully. Verification successful; no outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Rate-limit normalized phone and client-IP request scopes atomically without exposing raw identifiers in cache keys.
+Require international input, canonicalize it to E.164, and serialize same-phone identity creation before the final OTP login flow consumes this service.
 
 ---
 
