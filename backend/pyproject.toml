@@ -12,6 +12,7 @@ dependencies = [
   "argon2-cffi>=25.1,<26",
   "email-validator>=2.2,<3",
   "fastapi>=0.141.1,<1",
+  "phonenumbers>=9.0.39,<10",
   "psycopg[binary]>=3.3.5,<4",
   "pydantic>=2.13.5,<3",
   "pydantic-settings>=2.15,<3",
@@ -52,3 +53,7 @@ files = ["app", "tests"]
 plugins = ["pydantic.mypy"]
 python_version = "3.13"
 strict = true
+
+[[tool.mypy.overrides]]
+module = ["phonenumbers", "phonenumbers.*"]
+follow_imports = "skip"
