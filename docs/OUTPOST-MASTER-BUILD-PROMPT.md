@@ -3441,10 +3441,10 @@ CURRENT PHASE:
 Phase 9 — Phone OTP
 
 CURRENT TASK:
-Implement and verify secure six-digit OTP generation (not started).
+Implement and verify protected OTP challenge digests (not started).
 
 TASK GOAL:
-Implement a cryptographically secure generator that returns exactly six decimal digits, preserves leading zeros, and never logs or persists generated values. Add focused tests for format, boundary behavior, and use of an unbiased cryptographic source. Do not begin protected challenge storage, expiration, attempt limits, resend cooldown, rate limits, SMS delivery flows, phone identity flows, or phone login.
+Implement application-owned OTP challenge protection using a server-held secret, versioned HMAC-SHA256 digests bound to the normalized phone, purpose, and six-digit code, plus constant-time verification and fail-closed typed configuration. Add focused tests. Do not persist or issue challenges, enforce expiration, attempt limits, resend cooldown, or rate limits, send SMS, or implement phone identity and login flows.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-a461da28632a950b26ff74e24066a5776210c8e5
+4c4ae56da82005684ec6df0a0bc0c79d93a470f6
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,24 +3465,27 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 9 development SMS adapter complete. Exact final verification:
-- Full PostgreSQL-backed backend suite: 124 passed in 60.55s.
-- Focused SmsProvider suite: 9 passed; in-memory capture without stdout/stderr output, protocol compatibility, factory selection, and staging/production rejection verified alongside the existing provider boundary.
-- python -m ruff check --no-cache app tests alembic and python -m ruff format --check --no-cache app tests alembic: passed (83 files formatted).
-- python -m mypy with an external cache directory: passed (70 source files).
+Phase 9 secure OTP generation complete. Exact final verification:
+- Full PostgreSQL-backed backend suite: 127 passed in 90.61s.
+- Focused OTP generation suite: 3 passed; the complete six-digit space, leading-zero preservation, upper boundary, and absence of log/stdout/stderr output verified.
+- python -m ruff check --no-cache app tests alembic and python -m ruff format --check --no-cache app tests alembic: passed (85 files formatted).
+- python -m mypy with an external cache directory: passed (72 source files).
 - alembic current/check: 20260918_0012 (head), no pending operations.
 - python -m build --wheel: successful.
-- docker build -f backend/Dockerfile -t outpost-backend:phase9-sms-development .: successful.
-- Built-image smoke verified configured DevelopmentSmsProvider selection and in-memory capture.
-- Docker Desktop 29.8.0 was restored after its engine stopped; all four Compose infrastructure services are healthy. Local signing key remains in ignored backend/.env; never display or commit it.
-DevelopmentSmsProvider now captures validated messages in a private in-memory outbox exposed as an immutable tuple and emits no output. Typed configuration selects it only in development/test and rejects it in staging/production. The local environment example selects the development adapter. No OTP generation or challenge behavior exists yet.
+- docker build -f backend/Dockerfile -t outpost-backend:phase9-otp-generation .: successful.
+- Built-image smoke generated 1,000 codes and verified every value was exactly six ASCII decimal digits.
+- All four Compose infrastructure services healthy. Local signing key remains in ignored backend/.env; never display or commit it.
+The pure generate_otp function uses secrets.randbelow over the complete 000000–999999 space, returns a six-character decimal string, preserves leading zeros, and performs no logging or persistence. No protected challenge, expiration, attempt, cooldown, rate-limit, SMS issuance, phone identity, or login behavior exists yet.
 
 COMPLETED WITHIN CURRENT PHASE:
-Provider-neutral SmsProvider abstraction and non-networked development adapter with safe environment restrictions, configuration selection, application injection, and focused tests. Secure six-digit OTP generation is selected next.
+Provider-neutral SmsProvider abstraction, non-networked development adapter, and cryptographically secure six-digit OTP generation. Protected OTP challenge digests are selected next.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/modules/auth/
+backend/app/core/config.py
+backend/app/modules/auth/models.py
+backend/app/modules/auth/otp.py
 backend/tests/
+backend/.env.example
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3492,16 +3495,16 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User approved and requested completion of the bounded development SMS adapter. That task is complete; await instruction before secure OTP generation.
+User approved and requested completion of secure six-digit OTP generation. That task is complete; await instruction before protected OTP challenge digests.
 
 LAST COMMAND:
-git commit -m "add development SMS adapter"
+git commit -m "add secure OTP generation"
 
 CURRENT OUTPUT / ERROR:
 Verification successful. No outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Generate uniformly from the complete 000000–999999 space with a cryptographically secure source, preserve leading zeros, and keep generation separate from later challenge protection and persistence.
+Protect low-entropy OTPs with a server-held HMAC secret, bind the digest to normalized challenge context, use a versioned encoding, and compare candidate digests in constant time without logging codes or secrets.
 
 ---
 
