@@ -3441,10 +3441,10 @@ CURRENT PHASE:
 Phase 9 — Phone OTP
 
 CURRENT TASK:
-Implement and verify protected OTP challenge digests (not started).
+Implement and verify five-minute OTP challenge expiration (not started).
 
 TASK GOAL:
-Implement application-owned OTP challenge protection using a server-held secret, versioned HMAC-SHA256 digests bound to the normalized phone, purpose, and six-digit code, plus constant-time verification and fail-closed typed configuration. Add focused tests. Do not persist or issue challenges, enforce expiration, attempt limits, resend cooldown, or rate limits, send SMS, or implement phone identity and login flows.
+Add an explicit five-minute OTP challenge lifetime and deterministic expiration checks with a precise boundary, using timezone-aware timestamps and focused tests. Reuse the existing OtpChallenge expiration field and protected digest behavior. Do not implement challenge issuance or persistence workflows, attempt limits, resend cooldown, rate limits, SMS delivery, phone identity, or passwordless login.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-4c4ae56da82005684ec6df0a0bc0c79d93a470f6
+d4e9f9de942978337e8055fe7816188e5a3f8226
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,27 +3465,26 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 9 secure OTP generation complete. Exact final verification:
-- Full PostgreSQL-backed backend suite: 127 passed in 90.61s.
-- Focused OTP generation suite: 3 passed; the complete six-digit space, leading-zero preservation, upper boundary, and absence of log/stdout/stderr output verified.
-- python -m ruff check --no-cache app tests alembic and python -m ruff format --check --no-cache app tests alembic: passed (85 files formatted).
-- python -m mypy with an external cache directory: passed (72 source files).
+Phase 9 protected OTP challenge digests complete. Exact final verification:
+- Focused OTP suite: 17 passed.
+- Full PostgreSQL-backed backend suite: 141 passed in 109.23s.
+- python -m ruff check --no-cache app tests alembic: passed.
+- python -m ruff format --check --no-cache app tests alembic: passed (85 files formatted).
+- python -m mypy app tests with an external cache directory: passed.
 - alembic current/check: 20260918_0012 (head), no pending operations.
-- python -m build --wheel: successful.
-- docker build -f backend/Dockerfile -t outpost-backend:phase9-otp-generation .: successful.
-- Built-image smoke generated 1,000 codes and verified every value was exactly six ASCII decimal digits.
-- All four Compose infrastructure services healthy. Local signing key remains in ignored backend/.env; never display or commit it.
-The pure generate_otp function uses secrets.randbelow over the complete 000000–999999 space, returns a six-character decimal string, preserves leading zeros, and performs no logging or persistence. No protected challenge, expiration, attempt, cooldown, rate-limit, SMS issuance, phone identity, or login behavior exists yet.
+- python -m build --wheel: successfully built outpost_backend-0.1.0-py3-none-any.whl.
+- docker build -f backend/Dockerfile -t outpost-backend:phase9-otp-digests .: successful.
+- Built-image smoke verified the correct OTP context and rejected a purpose mismatch without emitting a secret, code, or digest.
+- All four Compose infrastructure services healthy.
+OTP challenge digests now use a dedicated typed secret of at least 32 bytes, the versioned hmac-sha256:v1 format, unambiguous phone/purpose/code context binding, input validation, and constant-time verification. Missing configuration fails closed. No challenge issuance or persistence workflow, expiration enforcement, attempt limit, cooldown, rate limit, phone identity, or passwordless login exists yet.
 
 COMPLETED WITHIN CURRENT PHASE:
-Provider-neutral SmsProvider abstraction, non-networked development adapter, and cryptographically secure six-digit OTP generation. Protected OTP challenge digests are selected next.
+Provider-neutral SmsProvider abstraction, non-networked development adapter, cryptographically secure six-digit OTP generation, and protected context-bound OTP challenge digests. Five-minute expiration is selected next.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/core/config.py
 backend/app/modules/auth/models.py
 backend/app/modules/auth/otp.py
-backend/tests/
-backend/.env.example
+backend/tests/test_otp.py
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3495,16 +3494,16 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User approved and requested completion of secure six-digit OTP generation. That task is complete; await instruction before protected OTP challenge digests.
+User approved continuation. Protected OTP challenge digests are complete; await instruction before five-minute expiration.
 
 LAST COMMAND:
-git commit -m "add secure OTP generation"
+git commit -m "add protected OTP challenge digests"
 
 CURRENT OUTPUT / ERROR:
-Verification successful. No outstanding task errors.
+Commit A d4e9f9de942978337e8055fe7816188e5a3f8226 created successfully. Verification successful; no outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Protect low-entropy OTPs with a server-held HMAC secret, bind the digest to normalized challenge context, use a versioned encoding, and compare candidate digests in constant time without logging codes or secrets.
+Define the five-minute lifetime and exact expiration boundary with timezone-aware, deterministic tests before adding issuance or persistence behavior.
 
 ---
 
