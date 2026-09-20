@@ -3441,10 +3441,10 @@ CURRENT PHASE:
 Phase 10 — Google Authentication
 
 CURRENT TASK:
-Implement and verify Google OAuth/OIDC authorization initiation with state and nonce (not started).
+Implement and verify Google OAuth/OIDC callback code exchange and provider validation (not started).
 
 TASK GOAL:
-Add provider-neutral Google OAuth/OIDC configuration and an authorization initiation endpoint that creates cryptographically strong state and nonce, stores their short-lived single-use correlation in Redis-compatible infrastructure, and constructs a validated Google authorization redirect. Do not implement the callback, code exchange, identity resolution, or session issuance in this task.
+Consume the stored OAuth state exactly once, exchange the authorization code through a provider-neutral boundary, and validate Google's signed ID token against discovery/JWKS, issuer, audience, expiry, nonce, subject, and verified email claims. Return a validated Google principal. Do not resolve or create local users, link identities, or issue Outpost sessions in this task.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-5376884d028130b9a95cbefeb83d9c60ffa62f2c
+adbe1f563a3f673542b74afb0628c170ff90f8f4
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,30 +3465,28 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 9 phone OTP is complete. Exact final verification:
-- Focused passwordless phone OTP PostgreSQL suite: 4 passed.
-- Full backend suite: all 180 collected tests passed.
-- Ruff check/format: passed (95 files formatted); mypy passed (82 source files).
+Phase 10 Google authorization initiation is complete. Exact final verification:
+- Focused Google OAuth unit and live-Valkey suites: 6 passed.
+- Full backend suite: all 186 collected tests passed.
+- Ruff check/format: passed (99 files formatted); mypy passed (86 source files).
 - Alembic current/check: 20260918_0012 (head), no pending operations.
-- Wheel and outpost-backend:phase9-phone-otp image builds: successful.
-- Built-image smoke verified E.164 normalization and both packaged phone OTP routes.
+- Wheel and outpost-backend:phase10-google-state image builds: successful.
+- Built-image smoke verified the packaged Google authorization URL, exact redirect URI, requested scopes, and strong state/nonce values.
 - PostgreSQL, Valkey, MinIO, and Mailpit Compose services healthy.
-Phone OTP request and verification endpoints now enforce distributed rate limits, cooldown, protected challenge storage, expiration, five persisted attempts, generic failures, single-use concurrent consumption, verified phone identity resolution, and standard access/refresh session issuance. SMS delivery failures remain nondisclosing and do not log phone numbers or codes.
+Google authorization configuration is optional until the endpoint is used, production redirect URIs require HTTPS, and initiation persists a cryptographically strong state/nonce pair for ten minutes in Valkey with atomic single-use consumption. The redirect response is non-cacheable and fails closed when configuration or Valkey is unavailable.
 
 COMPLETED WITHIN CURRENT PHASE:
-Phase 10 has not started. Google OAuth/OIDC authorization initiation with state and nonce is selected first.
+- Google OAuth/OIDC authorization initiation with strong state and nonce, distributed short-lived correlation storage, and a validated no-store redirect.
 
 FILES RELEVANT TO CURRENT TASK:
+backend/pyproject.toml
 backend/app/core/config.py
 backend/app/main.py
-backend/app/infrastructure/valkey_oauth_state.py
 backend/app/modules/auth/dependencies.py
 backend/app/modules/auth/google.py
 backend/app/modules/auth/router.py
-backend/app/modules/auth/schemas.py
 backend/tests/test_google_oauth.py
-backend/tests/integration/test_google_oauth_state.py
-.env.example
+backend/tests/test_google_oidc_callback.py
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3498,16 +3496,16 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 and Valkey 9.1.2 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User requested completion of Phase 9. Phase 9 is complete; Phase 10 is selected but must not be implemented in this checkpoint.
+User requested completion of Phase 10. Continue through Phase 10 only; do not begin Phase 11.
 
 LAST COMMAND:
-git commit -m "add passwordless phone OTP login"
+git commit -m "add Google OAuth authorization state"
 
 CURRENT OUTPUT / ERROR:
-Commit A 5376884d028130b9a95cbefeb83d9c60ffa62f2c created successfully. Verification successful; no outstanding task errors.
+Commit A adbe1f563a3f673542b74afb0628c170ff90f8f4 created successfully. Verification successful; no outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Begin Phase 10 with distributed, short-lived state/nonce correlation and a validated authorization redirect; defer callback behavior to the following task.
+Implement callback validation behind a provider-neutral boundary. Consume correlation state before the outbound exchange so failed callbacks cannot be replayed; defer local identity resolution and session issuance to the following task.
 
 ---
 
