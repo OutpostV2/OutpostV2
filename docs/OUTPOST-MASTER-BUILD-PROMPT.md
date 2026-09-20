@@ -3441,10 +3441,10 @@ CURRENT PHASE:
 Phase 9 — Phone OTP
 
 CURRENT TASK:
-Implement and verify phone identity normalization and resolution (not started).
+Implement and verify passwordless phone OTP login (not started).
 
 TASK GOAL:
-Normalize international phone input to canonical E.164 with libphonenumber, then transactionally resolve an existing active phone identity or create a new canonical user and verified PhoneIdentity after proof of phone control. Serialize concurrent creation for the same phone and add focused PostgreSQL-backed tests. Do not add OTP HTTP endpoints or session issuance in this task.
+Add generic phone OTP request and verification endpoints that use canonical E.164 identities, distributed phone/IP rate limits, resend cooldown, protected challenges, expiration and attempt limits. Verification must consume a challenge exactly once, resolve or create the verified phone identity transactionally, and issue the standard access/refresh session without disclosing account state.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-cde456dab68edca211c69c6c1b96223e0cb65769
+4d39588a78b526600c555e83589e69c38aa51d57
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,27 +3465,32 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 9 distributed OTP request rate limits complete. Exact final verification:
-- Focused unit and live-Valkey rate-limit suites: 6 passed.
-- Full backend suite: 166 passed in 71.24s.
-- Ruff check/format: passed (90 files formatted); mypy passed (77 source files).
-- alembic current/check: 20260918_0012 (head), no pending operations.
-- Wheel and outpost-backend:phase9-otp-ratelimits image builds: successful.
-- Built-image smoke exercised a real Valkey-backed phone/IP rate-limit check.
-- All four Compose infrastructure services healthy.
-OTP request limits now use atomic fixed-window counters, five requests per normalized phone and twenty per client IP per 15 minutes, HMAC-protected cache keys, generic 429 errors, fail-closed Valkey handling, and application dependency injection. No OTP issuance endpoint, phone identity resolution, or passwordless login exists yet.
+Phase 9 phone identity normalization and resolution complete. Exact final verification:
+- Focused phone identity unit and PostgreSQL concurrency suites: 10 passed.
+- Full backend suite: 176 passed in 852.46s; two cache-write warnings only.
+- Ruff check/format: passed (93 files formatted); mypy passed (80 source files).
+- Alembic current/check: 20260918_0012 (head), no pending operations.
+- Wheel and outpost-backend:phase9-phone-identity image builds: successful.
+- Built-image smoke canonicalized international input to E.164.
+- PostgreSQL, Valkey, MinIO, and Mailpit Compose services healthy.
+Phone inputs now normalize through libphonenumber, and PostgreSQL advisory transaction locking serializes canonical user and verified PhoneIdentity resolution for the same phone. Inactive identities fail with the generic OTP authentication error. No OTP HTTP endpoints or phone session issuance exists yet.
 
 COMPLETED WITHIN CURRENT PHASE:
-SmsProvider and development adapter, secure OTP generation, protected challenge digests, expiration, attempt limits, resend cooldown, and distributed request rate limits. Phone identity normalization and resolution are selected next.
+SmsProvider and development adapter, secure OTP generation, protected challenge digests, expiration, attempt limits, resend cooldown, distributed request rate limits, and phone identity normalization/resolution. Passwordless login is selected next.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/modules/auth/phone_identities.py
-backend/app/modules/auth/models.py
+backend/app/modules/auth/router.py
 backend/app/modules/auth/schemas.py
-backend/app/modules/users/models.py
-backend/tests/test_phone_identities.py
-backend/tests/integration/test_phone_identity_resolution.py
-backend/pyproject.toml
+backend/app/modules/auth/dependencies.py
+backend/app/modules/auth/models.py
+backend/app/modules/auth/otp.py
+backend/app/modules/auth/phone_identities.py
+backend/app/modules/auth/rate_limits.py
+backend/app/modules/auth/sessions.py
+backend/app/modules/auth/tokens.py
+backend/app/providers/sms.py
+backend/tests/test_router.py
+backend/tests/integration/test_phone_otp_login.py
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
@@ -3495,16 +3500,16 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 and Valkey 9.1.2 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User requested completion of Phase 9. Rate limits are complete; continue through phone identity and passwordless login.
+User requested completion of Phase 9. Phone identity resolution is complete; continue through passwordless phone OTP login and stop before Phase 10 implementation.
 
 LAST COMMAND:
-git commit -m "add distributed OTP request rate limits"
+git commit -m "add verified phone identity resolution"
 
 CURRENT OUTPUT / ERROR:
-Commit A cde456dab68edca211c69c6c1b96223e0cb65769 created successfully. Verification successful; no outstanding task errors.
+Commit A 4d39588a78b526600c555e83589e69c38aa51d57 created successfully. Verification successful; no outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Require international input, canonicalize it to E.164, and serialize same-phone identity creation before the final OTP login flow consumes this service.
+Keep request responses generic, persist every failed verification attempt, serialize challenge consumption, and reuse the established session/token response contract.
 
 ---
 
