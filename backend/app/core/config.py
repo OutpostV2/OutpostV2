@@ -66,6 +66,9 @@ class Settings(BaseSettings):
 
     auth_signing_key: SecretStr | None = None
     otp_hmac_key: SecretStr | None = None
+    google_client_id: str | None = Field(default=None, max_length=512)
+    google_client_secret: SecretStr | None = None
+    google_redirect_uri: AnyHttpUrl | None = None
     sms_provider: SmsProviderKind = SmsProviderKind.DISABLED
     email_provider: EmailProviderKind = EmailProviderKind.DISABLED
     email_from_address: EmailStr = Field(default="no-reply@outpost.example")
@@ -94,6 +97,35 @@ class Settings(BaseSettings):
     def strong_otp_hmac_key(cls, value: SecretStr | None) -> SecretStr | None:
         if value is not None and len(value.get_secret_value().encode("utf-8")) < 32:
             raise ValueError("OTP HMAC key requires at least 32 bytes")
+        return value
+
+    @field_validator("google_client_id")
+    @classmethod
+    def normalized_google_client_id(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        client_id = value.strip()
+        return client_id or None
+
+    @field_validator("google_client_secret")
+    @classmethod
+    def nonempty_google_client_secret(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None and not value.get_secret_value():
+            raise ValueError("Google client secret must not be empty")
+        return value
+
+    @field_validator("google_redirect_uri")
+    @classmethod
+    def safe_google_redirect_uri(cls, value: AnyHttpUrl | None) -> AnyHttpUrl | None:
+        if value is None:
+            return None
+        if (
+            value.username is not None
+            or value.password is not None
+            or value.query is not None
+            or value.fragment is not None
+        ):
+            raise ValueError("Google redirect URI cannot contain credentials, query, or fragment")
         return value
 
     @field_validator("email_smtp_host")
@@ -167,4 +199,10 @@ class Settings(BaseSettings):
             self.password_reset_url.scheme != "https"
         ):
             raise ValueError("Staging and production require an HTTPS password reset URL")
+        if (
+            self.env in {Environment.STAGING, Environment.PRODUCTION}
+            and self.google_redirect_uri is not None
+            and self.google_redirect_uri.scheme != "https"
+        ):
+            raise ValueError("Staging and production require an HTTPS Google redirect URI")
         return self

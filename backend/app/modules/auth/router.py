@@ -5,12 +5,14 @@ from ipaddress import ip_address
 from uuid import UUID
 
 from fastapi import APIRouter, Request, Response
+from fastapi.responses import RedirectResponse
 
 from app.core.errors import UnauthorizedError
 from app.modules.auth.dependencies import (
     AuthSettings,
     CurrentAuth,
     DatabaseSession,
+    GoogleOAuthStates,
     OtpRateLimits,
     OutboundEmail,
     OutboundSms,
@@ -19,6 +21,7 @@ from app.modules.auth.email_verification import (
     confirm_email_verification,
     request_email_verification,
 )
+from app.modules.auth.google import begin_google_authorization
 from app.modules.auth.password_reset import request_password_reset, reset_password
 from app.modules.auth.phone_login import request_phone_otp, verify_phone_otp
 from app.modules.auth.schemas import (
@@ -66,6 +69,18 @@ def _set_refresh_cookie(response: Response, refresh: str) -> None:
         secure=True,
         httponly=True,
         samesite="strict",
+    )
+
+
+@router.get("/google/authorize", response_model=None)
+def authorize_with_google(
+    settings: AuthSettings,
+    state_store: GoogleOAuthStates,
+) -> Response:
+    return RedirectResponse(
+        begin_google_authorization(settings, state_store),
+        status_code=302,
+        headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
     )
 
 

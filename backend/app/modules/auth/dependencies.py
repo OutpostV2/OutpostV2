@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings
 from app.core.errors import UnauthorizedError
 from app.modules.auth.email import EmailProvider
+from app.modules.auth.google import OAuthStateStore
 from app.modules.auth.models import AuthSession
 from app.modules.auth.rate_limits import OtpRequestRateLimiter
 from app.modules.auth.sessions import authenticated_session
@@ -51,6 +52,13 @@ def otp_rate_limiter(request: Request) -> OtpRequestRateLimiter:
 
 
 OtpRateLimits = Annotated[OtpRequestRateLimiter, Depends(otp_rate_limiter)]
+
+
+def google_oauth_state_store(request: Request) -> OAuthStateStore:
+    return cast(OAuthStateStore, request.app.state.google_oauth_state_store)
+
+
+GoogleOAuthStates = Annotated[OAuthStateStore, Depends(google_oauth_state_store)]
 _bearer = HTTPBearer(auto_error=False)
 
 
