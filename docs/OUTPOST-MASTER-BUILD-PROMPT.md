@@ -3441,10 +3441,10 @@ CURRENT PHASE:
 Phase 9 — Phone OTP
 
 CURRENT TASK:
-Implement and verify a 60-second OTP resend cooldown policy (not started).
+Implement and verify OTP request rate limits (not started).
 
 TASK GOAL:
-Define a 60-second resend cooldown within the required 30–60 second range, derive resend_available_at from a timezone-aware challenge creation timestamp, and enforce the exact availability boundary with focused tests. Reuse the existing resend_available_at field and database constraint. Do not implement challenge issuance or persistence workflows, rate limits, SMS delivery, phone identity, or passwordless login.
+Add provider-neutral, atomic OTP request rate limiting with explicit per-phone and per-IP windows, generic rate-limit errors, identifier-safe keys, and focused tests. Integrate the limiter through application dependency injection so the later issuance endpoint cannot bypass it. Do not implement OTP issuance, phone identity creation, or passwordless login in this task.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-434f0dc76bd4a8f026620cb8be2d6c2517f74069
+47c4e476e628c62db80dd5e9116a0bef475faf5e
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,45 +3465,48 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 9 OTP challenge attempt-limit policy complete. Exact final verification:
-- Focused OTP suite: 31 passed.
-- Full PostgreSQL-backed backend suite: 155 passed in 69.60s.
-- python -m ruff check --no-cache app tests alembic: passed.
-- python -m ruff format --check --no-cache app tests alembic: passed (85 files formatted).
-- python -m mypy app tests with an external cache directory: passed (72 source files).
+Phase 9 60-second OTP resend cooldown policy complete. Exact final verification:
+- Focused OTP suite: 36 passed.
+- Full PostgreSQL-backed backend suite: 160 passed in 86.56s.
+- Ruff check and format validation: passed (85 files formatted).
+- mypy: passed (72 source files).
 - alembic current/check: 20260918_0012 (head), no pending operations.
-- python -m build --wheel: successfully built outpost_backend-0.1.0-py3-none-any.whl.
-- docker build -f backend/Dockerfile -t outpost-backend:phase9-otp-attempts .: successful.
-- Built-image smoke verified the five-attempt constant, remaining-count boundaries, and the fourth-to-fifth attempt transition.
+- Wheel and outpost-backend:phase9-otp-cooldown image builds: successful.
+- Built-image smoke verified unavailability immediately before the cooldown boundary and availability exactly at it.
 - All four Compose infrastructure services healthy.
-OTP challenge policy now exposes a five-attempt cap, calculates attempts remaining for validated stored counts from zero through five, permits advancement through the fifth attempt, blocks advancement at the cap, and rejects out-of-range counts. No challenge issuance or persistence workflow, resend cooldown, rate limit, phone identity, or passwordless login exists yet.
+OTP resend policy now uses an exact 60-second duration, derives resend_available_at from timezone-aware creation timestamps, treats now >= resend_available_at as available, and rejects naive timestamps. No issuance workflow, request rate limit, phone identity creation, or passwordless login exists yet.
 
 COMPLETED WITHIN CURRENT PHASE:
-Provider-neutral SmsProvider abstraction, non-networked development adapter, secure six-digit OTP generation, protected context-bound challenge digests, five-minute expiration, and five-attempt policy. Resend cooldown is selected next.
+Provider-neutral SmsProvider, development adapter, secure OTP generation, protected challenge digests, five-minute expiration, five-attempt policy, and 60-second resend cooldown. Request rate limits are selected next.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/modules/auth/models.py
-backend/app/modules/auth/otp.py
-backend/tests/test_otp.py
+backend/app/core/config.py
+backend/app/core/errors.py
+backend/app/main.py
+backend/app/modules/auth/dependencies.py
+backend/app/modules/auth/rate_limits.py
+backend/tests/test_otp_rate_limits.py
+backend/pyproject.toml
+backend/.env.example
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
 This file (Layer 4 only) since Commit A.
 
 ENVIRONMENT:
-Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
+Windows / PowerShell; PostgreSQL 17.11 and Valkey 9.1.2 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User requested continuation. The OTP challenge attempt-limit policy is complete; await instruction before resend cooldown.
+User requested completion of Phase 9. The resend cooldown is complete; continue through rate limits, phone identity, and passwordless login.
 
 LAST COMMAND:
-git commit -m "add OTP challenge attempt limit policy"
+git commit -m "add OTP resend cooldown policy"
 
 CURRENT OUTPUT / ERROR:
-Commit A 434f0dc76bd4a8f026620cb8be2d6c2517f74069 created successfully. Verification successful; no outstanding task errors.
+Commit A 47c4e476e628c62db80dd5e9116a0bef475faf5e created successfully. Verification successful; no outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Define a 60-second resend cooldown and exact availability boundary with timezone-aware deterministic tests before adding issuance or persistence behavior.
+Rate-limit normalized phone and client-IP request scopes atomically without exposing raw identifiers in cache keys.
 
 ---
 
