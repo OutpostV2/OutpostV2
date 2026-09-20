@@ -3441,10 +3441,10 @@ CURRENT PHASE:
 Phase 10 — Google Authentication
 
 CURRENT TASK:
-Implement and verify Google OAuth/OIDC callback code exchange and provider validation (not started).
+Implement and verify Google identity resolution and authenticated session issuance (not started).
 
 TASK GOAL:
-Consume the stored OAuth state exactly once, exchange the authorization code through a provider-neutral boundary, and validate Google's signed ID token against discovery/JWKS, issuer, audience, expiry, nonce, subject, and verified email claims. Return a validated Google principal. Do not resolve or create local users, link identities, or issue Outpost sessions in this task.
+Complete the Google callback endpoint by resolving users exclusively through the stable `(provider, provider_subject)` identity key, creating a new user and OAuth identity when no match exists, and issuing the standard Outpost access/refresh session for active users. Never merge or link accounts based only on matching email. Cover new, returning, suspended, replay, and concurrent identity-resolution paths. Do not begin Phase 11 identity-linking behavior.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-adbe1f563a3f673542b74afb0628c170ff90f8f4
+d5acf40a970cabc415ce96f52c741d4bc9d16e3b
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,27 +3465,30 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 10 Google authorization initiation is complete. Exact final verification:
-- Focused Google OAuth unit and live-Valkey suites: 6 passed.
-- Full backend suite: all 186 collected tests passed.
-- Ruff check/format: passed (99 files formatted); mypy passed (86 source files).
+Phase 10 Google callback validation is complete. Exact final verification:
+- Focused Google authorization and callback suites: 14 passed.
+- Full backend suite: all 195 collected tests passed.
+- Ruff check/format: passed (100 files formatted); mypy passed (87 source files).
 - Alembic current/check: 20260918_0012 (head), no pending operations.
-- Wheel and outpost-backend:phase10-google-state image builds: successful.
-- Built-image smoke verified the packaged Google authorization URL, exact redirect URI, requested scopes, and strong state/nonce values.
+- Wheel and outpost-backend:phase10-google-callback image builds: successful.
+- Built-image smoke verified the packaged RSA cryptography runtime and Google callback provider adapter.
 - PostgreSQL, Valkey, MinIO, and Mailpit Compose services healthy.
-Google authorization configuration is optional until the endpoint is used, production redirect URIs require HTTPS, and initiation persists a cryptographically strong state/nonce pair for ten minutes in Valkey with atomic single-use consumption. The redirect response is non-cacheable and fails closed when configuration or Valkey is unavailable.
+Callback validation consumes correlation state before exchange, validates fixed Google discovery metadata, exchanges the code with the exact configured redirect URI, verifies the RS256 signature from Google's JWKS, and enforces issuer, audience, authorized party, expiry, issued-at, nonce, stable subject, verified email, and email syntax. Invalid provider responses are generic and correlation state is single-use.
 
 COMPLETED WITHIN CURRENT PHASE:
 - Google OAuth/OIDC authorization initiation with strong state and nonce, distributed short-lived correlation storage, and a validated no-store redirect.
+- Google callback code exchange and signed OIDC provider validation returning a verified provider principal.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/pyproject.toml
-backend/app/core/config.py
 backend/app/main.py
 backend/app/modules/auth/dependencies.py
 backend/app/modules/auth/google.py
+backend/app/modules/auth/models.py
 backend/app/modules/auth/router.py
-backend/tests/test_google_oauth.py
+backend/app/modules/auth/schemas.py
+backend/app/modules/auth/sessions.py
+backend/app/modules/users/models.py
+backend/tests/integration/test_google_login.py
 backend/tests/test_google_oidc_callback.py
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
@@ -3496,16 +3499,16 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 and Valkey 9.1.2 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User requested completion of Phase 10. Continue through Phase 10 only; do not begin Phase 11.
+User requested completion of Phase 10. Complete this final Phase 10 task, update Layer 4 to select Phase 11, and stop before implementing Phase 11.
 
 LAST COMMAND:
-git commit -m "add Google OAuth authorization state"
+git commit -m "validate Google OIDC callbacks"
 
 CURRENT OUTPUT / ERROR:
-Commit A adbe1f563a3f673542b74afb0628c170ff90f8f4 created successfully. Verification successful; no outstanding task errors.
+Commit A d5acf40a970cabc415ce96f52c741d4bc9d16e3b created successfully. Verification successful; no outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Implement callback validation behind a provider-neutral boundary. Consume correlation state before the outbound exchange so failed callbacks cannot be replayed; defer local identity resolution and session issuance to the following task.
+Use the stable Google subject as the only automatic identity lookup key. A verified provider email is informational and may seed a new account only when it does not collide; an email match must never attach Google to an existing account.
 
 ---
 
