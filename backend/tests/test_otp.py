@@ -256,3 +256,42 @@ def test_otp_attempt_policy_rejects_invalid_stored_count(attempt_count: int) -> 
         otp.otp_attempts_remaining(attempt_count)
     with pytest.raises(ValueError, match="Invalid OTP challenge attempt count"):
         otp.next_otp_attempt_count(attempt_count)
+
+
+def test_otp_resend_cooldown_is_exactly_sixty_seconds() -> None:
+    created_at = datetime(2026, 9, 20, 12, 0, tzinfo=UTC)
+
+    assert timedelta(seconds=60) == otp.OTP_RESEND_COOLDOWN
+    assert otp.otp_resend_available_at(created_at) == datetime(2026, 9, 20, 12, 1, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    ("offset", "expected"),
+    (
+        (timedelta(microseconds=-1), False),
+        (timedelta(0), True),
+        (timedelta(microseconds=1), True),
+    ),
+)
+def test_otp_resend_availability_boundary(offset: timedelta, expected: bool) -> None:
+    available_at = datetime(2026, 9, 20, 12, 1, tzinfo=UTC)
+
+    assert (
+        otp.is_otp_resend_available(
+            resend_available_at=available_at,
+            now=available_at + offset,
+        )
+        is expected
+    )
+
+
+def test_otp_resend_policy_requires_timezone_aware_timestamps() -> None:
+    aware = datetime(2026, 9, 20, 12, 0, tzinfo=UTC)
+    naive = datetime(2026, 9, 20, 12, 0)
+
+    with pytest.raises(ValueError, match="OTP challenge timestamps must be timezone-aware"):
+        otp.otp_resend_available_at(naive)
+    with pytest.raises(ValueError, match="OTP challenge timestamps must be timezone-aware"):
+        otp.is_otp_resend_available(resend_available_at=naive, now=aware)
+    with pytest.raises(ValueError, match="OTP challenge timestamps must be timezone-aware"):
+        otp.is_otp_resend_available(resend_available_at=aware, now=naive)

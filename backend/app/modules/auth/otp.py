@@ -13,6 +13,7 @@ from app.modules.auth.models import OtpPurpose
 OTP_DIGEST_PREFIX = "hmac-sha256:v1:"
 OTP_CHALLENGE_LIFETIME = timedelta(minutes=5)
 OTP_MAX_ATTEMPTS = 5
+OTP_RESEND_COOLDOWN = timedelta(seconds=60)
 _PHONE_PATTERN = re.compile(r"^\+[1-9][0-9]{1,14}$")
 _CODE_PATTERN = re.compile(r"^[0-9]{6}$")
 
@@ -33,6 +34,19 @@ def is_otp_challenge_expired(*, expires_at: datetime, now: datetime) -> bool:
     _require_aware_timestamp(expires_at)
     _require_aware_timestamp(now)
     return now >= expires_at
+
+
+def otp_resend_available_at(created_at: datetime) -> datetime:
+    """Return when another code may be sent for an OTP challenge."""
+    _require_aware_timestamp(created_at)
+    return created_at + OTP_RESEND_COOLDOWN
+
+
+def is_otp_resend_available(*, resend_available_at: datetime, now: datetime) -> bool:
+    """Return whether the resend cooldown has reached its boundary."""
+    _require_aware_timestamp(resend_available_at)
+    _require_aware_timestamp(now)
+    return now >= resend_available_at
 
 
 def otp_attempts_remaining(attempt_count: int) -> int:
