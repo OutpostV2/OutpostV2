@@ -11,6 +11,7 @@ from app.core.config import Settings
 from app.core.errors import UnauthorizedError
 from app.modules.auth.email import EmailProvider
 from app.modules.auth.models import AuthSession
+from app.modules.auth.rate_limits import OtpRequestRateLimiter
 from app.modules.auth.sessions import authenticated_session
 from app.modules.auth.sms import SmsProvider
 from app.modules.users.models import User
@@ -43,6 +44,13 @@ def sms_provider(request: Request) -> SmsProvider:
 
 
 OutboundSms = Annotated[SmsProvider, Depends(sms_provider)]
+
+
+def otp_rate_limiter(request: Request) -> OtpRequestRateLimiter:
+    return cast(OtpRequestRateLimiter, request.app.state.otp_rate_limiter)
+
+
+OtpRateLimits = Annotated[OtpRequestRateLimiter, Depends(otp_rate_limiter)]
 _bearer = HTTPBearer(auto_error=False)
 
 

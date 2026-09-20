@@ -8,6 +8,7 @@ from pydantic import (
     EmailStr,
     Field,
     PostgresDsn,
+    RedisDsn,
     SecretStr,
     field_validator,
     model_validator,
@@ -61,6 +62,7 @@ class Settings(BaseSettings):
     env: Environment = Environment.DEVELOPMENT
     log_level: LogLevel = LogLevel.INFO
     database_url: PostgresDsn
+    valkey_url: RedisDsn = RedisDsn("redis://127.0.0.1:6379/0")
 
     auth_signing_key: SecretStr | None = None
     otp_hmac_key: SecretStr | None = None

@@ -77,6 +77,13 @@ class ConflictError(AppError):
     code = "conflict"
 
 
+class RateLimitExceededError(AppError):
+    """The caller exceeded a bounded request rate."""
+
+    status_code = 429
+    code = "rate_limited"
+
+
 class ServiceUnavailableError(AppError):
     """A required service cannot currently handle the request."""
 

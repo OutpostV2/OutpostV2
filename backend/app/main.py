@@ -16,7 +16,9 @@ from app.core.errors import ServiceUnavailableError, install_error_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import install_request_id_middleware
 from app.db.session import create_engine_from_settings
+from app.infrastructure.valkey_rate_limits import ValkeyFixedWindowRateLimiter
 from app.modules.auth.email import EmailProvider, build_email_provider
+from app.modules.auth.rate_limits import OtpRequestRateLimiter
 from app.modules.auth.sms import SmsProvider, build_sms_provider
 
 
@@ -32,6 +34,7 @@ def create_app(
     engine: Engine | None = None,
     email_provider: EmailProvider | None = None,
     sms_provider: SmsProvider | None = None,
+    otp_rate_limiter: OtpRequestRateLimiter | None = None,
     configure_logs: bool = True,
 ) -> FastAPI:
     """Build the Outpost API with its verified core infrastructure."""
@@ -42,16 +45,24 @@ def create_app(
 
     owns_engine = engine is None
     database_engine = engine or create_engine_from_settings(application_settings)
+    owns_otp_rate_limiter = otp_rate_limiter is None
+    application_otp_rate_limiter = otp_rate_limiter or OtpRequestRateLimiter(
+        ValkeyFixedWindowRateLimiter(str(application_settings.valkey_url)),
+        application_settings,
+    )
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         yield
+        if owns_otp_rate_limiter:
+            application_otp_rate_limiter.close()
         if owns_engine:
             database_engine.dispose()
 
     app = FastAPI(title="Outpost API", version=__version__, lifespan=lifespan)
     app.state.database_engine = database_engine
     app.state.settings = application_settings
+    app.state.otp_rate_limiter = application_otp_rate_limiter
     app.state.email_provider = (
         email_provider if email_provider is not None else build_email_provider(application_settings)
     )
