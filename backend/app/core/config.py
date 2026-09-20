@@ -63,6 +63,7 @@ class Settings(BaseSettings):
     database_url: PostgresDsn
 
     auth_signing_key: SecretStr | None = None
+    otp_hmac_key: SecretStr | None = None
     sms_provider: SmsProviderKind = SmsProviderKind.DISABLED
     email_provider: EmailProviderKind = EmailProviderKind.DISABLED
     email_from_address: EmailStr = Field(default="no-reply@outpost.example")
@@ -84,6 +85,13 @@ class Settings(BaseSettings):
     def strong_signing_key(cls, value: SecretStr | None) -> SecretStr | None:
         if value is not None and len(value.get_secret_value().encode("utf-8")) < 32:
             raise ValueError("Authentication signing key requires at least 32 bytes")
+        return value
+
+    @field_validator("otp_hmac_key")
+    @classmethod
+    def strong_otp_hmac_key(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None and len(value.get_secret_value().encode("utf-8")) < 32:
+            raise ValueError("OTP HMAC key requires at least 32 bytes")
         return value
 
     @field_validator("email_smtp_host")
