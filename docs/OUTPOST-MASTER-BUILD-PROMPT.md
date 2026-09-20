@@ -3441,10 +3441,10 @@ CURRENT PHASE:
 Phase 9 — Phone OTP
 
 CURRENT TASK:
-Implement and verify five-minute OTP challenge expiration (not started).
+Implement and verify the OTP challenge attempt-limit policy (not started).
 
 TASK GOAL:
-Add an explicit five-minute OTP challenge lifetime and deterministic expiration checks with a precise boundary, using timezone-aware timestamps and focused tests. Reuse the existing OtpChallenge expiration field and protected digest behavior. Do not implement challenge issuance or persistence workflows, attempt limits, resend cooldown, rate limits, SMS delivery, phone identity, or passwordless login.
+Define and enforce the maximum-five-attempt policy for OTP challenges with explicit boundary behavior and focused tests, building on the existing attempt_count field and database constraint. Keep the policy deterministic and independent of issuance. Do not implement challenge issuance or persistence workflows, resend cooldown, rate limits, SMS delivery, phone identity, or passwordless login.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-d4e9f9de942978337e8055fe7816188e5a3f8226
+599e8be9f29e436de99b1426abbb19de7963e139
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,21 +3465,21 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 9 protected OTP challenge digests complete. Exact final verification:
-- Focused OTP suite: 17 passed.
-- Full PostgreSQL-backed backend suite: 141 passed in 109.23s.
+Phase 9 five-minute OTP challenge expiration complete. Exact final verification:
+- Focused OTP suite: 22 passed.
+- Full PostgreSQL-backed backend suite: 146 passed in 80.34s.
 - python -m ruff check --no-cache app tests alembic: passed.
 - python -m ruff format --check --no-cache app tests alembic: passed (85 files formatted).
-- python -m mypy app tests with an external cache directory: passed.
+- python -m mypy app tests with an external cache directory: passed (72 source files).
 - alembic current/check: 20260918_0012 (head), no pending operations.
 - python -m build --wheel: successfully built outpost_backend-0.1.0-py3-none-any.whl.
-- docker build -f backend/Dockerfile -t outpost-backend:phase9-otp-digests .: successful.
-- Built-image smoke verified the correct OTP context and rejected a purpose mismatch without emitting a secret, code, or digest.
+- docker build -f backend/Dockerfile -t outpost-backend:phase9-otp-expiration .: successful.
+- Built-image smoke verified the exact five-minute duration, validity immediately before expiry, and expiration at the boundary.
 - All four Compose infrastructure services healthy.
-OTP challenge digests now use a dedicated typed secret of at least 32 bytes, the versioned hmac-sha256:v1 format, unambiguous phone/purpose/code context binding, input validation, and constant-time verification. Missing configuration fails closed. No challenge issuance or persistence workflow, expiration enforcement, attempt limit, cooldown, rate limit, phone identity, or passwordless login exists yet.
+OTP challenge policy now exposes a five-minute lifetime, derives expires_at from a timezone-aware creation timestamp, treats now >= expires_at as expired, and rejects naive timestamps. No challenge issuance or persistence workflow, attempt-limit enforcement, cooldown, rate limit, phone identity, or passwordless login exists yet.
 
 COMPLETED WITHIN CURRENT PHASE:
-Provider-neutral SmsProvider abstraction, non-networked development adapter, cryptographically secure six-digit OTP generation, and protected context-bound OTP challenge digests. Five-minute expiration is selected next.
+Provider-neutral SmsProvider abstraction, non-networked development adapter, secure six-digit OTP generation, protected context-bound challenge digests, and five-minute expiration policy. Attempt limits are selected next.
 
 FILES RELEVANT TO CURRENT TASK:
 backend/app/modules/auth/models.py
@@ -3494,16 +3494,16 @@ ENVIRONMENT:
 Windows / PowerShell; PostgreSQL 17.11 via Docker, Python 3.13 backend virtual environment.
 
 CURRENT REQUEST:
-User approved continuation. Protected OTP challenge digests are complete; await instruction before five-minute expiration.
+User requested continuation. Five-minute OTP challenge expiration is complete; await instruction before attempt limits.
 
 LAST COMMAND:
-git commit -m "add protected OTP challenge digests"
+git commit -m "add OTP challenge expiration policy"
 
 CURRENT OUTPUT / ERROR:
-Commit A d4e9f9de942978337e8055fe7816188e5a3f8226 created successfully. Verification successful; no outstanding task errors.
+Commit A 599e8be9f29e436de99b1426abbb19de7963e139 created successfully. Verification successful; no outstanding task errors.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Define the five-minute lifetime and exact expiration boundary with timezone-aware, deterministic tests before adding issuance or persistence behavior.
+Define the five-attempt cap and exact boundary behavior against attempt_count without adding issuance, persistence, or endpoint behavior.
 
 ---
 
