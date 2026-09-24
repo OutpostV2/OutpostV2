@@ -3438,13 +3438,13 @@ D:\Shared Workspace\Projects\Outpost-New
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 10 — Google Authentication
+Phase 11 — Account Linking
 
 CURRENT TASK:
-Implement and verify Google identity resolution and authenticated session issuance (not started).
+Implement and verify authenticated phone identity linking with a verified LINK_PHONE OTP (not started).
 
 TASK GOAL:
-Complete the Google callback endpoint by resolving users exclusively through the stable `(provider, provider_subject)` identity key, creating a new user and OAuth identity when no match exists, and issuing the standard Outpost access/refresh session for active users. Never merge or link accounts based only on matching email. Cover new, returning, suspended, replay, and concurrent identity-resolution paths. Do not begin Phase 11 identity-linking behavior.
+Let an authenticated user prove control of a phone number with a LINK_PHONE OTP and attach the unique verified phone identity to that same user. Preserve existing login behavior, reject numbers linked to another account without disclosing account details, and prevent removing or replacing the user's last valid authentication method. Do not implement Google linking, password credential linking, identity listing, or unlinking in this task.
 
 Repository:
 Outpost
@@ -3456,7 +3456,7 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-d5acf40a970cabc415ce96f52c741d4bc9d16e3b
+8471da84a52ede9d6b92207d43079912250bbc05
 
 CHECKPOINT FILE STATE:
 Verified project work is committed above. This separate checkpoint updates only Layer 4.
@@ -3465,50 +3465,49 @@ Working tree at last verification:
 Clean after Commit A, before this checkpoint; verify status after Commit B.
 
 Last verified baseline:
-Phase 10 Google callback validation is complete. Exact final verification:
-- Focused Google authorization and callback suites: 14 passed.
-- Full backend suite: all 195 collected tests passed.
-- Ruff check/format: passed (100 files formatted); mypy passed (87 source files).
+Phase 10 Google Authentication is complete. Exact final verification:
+- Full backend suite: all 201 collected tests passed with PostgreSQL and Valkey integration tests enabled.
+- Ruff check and format: passed (102 files formatted); mypy passed (89 source files).
 - Alembic current/check: 20260918_0012 (head), no pending operations.
-- Wheel and outpost-backend:phase10-google-callback image builds: successful.
-- Built-image smoke verified the packaged RSA cryptography runtime and Google callback provider adapter.
+- Backend wheel and outpost-backend:phase10-google-login image builds: successful.
+- Built-image smoke verified the packaged Google identity-resolution and login modules.
 - PostgreSQL, Valkey, MinIO, and Mailpit Compose services healthy.
-Callback validation consumes correlation state before exchange, validates fixed Google discovery metadata, exchanges the code with the exact configured redirect URI, verifies the RS256 signature from Google's JWKS, and enforces issuer, audience, authorized party, expiry, issued-at, nonce, stable subject, verified email, and email syntax. Invalid provider responses are generic and correlation state is single-use.
+Google sign-in now performs authorization initiation with strong single-use state and nonce, exchanges the authorization code, verifies the Google RS256 ID token using pinned discovery/JWKS metadata and the issuer/audience/authorized-party/expiry/nonce/subject/verified-email claims, and resolves users only by stable Google subject. New users receive a standard Outpost session; returning users reuse their subject-linked account; suspended users and replayed callbacks are rejected. Matching email never links Google to an existing account, and subject/email advisory locks keep concurrent first logins consistent.
 
 COMPLETED WITHIN CURRENT PHASE:
-- Google OAuth/OIDC authorization initiation with strong state and nonce, distributed short-lived correlation storage, and a validated no-store redirect.
-- Google callback code exchange and signed OIDC provider validation returning a verified provider principal.
+- Google OAuth/OIDC authorization initiation and Valkey-backed state/nonce correlation.
+- Google authorization code exchange and signed OIDC provider validation.
+- Stable-subject identity resolution, non-merging new-user and returning-user paths, suspended/replay rejection, and standard access/refresh session issuance.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/main.py
-backend/app/modules/auth/dependencies.py
-backend/app/modules/auth/google.py
 backend/app/modules/auth/models.py
+backend/app/modules/auth/otp.py
+backend/app/modules/auth/phone_identities.py
+backend/app/modules/auth/phone_login.py
 backend/app/modules/auth/router.py
 backend/app/modules/auth/schemas.py
 backend/app/modules/auth/sessions.py
-backend/app/modules/users/models.py
-backend/tests/integration/test_google_login.py
-backend/tests/test_google_oidc_callback.py
+backend/tests/integration/test_phone_otp_login.py
+backend/tests/integration/test_phone_identity_resolution.py
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
 This file (Layer 4 only) since Commit A.
 
 ENVIRONMENT:
-Windows / PowerShell; PostgreSQL 17.11 and Valkey 9.1.2 via Docker, Python 3.13 backend virtual environment.
+Windows / PowerShell; PostgreSQL 17.11 and Valkey 9.1.2 via Docker, Python 3.13 backend virtual environment. Docker Desktop was restarted during this task and all four Compose services reported healthy.
 
 CURRENT REQUEST:
-User requested completion of Phase 10. Complete this final Phase 10 task, update Layer 4 to select Phase 11, and stop before implementing Phase 11.
+User requested completion of Phase 10. Phase 10 is complete; Phase 11 is selected but not started.
 
 LAST COMMAND:
-git commit -m "validate Google OIDC callbacks"
+backend/.venv/Scripts/python.exe -m pytest tests --collect-only -q
 
 CURRENT OUTPUT / ERROR:
-Commit A d5acf40a970cabc415ce96f52c741d4bc9d16e3b created successfully. Verification successful; no outstanding task errors.
+Commit A 8471da84a52ede9d6b92207d43079912250bbc05 created successfully. Final verification passed; working tree was clean before this checkpoint update.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Use the stable Google subject as the only automatic identity lookup key. A verified provider email is informational and may seed a new account only when it does not collide; an email match must never attach Google to an existing account.
+The phone identity table and LINK_PHONE OTP purpose already exist. Reuse the existing challenge protections and session-authenticated request dependency; require current user proof and keep identity collisions generic.
 
 ---
 
