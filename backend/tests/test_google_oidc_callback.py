@@ -117,6 +117,8 @@ def test_google_callback_exchanges_code_and_validates_signed_principal() -> None
     [
         ("iss", "https://evil.example"),
         ("aud", "another-client"),
+        ("aud", ["test-client.apps.googleusercontent.com", "another-client"]),
+        ("azp", "another-client"),
         ("nonce", "wrong-nonce"),
         ("exp", 1),
         ("email_verified", False),

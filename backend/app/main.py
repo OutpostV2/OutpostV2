@@ -19,7 +19,7 @@ from app.db.session import create_engine_from_settings
 from app.infrastructure.valkey_oauth_state import ValkeyOAuthStateStore
 from app.infrastructure.valkey_rate_limits import ValkeyFixedWindowRateLimiter
 from app.modules.auth.email import EmailProvider, build_email_provider
-from app.modules.auth.google import OAuthStateStore
+from app.modules.auth.google import GoogleHttpOidcProvider, GoogleOidcProvider, OAuthStateStore
 from app.modules.auth.rate_limits import OtpRequestRateLimiter
 from app.modules.auth.sms import SmsProvider, build_sms_provider
 
@@ -38,6 +38,7 @@ def create_app(
     sms_provider: SmsProvider | None = None,
     otp_rate_limiter: OtpRequestRateLimiter | None = None,
     google_oauth_state_store: OAuthStateStore | None = None,
+    google_oidc_provider: GoogleOidcProvider | None = None,
     configure_logs: bool = True,
 ) -> FastAPI:
     """Build the Outpost API with its verified core infrastructure."""
@@ -57,6 +58,7 @@ def create_app(
     application_google_oauth_state_store = google_oauth_state_store or ValkeyOAuthStateStore(
         str(application_settings.valkey_url)
     )
+    application_google_oidc_provider = google_oidc_provider or GoogleHttpOidcProvider()
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -73,6 +75,7 @@ def create_app(
     app.state.settings = application_settings
     app.state.otp_rate_limiter = application_otp_rate_limiter
     app.state.google_oauth_state_store = application_google_oauth_state_store
+    app.state.google_oidc_provider = application_google_oidc_provider
     app.state.email_provider = (
         email_provider if email_provider is not None else build_email_provider(application_settings)
     )

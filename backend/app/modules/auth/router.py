@@ -2,9 +2,10 @@
 
 from contextlib import suppress
 from ipaddress import ip_address
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Query, Request, Response
 from fastapi.responses import RedirectResponse
 
 from app.core.errors import UnauthorizedError
@@ -13,6 +14,7 @@ from app.modules.auth.dependencies import (
     CurrentAuth,
     DatabaseSession,
     GoogleOAuthStates,
+    GoogleOidc,
     OtpRateLimits,
     OutboundEmail,
     OutboundSms,
@@ -22,6 +24,7 @@ from app.modules.auth.email_verification import (
     request_email_verification,
 )
 from app.modules.auth.google import begin_google_authorization
+from app.modules.auth.google_login import google_login
 from app.modules.auth.password_reset import request_password_reset, reset_password
 from app.modules.auth.phone_login import request_phone_otp, verify_phone_otp
 from app.modules.auth.schemas import (
@@ -82,6 +85,35 @@ def authorize_with_google(
         status_code=302,
         headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
     )
+
+
+@router.get("/google/callback", response_model=TokenOutput)
+def google_callback(
+    session: DatabaseSession,
+    settings: AuthSettings,
+    state_store: GoogleOAuthStates,
+    provider: GoogleOidc,
+    request: Request,
+    response: Response,
+    state: Annotated[str, Query(max_length=512)] = "",
+    code: Annotated[str, Query(max_length=4096)] = "",
+    iss: Annotated[str, Query(max_length=256)] = "",
+) -> TokenOutput:
+    access, refresh = google_login(
+        session,
+        settings,
+        state_store,
+        provider,
+        state=state,
+        code=code,
+        issuer=iss,
+        user_agent=request.headers.get("user-agent", "")[:512] or None,
+        ip_address=_client_ip(request),
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    _set_refresh_cookie(response, refresh)
+    return TokenOutput(access_token=access)
 
 
 @router.post("/password/register", response_model=UserOutput, status_code=201)

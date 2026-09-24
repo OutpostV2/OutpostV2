@@ -209,8 +209,11 @@ class GoogleHttpOidcProvider:
         if not isinstance(nonce, str) or not secrets.compare_digest(nonce, expected_nonce):
             raise ValueError("nonce mismatch")
         audience = claims.get("aud")
-        if isinstance(audience, list) and claims.get("azp") != client_id:
+        authorized_party = claims.get("azp")
+        if authorized_party is not None and authorized_party != client_id:
             raise ValueError("authorized party mismatch")
+        if isinstance(audience, list) and len(audience) > 1 and authorized_party != client_id:
+            raise ValueError("authorized party required")
         subject = claims.get("sub")
         if not isinstance(subject, str) or not subject or len(subject) > 255:
             raise ValueError("invalid subject")

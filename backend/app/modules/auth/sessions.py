@@ -30,7 +30,7 @@ def issue_authenticated_session(
     session: Session,
     settings: Settings,
     user: User,
-    method: Literal["password", "phone_otp"],
+    method: Literal["password", "phone_otp", "google_oidc"],
     *,
     user_agent: str | None,
     ip_address: str | None,
