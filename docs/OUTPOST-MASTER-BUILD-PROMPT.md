@@ -2624,16 +2624,14 @@ Outpost-New/
 
 # LAYER 4 — DYNAMIC USER WINDOW
 
-The checkpoint below predates the JavaScript migration. Use the active migration plan and current repository state for ongoing work.
-
 CURRENT PHASE:
-Phase 11 — Account Linking
+JavaScript cutover and repository cleanup complete. Phase 11 — Account Linking is the next product phase; it has not started in this task.
 
 CURRENT TASK:
-Implement and verify authenticated phone identity linking with a verified LINK_PHONE OTP (not started).
+Next selected task: implement verified phone identity linking in the Node API when the user requests product work.
 
 TASK GOAL:
-Let an authenticated user prove control of a phone number with a LINK_PHONE OTP and attach the unique verified phone identity to that same user. Preserve existing login behavior, reject numbers linked to another account without disclosing account details, and prevent removing or replacing the user's last valid authentication method. Do not implement Google linking, password credential linking, identity listing, or unlinking in this task.
+Allow a signed-in user to prove control of a phone number with a LINK_PHONE OTP and attach that unique verified phone identity to the same account. Preserve login behavior and reject collisions without exposing account details. Do not begin this work as part of cleanup.
 
 Repository:
 Outpost
@@ -2645,58 +2643,49 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-8471da84a52ede9d6b92207d43079912250bbc05
+f24410c55028ed2629e905ba14f5c01ff0c1898a
 
 CHECKPOINT FILE STATE:
-Verified project work is committed above. This separate checkpoint updates only Layer 4.
+The project cleanup is committed in the hash above. This separate checkpoint updates only Layer 4.
 
 Working tree at last verification:
-Clean after Commit A, before this checkpoint; verify status after Commit B.
+Clean immediately after the project commit and before this checkpoint update. Verify again after the checkpoint commit.
 
 Last verified baseline:
-Phase 10 Google Authentication is complete. Exact final verification:
-- Full backend suite: all 201 collected tests passed with PostgreSQL and Valkey integration tests enabled.
-- Ruff check and format: passed (102 files formatted); mypy passed (89 source files).
-- Alembic current/check: 20260918_0012 (head), no pending operations.
-- Backend wheel and outpost-backend:phase10-google-login image builds: successful.
-- Built-image smoke verified the packaged Google identity-resolution and login modules.
-- PostgreSQL, Valkey, MinIO, and Mailpit Compose services healthy.
-Google sign-in now performs authorization initiation with strong single-use state and nonce, exchanges the authorization code, verifies the Google RS256 ID token using pinned discovery/JWKS metadata and the issuer/audience/authorized-party/expiry/nonce/subject/verified-email claims, and resolves users only by stable Google subject. New users receive a standard Outpost session; returning users reuse their subject-linked account; suspended users and replayed callbacks are rejected. Matching email never links Google to an existing account, and subject/email advisory locks keep concurrent first logins consistent.
+- Retired Python backend, obsolete migration plans and notes, old caches, and generated frontend output removed. Current source is Node/Express, Prisma, React JavaScript/JSX, and Docker Compose infrastructure.
+- Node API tests: 32 passed, 1 skipped. Separate database test: 1 passed.
+- Frontend formatting and lint passed; 21 tests passed; production build passed. Generated `frontend/dist/` was removed after verification.
+- Prisma schema validated and migration status reported the existing PostgreSQL database up to date after Python removal.
+- Docker Compose configuration parsed successfully. Local `.env` files, PostgreSQL volumes, and `local-backups/` were preserved.
 
 COMPLETED WITHIN CURRENT PHASE:
-- Google OAuth/OIDC authorization initiation and Valkey-backed state/nonce correlation.
-- Google authorization code exchange and signed OIDC provider validation.
-- Stable-subject identity resolution, non-merging new-user and returning-user paths, suspended/replay rejection, and standard access/refresh session issuance.
+- JavaScript cutover cleanup is complete. No account-linking implementation was started.
 
 FILES RELEVANT TO CURRENT TASK:
-backend/app/modules/auth/models.py
-backend/app/modules/auth/otp.py
-backend/app/modules/auth/phone_identities.py
-backend/app/modules/auth/phone_login.py
-backend/app/modules/auth/router.py
-backend/app/modules/auth/schemas.py
-backend/app/modules/auth/sessions.py
-backend/tests/integration/test_phone_otp_login.py
-backend/tests/integration/test_phone_identity_resolution.py
-docs/OUTPOST-MASTER-BUILD-PROMPT.md
+backend-js/src/modules/auth/phone.js
+backend-js/src/modules/auth/routes.js
+backend-js/src/modules/auth/service.js
+backend-js/tests/phone.test.js
+backend-js/prisma/schema.prisma
+docs/decisions/ADR-003-authentication-model.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
-This file (Layer 4 only) since Commit A.
+Only this file's Layer 4 checkpoint after the project commit.
 
 ENVIRONMENT:
-Windows / PowerShell; PostgreSQL 17.11 and Valkey 9.1.2 via Docker, Python 3.13 backend virtual environment. Docker Desktop was restarted during this task and all four Compose services reported healthy.
+Windows / PowerShell. Node API and frontend dependencies are installed locally; PostgreSQL is reachable at 127.0.0.1:5433. No Git remote was configured at the last check.
 
 CURRENT REQUEST:
-User requested completion of Phase 10. Phase 10 is complete; Phase 11 is selected but not started.
+Clean the repository after the JavaScript migration and keep relevant current-stack files.
 
 LAST COMMAND:
-backend/.venv/Scripts/python.exe -m pytest tests --collect-only -q
+Verified the project commit with `git rev-parse HEAD` and confirmed a clean working tree before this checkpoint edit.
 
 CURRENT OUTPUT / ERROR:
-Commit A 8471da84a52ede9d6b92207d43079912250bbc05 created successfully. Final verification passed; working tree was clean before this checkpoint update.
+Project commit `f24410c55028ed2629e905ba14f5c01ff0c1898a` exists. No application test failure remains.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-The phone identity table and LINK_PHONE OTP purpose already exist. Reuse the existing challenge protections and session-authenticated request dependency; require current user proof and keep identity collisions generic.
+The Prisma OTP purpose enum already contains `link_phone`; inspect current Node auth routes and tests before implementing linking.
 
 ---
 
