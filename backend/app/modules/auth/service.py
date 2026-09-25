@@ -25,6 +25,7 @@ def register_user(session: Session, data: RegistrationInput) -> User:
                 display_name=data.display_name,
                 username=data.username,
                 primary_email=data.email,
+                account_type=data.account_type,
             )
             session.add(user)
             session.flush()

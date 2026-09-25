@@ -7,13 +7,13 @@ You are the Principal Engineer responsible for building **Outpost**, a productio
 Operate simultaneously as:
 
 * Principal Backend Engineer
-* Senior FastAPI Engineer
+* Senior Node.js/Express Engineer
 * PostgreSQL Database Engineer
 * Application Security Engineer
 * Authentication/Identity Architect
 * DevOps Engineer
 * Cloud Architect
-* Senior React/TypeScript Engineer
+* Senior React/JavaScript Engineer
 * API Designer
 * Test Engineer
 * Performance Engineer
@@ -529,11 +529,7 @@ staging
 production
 ```
 
-After Alembic initialization:
-
-```text
-Alembic exclusively owns schema evolution.
-```
+The existing PostgreSQL schema and Alembic history must be preserved. Before Prisma takes ownership, introspect and baseline that schema in an isolated database and verify equivalence. Never reset the existing database or run `prisma db push` against it. Keep Alembic available for the Python fallback during parity work.
 
 Never restore `create_all()` as the migration mechanism.
 
@@ -1102,29 +1098,29 @@ Curriculum can be improved
 
 # TARGET TECH STACK
 
+The active runtime target is governed by [`docs/architecture/javascript-stack-migration.md`](architecture/javascript-stack-migration.md). Python/FastAPI and Alembic remain available for the existing database until JavaScript API parity and the Prisma baseline are verified.
+
 ## Frontend
 
 ```text
-React
-TypeScript
+React 19
+JavaScript and JSX
 Vite
 React Router
-TanStack Query
-React Hook Form
-Zod
-Recharts
-Axios or small Fetch wrapper
+Vitest
+React Testing Library
 ```
 
 ## Backend
 
 ```text
-Python
-FastAPI
-Pydantic
-pydantic-settings
-SQLAlchemy 2.x
-Alembic
+Node.js 24+
+JavaScript ES modules
+Express 5
+Zod
+Prisma ORM and Migrate
+PostgreSQL pg adapter
+Vitest and Supertest
 ```
 
 ## Database
@@ -1175,9 +1171,8 @@ Mailpit
 ## Testing
 
 ```text
-pytest
+Vitest and Supertest
 PostgreSQL integration tests
-Vitest
 React Testing Library
 Playwright
 k6
@@ -1209,89 +1204,24 @@ Canonical root:
 D:\Shared Workspace\Projects\Outpost-New
 ```
 
-Target structure:
+Target structure during cutover:
 
 ```text
 Outpost-New/
-├── backend/
-│   ├── alembic/
-│   ├── alembic.ini
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── core/
-│   │   │   ├── config.py
-│   │   │   ├── logging.py
-│   │   │   ├── errors.py
-│   │   │   ├── security.py
-│   │   │   └── middleware.py
-│   │   ├── db/
-│   │   │   ├── base.py
-│   │   │   ├── session.py
-│   │   │   └── types.py
-│   │   ├── modules/
-│   │   │   ├── users/
-│   │   │   ├── auth/
-│   │   │   ├── organizations/
-│   │   │   ├── cohorts/
-│   │   │   ├── roadmaps/
-│   │   │   ├── progress/
-│   │   │   ├── analytics/
-│   │   │   └── imports/
-│   │   ├── integrations/
-│   │   │   ├── email/
-│   │   │   ├── sms/
-│   │   │   ├── oauth/
-│   │   │   ├── storage/
-│   │   │   ├── cache/
-│   │   │   └── jobs/
-│   │   ├── workers/
-│   │   └── api/
-│   │       └── v1/
-│   ├── tests/
-│   │   ├── unit/
-│   │   ├── integration/
-│   │   └── api/
-│   ├── pyproject.toml
-│   ├── Dockerfile
-│   └── .env.example
-│
-├── frontend/
+├── backend-js/                 # Node/Express modules, Prisma, and tests
+│   ├── prisma/
 │   ├── src/
-│   │   ├── app/
-│   │   ├── api/
-│   │   ├── features/
-│   │   │   ├── auth/
-│   │   │   ├── organizations/
-│   │   │   ├── cohorts/
-│   │   │   ├── roadmaps/
-│   │   │   ├── progress/
-│   │   │   └── analytics/
-│   │   ├── components/
-│   │   ├── routes/
-│   │   ├── hooks/
-│   │   └── lib/
+│   ├── tests/
+│   └── package.json
+├── backend/                    # Preserved FastAPI and Alembic fallback
+├── frontend/                   # React JavaScript/JSX and Vite
+│   ├── src/
 │   ├── package.json
-│   └── Dockerfile
-│
+│   └── vite.config.js
 ├── docs/
-│   ├── OUTPOST-MASTER-BUILD-PROMPT.md
-│   ├── OUTPOST-DECISIONS.md
-│   ├── architecture/
-│   └── decisions/
-│
-├── infrastructure/
-├── docker-compose.yml
-├── .github/
-│   └── workflows/
+├── docker-compose.yml          # PostgreSQL, Valkey, MinIO, Mailpit
 └── README.md
 ```
-
-This is a target structure.
-
-In Fresh Build Mode, create it incrementally rather than all at once.
-
----
-
 # CORE DATA MODEL
 
 ## users
@@ -1964,6 +1894,8 @@ GET /cohorts/{cohort_id}/at-risk
 
 # BUILD SEQUENCE
 
+The phases below record the original Python/TypeScript build sequence. For active runtime changes, follow [the JavaScript migration plan](superpowers/plans/2026-09-25-javascript-stack-migration.md) and preserve the Python fallback until parity is verified.
+
 # PHASE 0 — Architecture Freeze
 
 Goal:
@@ -1986,7 +1918,7 @@ Fresh-build starting phase.
 
 ---
 
-# PHASE 1 — Repository and Tooling Foundation
+# PHASE 1 — Repository and Tooling Foundation (historical)
 
 Build from scratch if absent:
 
@@ -2046,7 +1978,7 @@ readiness
 
 ---
 
-# PHASE 4 — Alembic Foundation
+# PHASE 4 — Alembic Foundation (historical)
 
 Initialize Alembic.
 
@@ -2058,7 +1990,7 @@ empty PostgreSQL
 → expected schema
 ```
 
-Alembic becomes exclusive schema owner.
+Alembic established the existing schema. Prisma takes migration ownership only after a verified, non-destructive baseline.
 
 ---
 
@@ -2663,7 +2595,7 @@ A successful Outpost implementation proves:
 
 # Purpose
 
-Layer 3 stores important configuration and foundation files that change infrequently.
+Layer 3 stores important configuration and foundation files that change infrequently. The Python examples below document the preserved fallback and original bootstrap. Active Node and frontend configuration lives in `backend-js/` and `frontend/`; the JavaScript migration specification takes precedence over the historical snippets.
 
 Do not place:
 
@@ -3144,181 +3076,16 @@ networks:
 
 ---
 
-# `frontend/package.json`
+# Active JavaScript frontend configuration
 
-```json
-{
-  "name": "outpost-frontend",
-  "private": true,
-  "version": "0.1.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "lint": "eslint .",
-    "typecheck": "tsc -b",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
-  },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@testing-library/jest-dom": "^7.0.1",
-    "@testing-library/react": "^16.3.3",
-    "@types/node": "^24.13.3",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.7",
-    "@vitejs/plugin-react": "^6.1.1",
-    "eslint": "^10.10.0",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.7",
-    "jsdom": "^30.1.0",
-    "prettier": "^3.9.7",
-    "typescript": "~6.0.2",
-    "typescript-eslint": "^8.70.0",
-    "vite": "^8.3.0",
-    "vitest": "^5.0.1"
-  }
-}
-```
+The current frontend package, scripts, Vite proxy, ESLint rules, and JavaScript/JSX tests are defined by the files in `frontend/`. Use these files directly:
 
----
+- `frontend/package.json`
+- `frontend/vite.config.js`
+- `frontend/eslint.config.js`
+- `frontend/src/**/*.js` and `frontend/src/**/*.jsx`
 
-# Frontend TypeScript/Vite Configuration
-
-## `frontend/vite.config.ts`
-
-```typescript
-import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vitest/config'
-
-export default defineConfig({
-  plugins: [react()],
-  test: {
-    environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
-  },
-})
-```
-
-## `frontend/tsconfig.json`
-
-```json
-{
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
-}
-```
-
-## `frontend/tsconfig.app.json`
-
-```jsonc
-{
-  "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    "target": "es2023",
-    "lib": ["ES2023", "DOM"],
-    "module": "esnext",
-    "types": ["vite/client"],
-    "allowArbitraryExtensions": true,
-    "skipLibCheck": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    "noEmit": true,
-    "jsx": "react-jsx",
-
-    /* Linting */
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
-  },
-  "include": ["src"]
-}
-```
-
-## `frontend/tsconfig.node.json`
-
-```jsonc
-{
-  "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
-    "target": "es2023",
-    "lib": ["ES2023"],
-    "types": ["node"],
-    "skipLibCheck": true,
-
-    /* Bundler mode */
-    "module": "nodenext",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    "noEmit": true,
-
-    /* Linting */
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
-  },
-  "include": ["vite.config.ts"]
-}
-```
-
-## `frontend/eslint.config.js`
-
-```javascript
-import js from '@eslint/js'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import { defineConfig, globalIgnores } from 'eslint/config'
-import tseslint from 'typescript-eslint'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      js.configs.recommended,
-      ...tseslint.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
-    languageOptions: {
-      ecmaVersion: 'latest',
-    },
-  },
-])
-```
-
-## `frontend/.prettierrc.json`
-
-```json
-{
-  "semi": false,
-  "singleQuote": true,
-  "trailingComma": "all"
-}
-```
-
-## `frontend/.env.example`
-
-```dotenv
-VITE_API_BASE_URL=http://localhost:8000/api/v1
-```
+The old TypeScript package and tsconfig snapshots are retired. Keep the existing `/api/v1` contract while moving the API proxy after backend parity checks.
 
 ---
 
@@ -3377,65 +3144,23 @@ Thumbs.db
 
 # Stable Directory Tree
 
+The current layout during migration is summarized below. Inspect the repository for the complete file list.
+
 ```text
-D:\Shared Workspace\Projects\Outpost-New
-├── .dockerignore
-├── .editorconfig
-├── .env.example
-├── .gitattributes
-├── .gitignore
-├── README.md
-├── backend
-│   ├── .env.example
-│   ├── Dockerfile
-│   ├── app
-│   │   └── __init__.py
-│   ├── pyproject.toml
-│   └── tests
-│       └── test_package.py
-├── docs
-│   ├── architecture
-│   │   └── README.md
-│   ├── decisions
-│   │   ├── ADR-001-modular-monolith-cloud-independence.md
-│   │   ├── ADR-002-organization-tenant-model.md
-│   │   ├── ADR-003-authentication-model.md
-│   │   ├── ADR-004-tenant-aware-authorization.md
-│   │   └── ADR-005-roadmap-versioning.md
-│   ├── superpowers
-│   │   └── plans
-│   │       └── 2026-09-17-phase-1-repository-tooling-foundation.md
-│   ├── OUTPOST-DECISIONS.md
-│   └── OUTPOST-MASTER-BUILD-PROMPT.md
-├── docker-compose.yml
-└── frontend
-    ├── .env.example
-    ├── .gitignore
-    ├── .prettierignore
-    ├── .prettierrc.json
-    ├── Dockerfile
-    ├── eslint.config.js
-    ├── index.html
-    ├── package-lock.json
-    ├── package.json
-    ├── README.md
-    ├── src
-    │   ├── test
-    │   │   └── setup.ts
-    │   ├── App.css
-    │   ├── App.test.tsx
-    │   ├── App.tsx
-    │   ├── index.css
-    │   └── main.tsx
-    ├── tsconfig.app.json
-    ├── tsconfig.json
-    ├── tsconfig.node.json
-    └── vite.config.ts
+Outpost-New/
+├── backend-js/          # Express, Prisma, JavaScript tests
+├── backend/             # FastAPI and Alembic fallback
+├── frontend/            # React JavaScript/JSX and Vite
+├── docs/
+├── docker-compose.yml   # Infrastructure services only
+└── README.md
 ```
 
 ---
 
 # LAYER 4 — DYNAMIC USER WINDOW
+
+The checkpoint below predates the JavaScript migration. Use the active migration plan and current repository state for ongoing work.
 
 CURRENT PHASE:
 Phase 11 — Account Linking

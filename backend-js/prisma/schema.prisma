@@ -1,0 +1,343 @@
+// Introspected from Alembic revision 20260925_0015.
+// prisma-client-js is used because this application runs plain JavaScript.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model AlembicVersion {
+  versionNum String @id(map: "alembic_version_pkc") @db.VarChar(32) @map("version_num")
+  @@map("alembic_version")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model AuthSession {
+  id                     String            @id(map: "pk_auth_sessions") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String            @db.Uuid @map("user_id")
+  tokenFamilyId        String            @db.Uuid @map("token_family_id")
+  refreshTokenHash     String            @unique(map: "uq_auth_sessions_refresh_token_hash") @db.VarChar(512) @map("refresh_token_hash")
+  createdAt             DateTime          @default(now()) @db.Timestamptz(6) @map("created_at")
+  lastUsedAt           DateTime          @default(now()) @db.Timestamptz(6) @map("last_used_at")
+  expiresAt             DateTime          @db.Timestamptz(6) @map("expires_at")
+  revokedAt             DateTime?         @db.Timestamptz(6) @map("revoked_at")
+  userAgent             String?           @db.VarChar(512) @map("user_agent")
+  ipAddress             String?           @db.Inet @map("ip_address")
+  replacedBySessionId String?           @unique(map: "uq_auth_sessions_replaced_by_session_id") @db.Uuid @map("replaced_by_session_id")
+  replacedBySession     AuthSession?    @relation("auth_sessionsToauth_sessions", fields: [replacedBySessionId], references: [id], onUpdate: NoAction, map: "fk_auth_sessions_replaced_by_session_id_auth_sessions")
+  replacesSession       AuthSession?    @relation("auth_sessionsToauth_sessions")
+  user                  User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_auth_sessions_user_id_users")
+  securityEvents        SecurityEvent[]
+
+  @@index([expiresAt], map: "ix_auth_sessions_expires_at")
+  @@index([tokenFamilyId], map: "ix_auth_sessions_token_family_id")
+  @@index([userId], map: "ix_auth_sessions_user_id")
+  @@map("auth_sessions")
+}
+
+model CohortEnrollment {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cohortId String   @db.Uuid @map("cohort_id")
+  userId   String   @db.Uuid @map("user_id")
+  status    String   @default("active") @db.VarChar(16)
+  joinedAt DateTime @default(now()) @db.Timestamptz(6) @map("joined_at")
+  cohort   Cohort  @relation(fields: [cohortId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([cohortId, userId], map: "uq_cohort_enrollment")
+  @@index([cohortId], map: "ix_cohort_enrollments_cohort_id")
+  @@index([userId], map: "ix_cohort_enrollments_user_id")
+  @@map("cohort_enrollments")
+}
+
+model Cohort {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId    String               @db.Uuid @map("organization_id")
+  roadmapVersionId String               @db.Uuid @map("roadmap_version_id")
+  name               String               @db.VarChar(200)
+  createdBy         String               @db.Uuid @map("created_by")
+  status             String               @default("active") @db.VarChar(16)
+  inviteCode        String               @unique @db.VarChar(64) @map("invite_code")
+  createdAt         DateTime             @default(now()) @db.Timestamptz(6) @map("created_at")
+  cohortEnrollments CohortEnrollment[]
+  user              User                @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  roadmapVersion    RoadmapVersion     @relation(fields: [roadmapVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([organizationId], map: "ix_cohorts_organization_id")
+  @@index([roadmapVersionId], map: "ix_cohorts_roadmap_version_id")
+  @@map("cohorts")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model EmailVerificationToken {
+  id          String    @id(map: "pk_email_verification_tokens") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @db.Uuid @map("user_id")
+  email       String    @db.VarChar(320)
+  tokenHash  String    @unique(map: "uq_email_verification_tokens_token_hash") @db.VarChar(512) @map("token_hash")
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  expiresAt  DateTime  @db.Timestamptz(6) @map("expires_at")
+  consumedAt DateTime? @db.Timestamptz(6) @map("consumed_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_email_verification_tokens_user_id_users")
+
+  @@index([expiresAt], map: "ix_email_verification_tokens_expires_at")
+  @@index([userId], map: "ix_email_verification_tokens_user_id")
+  @@map("email_verification_tokens")
+}
+
+model OAuthIdentity {
+  id               String   @id(map: "pk_oauth_identities") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @db.Uuid @map("user_id")
+  provider         String   @db.VarChar(64)
+  providerSubject String   @db.VarChar(255) @map("provider_subject")
+  providerEmail   String?  @db.VarChar(320) @map("provider_email")
+  createdAt       DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_oauth_identities_user_id_users")
+
+  @@unique([provider, providerSubject], map: "uq_oauth_identities_provider_subject")
+  @@index([userId], map: "ix_oauth_identities_user_id")
+  @@map("oauth_identities")
+}
+
+model OrganizationMembership {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String        @db.Uuid @map("organization_id")
+  userId         String        @db.Uuid @map("user_id")
+  role            String        @db.VarChar(16)
+  status          String        @default("active") @db.VarChar(16)
+  joinedAt       DateTime      @default(now()) @db.Timestamptz(6) @map("joined_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([organizationId, userId], map: "uq_organization_membership")
+  @@index([organizationId], map: "ix_organization_memberships_organization_id")
+  @@index([userId], map: "ix_organization_memberships_user_id")
+  @@map("organization_memberships")
+}
+
+model Organization {
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                     String                     @db.VarChar(200)
+  slug                     String                     @unique @db.VarChar(220)
+  status                   String                     @default("active") @db.VarChar(16)
+  createdAt               DateTime                   @default(now()) @db.Timestamptz(6) @map("created_at")
+  cohorts                  Cohort[]
+  organizationMemberships OrganizationMembership[]
+  roadmaps                 Roadmap[]
+  @@map("organizations")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model OtpChallenge {
+  id                  String      @id(map: "pk_otp_challenges") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phoneE164          String      @db.VarChar(32) @map("phone_e164")
+  purpose             OtpPurpose
+  otpDigest          String      @db.VarChar(128) @map("otp_digest")
+  attemptCount       Int         @default(0) @map("attempt_count")
+  createdAt          DateTime    @default(now()) @db.Timestamptz(6) @map("created_at")
+  expiresAt          DateTime    @db.Timestamptz(6) @map("expires_at")
+  resendAvailableAt DateTime    @db.Timestamptz(6) @map("resend_available_at")
+  consumedAt         DateTime?   @db.Timestamptz(6) @map("consumed_at")
+
+  @@index([expiresAt], map: "ix_otp_challenges_expires_at")
+  @@index([phoneE164, purpose], map: "ix_otp_challenges_phone_purpose")
+  @@map("otp_challenges")
+}
+
+model PasswordCredential {
+  userId             String   @id(map: "pk_password_credentials") @db.Uuid @map("user_id")
+  passwordHash       String   @db.VarChar(512) @map("password_hash")
+  passwordChangedAt DateTime @default(now()) @db.Timestamptz(6) @map("password_changed_at")
+  createdAt          DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_password_credentials_user_id_users")
+  @@map("password_credentials")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model PasswordResetToken {
+  id          String    @id(map: "pk_password_reset_tokens") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @db.Uuid @map("user_id")
+  tokenHash  String    @unique(map: "uq_password_reset_tokens_token_hash") @db.VarChar(512) @map("token_hash")
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  expiresAt  DateTime  @db.Timestamptz(6) @map("expires_at")
+  consumedAt DateTime? @db.Timestamptz(6) @map("consumed_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_password_reset_tokens_user_id_users")
+
+  @@index([expiresAt], map: "ix_password_reset_tokens_expires_at")
+  @@index([userId], map: "ix_password_reset_tokens_user_id")
+  @@map("password_reset_tokens")
+}
+
+model Phase {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  roadmapVersionId String           @db.Uuid @map("roadmap_version_id")
+  title              String           @db.VarChar(200)
+  orderIndex        Int @map("order_index")
+  roadmapVersion    RoadmapVersion @relation(fields: [roadmapVersionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  weeks              Week[]
+
+  @@index([roadmapVersionId], map: "ix_phases_roadmap_version_id")
+  @@map("phases")
+}
+
+model PhoneIdentity {
+  id          String    @id(map: "pk_phone_identities") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @db.Uuid @map("user_id")
+  phoneE164  String    @unique(map: "uq_phone_identities_phone_e164") @db.VarChar(32) @map("phone_e164")
+  verifiedAt DateTime? @db.Timestamptz(6) @map("verified_at")
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_phone_identities_user_id_users")
+
+  @@index([userId], map: "ix_phone_identities_user_id")
+  @@map("phone_identities")
+}
+
+model ReviewTopicProgress {
+  userId      String   @db.Uuid @map("user_id")
+  topicKey    String   @db.VarChar(64) @map("topic_key")
+  completedAt DateTime @default(now()) @db.Timestamptz(6) @map("completed_at")
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([userId, topicKey])
+  @@map("review_topic_progress")
+}
+
+model RoadmapVersion {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  roadmapId     String    @db.Uuid @map("roadmap_id")
+  versionNumber Int @map("version_number")
+  status         String    @db.VarChar(16)
+  createdBy     String    @db.Uuid @map("created_by")
+  createdAt     DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  publishedAt   DateTime? @db.Timestamptz(6) @map("published_at")
+  cohorts        Cohort[]
+  phases         Phase[]
+  user          User     @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roadmap       Roadmap  @relation(fields: [roadmapId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([roadmapId, versionNumber], map: "uq_roadmap_version_number")
+  @@index([roadmapId], map: "ix_roadmap_versions_roadmap_id")
+  @@map("roadmap_versions")
+}
+
+model Roadmap {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String             @db.Uuid @map("organization_id")
+  name             String             @db.VarChar(200)
+  description      String             @default("")
+  createdBy       String             @db.Uuid @map("created_by")
+  createdAt       DateTime           @default(now()) @db.Timestamptz(6) @map("created_at")
+  roadmapVersions RoadmapVersion[]
+  user            User              @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([organizationId], map: "ix_roadmaps_organization_id")
+  @@map("roadmaps")
+}
+
+model SecurityEvent {
+  id             String         @id(map: "pk_security_events") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String?        @db.Uuid @map("user_id")
+  sessionId     String?        @db.Uuid @map("session_id")
+  eventType     String         @db.VarChar(100) @map("event_type")
+  occurredAt    DateTime       @default(now()) @db.Timestamptz(6) @map("occurred_at")
+  ipAddress     String?        @db.Inet @map("ip_address")
+  userAgent     String?        @db.VarChar(512) @map("user_agent")
+  eventMetadata Json           @default("{}") @map("event_metadata")
+  authSession   AuthSession? @relation(fields: [sessionId], references: [id], onUpdate: NoAction, map: "fk_security_events_session_id_auth_sessions")
+  user          User?         @relation(fields: [userId], references: [id], onUpdate: NoAction, map: "fk_security_events_user_id_users")
+
+  @@index([sessionId], map: "ix_security_events_session_id")
+  @@index([eventType, occurredAt], map: "ix_security_events_type_occurred_at")
+  @@index([userId, occurredAt], map: "ix_security_events_user_occurred_at")
+  @@map("security_events")
+}
+
+model TopicProgress {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @db.Uuid @map("user_id")
+  topicId   String   @db.Uuid @map("topic_id")
+  status     String   @db.VarChar(16)
+  updatedAt DateTime @default(now()) @db.Timestamptz(6) @map("updated_at")
+  topic     Topic   @relation(fields: [topicId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, topicId], map: "uq_topic_progress_user_topic")
+  @@index([topicId], map: "ix_topic_progress_topic_id")
+  @@index([userId], map: "ix_topic_progress_user_id")
+  @@map("topic_progress")
+}
+
+model Topic {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  weekId        String           @db.Uuid @map("week_id")
+  title          String           @db.VarChar(200)
+  description    String           @default("")
+  orderIndex    Int @map("order_index")
+  topicProgress TopicProgress[]
+  week          Week            @relation(fields: [weekId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([weekId], map: "ix_topics_week_id")
+  @@map("topics")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model User {
+  id                        String                      @id(map: "pk_users") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  displayName              String                      @db.VarChar(200) @map("display_name")
+  primaryEmail             String?                     @db.VarChar(320) @map("primary_email")
+  emailVerifiedAt         DateTime?                   @db.Timestamptz(6) @map("email_verified_at")
+  username                  String?                     @unique(map: "uq_users_username") @db.VarChar(64)
+  status                    UserStatus                 @default(active)
+  createdAt                DateTime                    @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt                DateTime                    @default(now()) @db.Timestamptz(6) @map("updated_at")
+  accountType              AccountType                @default(student) @map("account_type")
+  authSessions             AuthSession[]
+  cohortEnrollments        CohortEnrollment[]
+  cohorts                   Cohort[]
+  emailVerificationTokens EmailVerificationToken[]
+  oauthIdentities          OAuthIdentity[]
+  organizationMemberships  OrganizationMembership[]
+  passwordCredential       PasswordCredential?
+  passwordResetTokens     PasswordResetToken[]
+  phoneIdentities          PhoneIdentity[]
+  reviewTopicProgress     ReviewTopicProgress[]
+  roadmapVersions          RoadmapVersion[]
+  roadmaps                  Roadmap[]
+  securityEvents           SecurityEvent[]
+  topicProgress            TopicProgress[]
+  @@map("users")
+}
+
+model Week {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phaseId    String   @db.Uuid @map("phase_id")
+  title       String   @db.VarChar(200)
+  orderIndex Int @map("order_index")
+  topics      Topic[]
+  phase      Phase   @relation(fields: [phaseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([phaseId], map: "ix_weeks_phase_id")
+  @@map("weeks")
+}
+
+enum AccountType {
+  @@map("account_type")
+  student
+  coordinator
+}
+
+enum OtpPurpose {
+  @@map("otp_purpose")
+  login
+  link_phone
+}
+
+enum UserStatus {
+  @@map("user_status")
+  active
+  suspended
+  deleted
+}

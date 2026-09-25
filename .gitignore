@@ -2,12 +2,45 @@
 .env
 .env.*
 !.env.example
+.secrets/
+secrets/
+credentials/
+.aws/
+.azure/
+.gcloud/
+.ssh/
+*.secret
+*.secrets
+credentials*.json
+*credentials*.json
+service-account*.json
+*-service-account*.json
+client_secret*.json
+.npmrc
+.pypirc
+.netrc
+auth.json
+
+# Private keys, certificates, and local credential stores
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.der
+*.crt
+
+# Local infrastructure state
+*.tfstate
+*.tfstate.*
 
 # Python
 __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+.pytest-tmp*/
 .mypy_cache/
 .ruff_cache/
 .venv/
@@ -41,6 +74,5 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
-# Private keys / certificates
-*.pem
-*.key
+# Local database migration backups
+local-backups/

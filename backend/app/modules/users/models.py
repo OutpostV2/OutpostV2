@@ -18,6 +18,11 @@ class UserStatus(StrEnum):
     DELETED = "deleted"
 
 
+class AccountType(StrEnum):
+    STUDENT = "student"
+    COORDINATOR = "coordinator"
+
+
 class User(Base):
     """A person who may link one or more authentication methods."""
 
@@ -42,6 +47,15 @@ class User(Base):
         ),
         default=UserStatus.ACTIVE,
         server_default=text("'active'"),
+    )
+    account_type: Mapped[AccountType] = mapped_column(
+        Enum(
+            AccountType,
+            name="account_type",
+            values_callable=lambda enum_type: [member.value for member in enum_type],
+        ),
+        server_default=text("'student'"),
+        nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

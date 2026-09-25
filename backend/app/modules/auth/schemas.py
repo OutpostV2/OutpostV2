@@ -9,6 +9,7 @@ from email_validator import validate_email
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 
 from app.modules.auth.phone_identities import normalize_phone
+from app.modules.users.models import AccountType
 
 
 def normalize_email(value: str) -> str:
@@ -37,6 +38,7 @@ class RegistrationInput(BaseModel):
     username: str
     email: str
     password: SecretStr
+    account_type: AccountType = AccountType.STUDENT
 
     @field_validator("display_name")
     @classmethod
@@ -69,6 +71,7 @@ class UserOutput(BaseModel):
     username: str | None
     primary_email: str | None
     email_verified_at: datetime | None
+    account_type: AccountType
 
 
 class EmailVerificationRequestInput(BaseModel):

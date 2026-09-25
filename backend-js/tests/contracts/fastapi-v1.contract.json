@@ -1,0 +1,2425 @@
+{
+  "source": "backend/app/main.py:create_app(...).openapi()",
+  "scope": "/api/v1",
+  "capturedAtUtc": "2026-09-25T10:54:49.832421+00:00",
+  "openapiVersion": "3.1.0",
+  "apiInfo": {
+    "title": "Outpost API",
+    "version": "0.1.0"
+  },
+  "operations": [
+    {
+      "method": "GET",
+      "path": "/api/v1",
+      "operationId": "api_version_api_v1_get",
+      "tags": [
+        "system"
+      ],
+      "parameters": [],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiVersion"
+              }
+            }
+          }
+        }
+      },
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/email-verification/confirm",
+      "operationId": "confirm_verification_api_v1_auth_email_verification_confirm_post",
+      "tags": [
+        "system",
+        "auth"
+      ],
+      "parameters": [],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EmailVerificationConfirmInput"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/email-verification/request",
+      "operationId": "request_verification_api_v1_auth_email_verification_request_post",
+      "tags": [
+        "system",
+        "auth"
+      ],
+      "parameters": [],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EmailVerificationRequestInput"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "202": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/google/authorize",
+      "operationId": "authorize_with_google_api_v1_auth_google_authorize_get",
+      "tags": [
+        "system",
+        "auth"
+      ],
+      "parameters": [],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          }
+        }
+      },
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/google/callback",
+      "operationId": "google_callback_api_v1_auth_google_callback_get",
+      "tags": [
+        "system",
+        "auth"
+      ],
+      "parameters": [
+        {
+          "name": "state",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "maxLength": 512,
+            "default": "",
+            "title": "State"
+          }
+        },
+        {
+          "name": "code",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "maxLength": 4096,
+            "default": "",
+            "title": "Code"
+          }
+        },
+        {
+          "name": "iss",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "maxLength": 256,
+            "default": "",
+            "title": "Iss"
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenOutput"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "operationId": "logout_api_v1_auth_logout_post",
+      "tags": [
+        "system",
+        "auth"
+      ],
+      "parameters": [],
+      "requestBody": null,
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout-all",
+      "operationId": "logout_all_api_v1_auth_logout_all_post",
+      "tags": [
+        "system",
+        "auth"
+      ],
+      "parameters": [],
+      "requestBody": null,
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/password/forgot",
+      "operationId": "forgot_password_api_v1_auth_password_forgot_post",
+      "tags": [
+        "system",
+        "auth"
+      ],
+      "parameters": [],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ForgotPasswordInput"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "202": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/password/login",
+      "operationId": "login_api_v1_auth_password_login_post",
+      "tags": [
+        "system",
+        "auth"
+      ],
+      "parameters": [],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/LoginInput"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenOutput"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/password/register",
+      "operationId": "register_api_v1_auth_password_register_post",
+      "tags": [
+        "system",
+        "auth"
+      ],
+      "parameters": [],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RegistrationInput"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "201": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserOutput"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/password/reset",
+      "operationId": "consume_password_reset_api_v1_auth_password_reset_post",
+      "tags": [
+        "system",
+        "auth"
+      ],
+      "parameters": [],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PasswordResetInput"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/phone/request",
+      "operationId": "request_phone_code_api_v1_auth_phone_request_post",
+      "tags": [
+        "system",
+        "auth"
+      ],
+      "parameters": [],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PhoneOtpRequestInput"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "202": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/phone/verify",
+      "operationId": "verify_phone_code_api_v1_auth_phone_verify_post",
+      "tags": [
+        "system",
+        "auth"
+      ],
+      "parameters": [],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PhoneOtpVerifyInput"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenOutput"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/refresh",
+      "operationId": "refresh_api_v1_auth_refresh_post",
+      "tags": [
+        "system",
+        "auth"
+      ],
+      "parameters": [],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenOutput"
+              }
+            }
+          }
+        }
+      },
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/sessions",
+      "operationId": "sessions_api_v1_auth_sessions_get",
+      "tags": [
+        "system",
+        "auth"
+      ],
+      "parameters": [],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/SessionOutput"
+                },
+                "type": "array",
+                "title": "Response Sessions Api V1 Auth Sessions Get"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/auth/sessions/{session_id}",
+      "operationId": "revoke_session_api_v1_auth_sessions__session_id__delete",
+      "tags": [
+        "system",
+        "auth"
+      ],
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Session Id"
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/cohorts/join",
+      "operationId": "join_cohort_api_v1_cohorts_join_post",
+      "tags": [
+        "system",
+        "live learning"
+      ],
+      "parameters": [],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/JoinInput"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinedCohortOut"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/cohorts/{cohort_id}/progress",
+      "operationId": "cohort_progress_api_v1_cohorts__cohort_id__progress_get",
+      "tags": [
+        "system",
+        "live learning"
+      ],
+      "parameters": [
+        {
+          "name": "cohort_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Cohort Id"
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CohortProgressOut"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me",
+      "operationId": "me_api_v1_me_get",
+      "tags": [
+        "system",
+        "users"
+      ],
+      "parameters": [],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserOutput"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/organizations",
+      "operationId": "list_organizations_api_v1_organizations_get",
+      "tags": [
+        "system",
+        "live learning"
+      ],
+      "parameters": [],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/OrganizationOut"
+                },
+                "type": "array",
+                "title": "Response List Organizations Api V1 Organizations Get"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/organizations",
+      "operationId": "create_organization_api_v1_organizations_post",
+      "tags": [
+        "system",
+        "live learning"
+      ],
+      "parameters": [],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/OrganizationInput"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "201": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationOut"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/organizations/{organization_id}/cohorts",
+      "operationId": "list_cohorts_api_v1_organizations__organization_id__cohorts_get",
+      "tags": [
+        "system",
+        "live learning"
+      ],
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Organization Id"
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CohortOut"
+                },
+                "title": "Response List Cohorts Api V1 Organizations  Organization Id  Cohorts Get"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/organizations/{organization_id}/cohorts",
+      "operationId": "create_cohort_api_v1_organizations__organization_id__cohorts_post",
+      "tags": [
+        "system",
+        "live learning"
+      ],
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Organization Id"
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CohortInput"
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CohortOut"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/organizations/{organization_id}/roadmaps",
+      "operationId": "list_roadmaps_api_v1_organizations__organization_id__roadmaps_get",
+      "tags": [
+        "system",
+        "live learning"
+      ],
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Organization Id"
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RoadmapOut"
+                },
+                "title": "Response List Roadmaps Api V1 Organizations  Organization Id  Roadmaps Get"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/organizations/{organization_id}/roadmaps",
+      "operationId": "create_roadmap_api_v1_organizations__organization_id__roadmaps_post",
+      "tags": [
+        "system",
+        "live learning"
+      ],
+      "parameters": [
+        {
+          "name": "organization_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Organization Id"
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RoadmapInput"
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoadmapOut"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/progress/me",
+      "operationId": "my_learning_api_v1_progress_me_get",
+      "tags": [
+        "system",
+        "live learning"
+      ],
+      "parameters": [],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/StudentLearningOut"
+                },
+                "type": "array",
+                "title": "Response My Learning Api V1 Progress Me Get"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/progress/topics/{topic_id}",
+      "operationId": "set_topic_progress_api_v1_progress_topics__topic_id__put",
+      "tags": [
+        "system",
+        "live learning"
+      ],
+      "parameters": [
+        {
+          "name": "topic_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Topic Id"
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/app__modules__learning__schemas__ProgressInput"
+            }
+          }
+        }
+      },
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/review/overview",
+      "operationId": "review_overview_api_v1_review_overview_get",
+      "tags": [
+        "system",
+        "review scenario"
+      ],
+      "parameters": [],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewOverviewOut"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/review/progress",
+      "operationId": "reset_review_progress_api_v1_review_progress_delete",
+      "tags": [
+        "system",
+        "review scenario"
+      ],
+      "parameters": [],
+      "requestBody": null,
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/review/progress/{topic_key}",
+      "operationId": "update_review_progress_api_v1_review_progress__topic_key__put",
+      "tags": [
+        "system",
+        "review scenario"
+      ],
+      "parameters": [
+        {
+          "name": "topic_key",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "title": "Topic Key"
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/app__modules__review__schemas__ProgressInput"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewOverviewOut"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ]
+    }
+  ],
+  "runtimeOverrides": {
+    "GET /api/v1/auth/google/authorize": {
+      "successStatus": 302,
+      "note": "RedirectResponse at runtime; generated OpenAPI declares 200 with no response schema."
+    },
+    "validationErrors": {
+      "status": 422,
+      "schema": {
+        "$ref": "#/runtimeSchemas/RuntimeErrorResponse"
+      },
+      "note": "Custom exception handler returns the shared error envelope, not the generated HTTPValidationError schema."
+    }
+  },
+  "runtimeSchemas": {
+    "RuntimeErrorResponse": {
+      "type": "object",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "object",
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "details": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "request_id": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccountType": {
+        "type": "string",
+        "enum": [
+          "student",
+          "coordinator"
+        ],
+        "title": "AccountType"
+      },
+      "ApiVersion": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "const": "Outpost API",
+            "title": "Name",
+            "default": "Outpost API"
+          },
+          "version": {
+            "type": "string",
+            "const": "v1",
+            "title": "Version",
+            "default": "v1"
+          }
+        },
+        "type": "object",
+        "title": "ApiVersion",
+        "description": "Version discovery response."
+      },
+      "CohortInput": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "roadmap_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Roadmap Version Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "roadmap_version_id"
+        ],
+        "title": "CohortInput"
+      },
+      "CohortMemberOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "percent": {
+            "type": "integer",
+            "title": "Percent"
+          },
+          "is_you": {
+            "type": "boolean",
+            "title": "Is You"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "completed",
+          "total",
+          "percent",
+          "is_you"
+        ],
+        "title": "CohortMemberOut"
+      },
+      "CohortOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Organization Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "roadmap_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Roadmap Version Id"
+          },
+          "roadmap_name": {
+            "type": "string",
+            "title": "Roadmap Name"
+          },
+          "invite_code": {
+            "type": "string",
+            "title": "Invite Code"
+          },
+          "student_count": {
+            "type": "integer",
+            "title": "Student Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "organization_id",
+          "name",
+          "roadmap_version_id",
+          "roadmap_name",
+          "invite_code",
+          "student_count"
+        ],
+        "title": "CohortOut"
+      },
+      "CohortProgressOut": {
+        "properties": {
+          "cohort_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Cohort Id"
+          },
+          "cohort_name": {
+            "type": "string",
+            "title": "Cohort Name"
+          },
+          "roadmap_name": {
+            "type": "string",
+            "title": "Roadmap Name"
+          },
+          "students": {
+            "items": {
+              "$ref": "#/components/schemas/LearnerOut"
+            },
+            "type": "array",
+            "title": "Students"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/app__modules__learning__schemas__TopicStatOut"
+            },
+            "type": "array",
+            "title": "Topics"
+          },
+          "average_percent": {
+            "type": "integer",
+            "title": "Average Percent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cohort_id",
+          "cohort_name",
+          "roadmap_name",
+          "students",
+          "topics",
+          "average_percent"
+        ],
+        "title": "CohortProgressOut"
+      },
+      "CoordinatorOut": {
+        "properties": {
+          "cohort_title": {
+            "type": "string",
+            "title": "Cohort Title"
+          },
+          "roadmap_title": {
+            "type": "string",
+            "title": "Roadmap Title"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/CohortMemberOut"
+            },
+            "type": "array",
+            "title": "Members"
+          },
+          "average_percent": {
+            "type": "integer",
+            "title": "Average Percent"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/app__modules__review__schemas__TopicStatOut"
+            },
+            "type": "array",
+            "title": "Topics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cohort_title",
+          "roadmap_title",
+          "members",
+          "average_percent",
+          "topics"
+        ],
+        "title": "CoordinatorOut"
+      },
+      "EmailVerificationConfirmInput": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 43,
+            "format": "password",
+            "title": "Token",
+            "writeOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "title": "EmailVerificationConfirmInput"
+      },
+      "EmailVerificationRequestInput": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "EmailVerificationRequestInput"
+      },
+      "ForgotPasswordInput": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "ForgotPasswordInput"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "JoinInput": {
+        "properties": {
+          "invite_code": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 20,
+            "title": "Invite Code"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "invite_code"
+        ],
+        "title": "JoinInput"
+      },
+      "JoinedCohortOut": {
+        "properties": {
+          "cohort_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Cohort Id"
+          },
+          "cohort_name": {
+            "type": "string",
+            "title": "Cohort Name"
+          },
+          "organization_name": {
+            "type": "string",
+            "title": "Organization Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cohort_id",
+          "cohort_name",
+          "organization_name"
+        ],
+        "title": "JoinedCohortOut"
+      },
+      "LearnerOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "percent": {
+            "type": "integer",
+            "title": "Percent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "completed",
+          "total",
+          "percent"
+        ],
+        "title": "LearnerOut"
+      },
+      "LoginInput": {
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "maxLength": 320,
+            "minLength": 1,
+            "title": "Identifier"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 1024,
+            "minLength": 1,
+            "format": "password",
+            "title": "Password",
+            "writeOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "identifier",
+          "password"
+        ],
+        "title": "LoginInput"
+      },
+      "OrganizationInput": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "OrganizationInput"
+      },
+      "OrganizationOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "role"
+        ],
+        "title": "OrganizationOut"
+      },
+      "PasswordResetInput": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 43,
+            "format": "password",
+            "title": "Token",
+            "writeOnly": true
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "title": "Password",
+            "writeOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "token",
+          "password"
+        ],
+        "title": "PasswordResetInput"
+      },
+      "PhaseOut": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/app__modules__review__schemas__TopicOut"
+            },
+            "type": "array",
+            "title": "Topics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "description",
+          "topics"
+        ],
+        "title": "PhaseOut"
+      },
+      "PhoneOtpRequestInput": {
+        "properties": {
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "phone"
+        ],
+        "title": "PhoneOtpRequestInput"
+      },
+      "PhoneOtpVerifyInput": {
+        "properties": {
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 6,
+            "minLength": 6,
+            "format": "password",
+            "title": "Code",
+            "writeOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "phone",
+          "code"
+        ],
+        "title": "PhoneOtpVerifyInput"
+      },
+      "RegistrationInput": {
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Display Name"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "title": "Password",
+            "writeOnly": true
+          },
+          "account_type": {
+            "$ref": "#/components/schemas/AccountType",
+            "default": "student"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "display_name",
+          "username",
+          "email",
+          "password"
+        ],
+        "title": "RegistrationInput"
+      },
+      "ReviewOverviewOut": {
+        "properties": {
+          "scenario": {
+            "type": "string",
+            "const": "illustrative",
+            "title": "Scenario",
+            "default": "illustrative"
+          },
+          "student": {
+            "$ref": "#/components/schemas/StudentOut"
+          },
+          "coordinator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CoordinatorOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "student",
+          "coordinator"
+        ],
+        "title": "ReviewOverviewOut"
+      },
+      "RoadmapInput": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Description",
+            "default": ""
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicInput"
+            },
+            "type": "array",
+            "maxItems": 24,
+            "minItems": 1,
+            "title": "Topics"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "topics"
+        ],
+        "title": "RoadmapInput"
+      },
+      "RoadmapOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Organization Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Version Id"
+          },
+          "version_number": {
+            "type": "integer",
+            "title": "Version Number"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/app__modules__learning__schemas__TopicOut"
+            },
+            "type": "array",
+            "title": "Topics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "organization_id",
+          "name",
+          "description",
+          "version_id",
+          "version_number",
+          "topics"
+        ],
+        "title": "RoadmapOut"
+      },
+      "SessionOutput": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "last_used_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Used At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "user_agent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agent"
+          },
+          "ip_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip Address"
+          },
+          "is_current": {
+            "type": "boolean",
+            "title": "Is Current"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "last_used_at",
+          "expires_at",
+          "user_agent",
+          "ip_address",
+          "is_current"
+        ],
+        "title": "SessionOutput"
+      },
+      "StudentLearningOut": {
+        "properties": {
+          "cohort_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Cohort Id"
+          },
+          "cohort_name": {
+            "type": "string",
+            "title": "Cohort Name"
+          },
+          "organization_name": {
+            "type": "string",
+            "title": "Organization Name"
+          },
+          "roadmap_name": {
+            "type": "string",
+            "title": "Roadmap Name"
+          },
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "percent": {
+            "type": "integer",
+            "title": "Percent"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/StudentTopicOut"
+            },
+            "type": "array",
+            "title": "Topics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cohort_id",
+          "cohort_name",
+          "organization_name",
+          "roadmap_name",
+          "completed",
+          "total",
+          "percent",
+          "topics"
+        ],
+        "title": "StudentLearningOut"
+      },
+      "StudentOut": {
+        "properties": {
+          "roadmap_title": {
+            "type": "string",
+            "title": "Roadmap Title"
+          },
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "percent": {
+            "type": "integer",
+            "title": "Percent"
+          },
+          "next_topic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__modules__review__schemas__TopicOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phases": {
+            "items": {
+              "$ref": "#/components/schemas/PhaseOut"
+            },
+            "type": "array",
+            "title": "Phases"
+          }
+        },
+        "type": "object",
+        "required": [
+          "roadmap_title",
+          "completed",
+          "total",
+          "percent",
+          "next_topic",
+          "phases"
+        ],
+        "title": "StudentOut"
+      },
+      "StudentTopicOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "week": {
+            "type": "integer",
+            "title": "Week"
+          },
+          "completed": {
+            "type": "boolean",
+            "title": "Completed"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "description",
+          "week",
+          "completed",
+          "completed_at"
+        ],
+        "title": "StudentTopicOut"
+      },
+      "TokenOutput": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "const": "bearer",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "default": 900
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token"
+        ],
+        "title": "TokenOutput"
+      },
+      "TopicInput": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Description",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "TopicInput"
+      },
+      "UserOutput": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "primary_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Email"
+          },
+          "email_verified_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Verified At"
+          },
+          "account_type": {
+            "$ref": "#/components/schemas/AccountType"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "display_name",
+          "username",
+          "primary_email",
+          "email_verified_at",
+          "account_type"
+        ],
+        "title": "UserOutput"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "app__modules__learning__schemas__ProgressInput": {
+        "properties": {
+          "completed": {
+            "type": "boolean",
+            "title": "Completed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "completed"
+        ],
+        "title": "ProgressInput"
+      },
+      "app__modules__learning__schemas__TopicOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "week": {
+            "type": "integer",
+            "title": "Week"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "description",
+          "week"
+        ],
+        "title": "TopicOut"
+      },
+      "app__modules__learning__schemas__TopicStatOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "percent": {
+            "type": "integer",
+            "title": "Percent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "completed",
+          "total",
+          "percent"
+        ],
+        "title": "TopicStatOut"
+      },
+      "app__modules__review__schemas__ProgressInput": {
+        "properties": {
+          "completed": {
+            "type": "boolean",
+            "title": "Completed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "completed"
+        ],
+        "title": "ProgressInput"
+      },
+      "app__modules__review__schemas__TopicOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "week": {
+            "type": "integer",
+            "title": "Week"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "completed"
+            ],
+            "title": "Status"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "title",
+          "description",
+          "week",
+          "status"
+        ],
+        "title": "TopicOut"
+      },
+      "app__modules__review__schemas__TopicStatOut": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "percent": {
+            "type": "integer",
+            "title": "Percent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "completed",
+          "total",
+          "percent"
+        ],
+        "title": "TopicStatOut"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

@@ -11,6 +11,19 @@ from app.modules.auth.models import (
     PhoneIdentity,
     SecurityEvent,
 )
+from app.modules.learning.models import (
+    Cohort,
+    CohortEnrollment,
+    Organization,
+    OrganizationMembership,
+    Phase,
+    Roadmap,
+    RoadmapVersion,
+    Topic,
+    TopicProgress,
+    Week,
+)
+from app.modules.review.models import ReviewTopicProgress
 from app.modules.users.models import User
 
 __all__ = [
@@ -23,5 +36,16 @@ __all__ = [
     "PasswordCredential",
     "PhoneIdentity",
     "SecurityEvent",
+    "ReviewTopicProgress",
+    "Organization",
+    "OrganizationMembership",
+    "Roadmap",
+    "RoadmapVersion",
+    "Phase",
+    "Week",
+    "Topic",
+    "Cohort",
+    "CohortEnrollment",
+    "TopicProgress",
     "User",
 ]

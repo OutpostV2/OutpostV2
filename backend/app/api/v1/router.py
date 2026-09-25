@@ -7,6 +7,12 @@ from pydantic import BaseModel
 
 from app.modules.auth.router import router as auth_router
 from app.modules.auth.router import user_router
+from app.modules.learning.router import (
+    cohorts_router,
+    organizations_router,
+    progress_router,
+)
+from app.modules.review.router import router as review_router
 
 
 class ApiVersion(BaseModel):
@@ -29,3 +35,8 @@ def api_version() -> ApiVersion:
 router.include_router(auth_router)
 
 router.include_router(user_router)
+
+router.include_router(review_router)
+router.include_router(organizations_router)
+router.include_router(cohorts_router)
+router.include_router(progress_router)
