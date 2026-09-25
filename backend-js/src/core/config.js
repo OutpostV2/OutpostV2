@@ -4,9 +4,7 @@ import { loadEnvFile } from 'node:process';
 import { z } from 'zod';
 
 const envFile = resolve(process.cwd(), '.env');
-const legacyEnvFile = resolve(process.cwd(), '../backend/.env');
 if (existsSync(envFile)) loadEnvFile(envFile);
-else if (existsSync(legacyEnvFile)) loadEnvFile(legacyEnvFile);
 
 const schema = z.object({
   OUTPOST_ENV: z.enum(['development', 'test', 'staging', 'production']).default('development'),

@@ -142,13 +142,13 @@ Do not assume any of the following already exist:
 
 ```text
 .git/
-backend/
+backend-js/
 frontend/
 docs/
 docker-compose.yml
-pyproject.toml
+backend-js/package.json
 package.json
-Alembic
+Prisma migrations
 PostgreSQL configuration
 Redis configuration
 MinIO configuration
@@ -179,7 +179,7 @@ Examples:
 ```text
 directory exists but contains no project
 directory contains only documentation
-no backend/
+no backend-js/
 no frontend/
 no Git repository
 ```
@@ -442,7 +442,7 @@ Example:
 
 ```text
 FILE:
-backend/app/modules/auth/service.py
+backend-js/src/modules/auth/service.js
 
 Replace:
 <existing snippet>
@@ -529,7 +529,7 @@ staging
 production
 ```
 
-The existing PostgreSQL schema and Alembic history must be preserved. Before Prisma takes ownership, introspect and baseline that schema in an isolated database and verify equivalence. Never reset the existing database or run `prisma db push` against it. Keep Alembic available for the Python fallback during parity work.
+The existing PostgreSQL schema must be preserved. Prisma now owns migrations after an isolated baseline comparison; Alembic history remains in Git. Never reset the existing database or run `prisma db push` against it.
 
 Never restore `create_all()` as the migration mechanism.
 
@@ -1025,7 +1025,7 @@ If the session must stop while broken, Layer 4 may preserve the failure state, e
 
 ## Layer 3 Update Rule
 
-Layer 3 normally remains unchanged. When the current task intentionally creates or materially stabilizes a canonical foundation file, update only its affected Layer 3 block if needed, in Commit A. Examples include `backend/pyproject.toml`, `.env.example`, `docker-compose.yml`, `frontend/package.json`, `alembic.ini`, and foundational configuration. Never regenerate Layer 3 wholesale or put routine feature code there.
+Layer 3 normally remains unchanged. When the current task intentionally creates or materially stabilizes a canonical foundation file, update only its affected Layer 3 block if needed, in Commit A. Examples include `backend-js/package.json`, `backend-js/prisma.config.js`, `.env.example`, `docker-compose.yml`, `frontend/package.json`, and foundational configuration. Never regenerate Layer 3 wholesale or put routine feature code there.
 
 ## Decision Record Rule
 
@@ -1098,7 +1098,7 @@ Curriculum can be improved
 
 # TARGET TECH STACK
 
-The active runtime target is governed by [`docs/architecture/javascript-stack-migration.md`](architecture/javascript-stack-migration.md). Python/FastAPI and Alembic remain available for the existing database until JavaScript API parity and the Prisma baseline are verified.
+The active runtime is Node.js/Express with Prisma and a React JavaScript/JSX frontend. The retired Python implementation is available in Git history.
 
 ## Frontend
 
@@ -1204,7 +1204,7 @@ Canonical root:
 D:\Shared Workspace\Projects\Outpost-New
 ```
 
-Target structure during cutover:
+Current target structure:
 
 ```text
 Outpost-New/
@@ -1213,7 +1213,6 @@ Outpost-New/
 │   ├── src/
 │   ├── tests/
 │   └── package.json
-├── backend/                    # Preserved FastAPI and Alembic fallback
 ├── frontend/                   # React JavaScript/JSX and Vite
 │   ├── src/
 │   ├── package.json
@@ -1894,7 +1893,7 @@ GET /cohorts/{cohort_id}/at-risk
 
 # BUILD SEQUENCE
 
-The phases below record the original Python/TypeScript build sequence. For active runtime changes, follow [the JavaScript migration plan](superpowers/plans/2026-09-25-javascript-stack-migration.md) and preserve the Python fallback until parity is verified.
+The phases below record the original build sequence and remaining product goals. Phases 0–10 describe historical implementation work; use the current JavaScript source and Prisma migrations for active work.
 
 # PHASE 0 — Architecture Freeze
 
@@ -2593,566 +2592,31 @@ A successful Outpost implementation proves:
 
 # LAYER 3 — SEMI-STATIC PROJECT CONTEXT
 
-# Purpose
+The current source of truth is the repository, not copied configuration snippets. Keep this layer focused on stable paths and data ownership; use Layer 4 for a short, current work checkpoint.
 
-Layer 3 stores important configuration and foundation files that change infrequently. The Python examples below document the preserved fallback and original bootstrap. Active Node and frontend configuration lives in `backend-js/` and `frontend/`; the JavaScript migration specification takes precedence over the historical snippets.
+Project root: `D:\Shared Workspace\Projects\Outpost-New`
+Main development branch: `main`
+Git remote: not configured at the last check; verify with `git remote -v`.
 
-Do not place:
+## Active source files
 
-```text
-current terminal output
-current task
-temporary debugging changes
-active errors
-routine feature code
-test history
-```
+- `backend-js/package.json`, `backend-js/src/`, and `backend-js/tests/`: Node.js/Express API and tests.
+- `backend-js/prisma/schema.prisma` and `backend-js/prisma/migrations/`: Prisma schema and migration history. The `0_baseline` migration preserves the existing PostgreSQL schema.
+- `backend-js/prisma.config.js` and `backend-js/.env.example`: database configuration and example API settings.
+- `frontend/package.json`, `frontend/src/`, and `frontend/vite.config.js`: React JavaScript/JSX client.
+- `docker-compose.yml` and root `.env.example`: local PostgreSQL, Valkey, MinIO, and Mailpit.
+- `docs/decisions/` and `docs/OUTPOST-DECISIONS.md`: accepted architecture decisions.
 
-here.
+The retired Python source and Alembic migrations are available in Git history. Prisma Migrate owns future schema changes. Do not reset the existing database or use `prisma db push` against it. Git-ignored `.env` files, `local-backups/`, and Docker volumes hold local settings or data and must be preserved during code cleanup.
 
-Those belong in Layer 4 or the repository.
-
----
-
-# Repository
-
-```text
-PROJECT:
-Outpost
-
-PROJECT ROOT:
-D:\Shared Workspace\Projects\Outpost-New
-
-REMOTE:
-NOT CONFIGURED YET
-
-MAIN DEVELOPMENT BRANCH:
-main
-```
-
----
-
-# `backend/pyproject.toml`
-
-```toml
-[build-system]
-requires = ["hatchling>=1.27,<2"]
-build-backend = "hatchling.build"
-
-[project]
-name = "outpost-backend"
-version = "0.1.0"
-description = "Outpost backend foundation"
-requires-python = ">=3.13"
-dependencies = [
-  "alembic>=1.20,<2",
-  "argon2-cffi>=25.1,<26",
-  "email-validator>=2.2,<3",
-  "fastapi>=0.141.1,<1",
-  "psycopg[binary]>=3.3.5,<4",
-  "pydantic>=2.13.5,<3",
-  "pydantic-settings>=2.15,<3",
-  "PyJWT>=2.12.1,<3",
-  "sqlalchemy>=2.0.54,<2.1",
-  "uvicorn[standard]>=0.53,<1",
-]
-
-[project.optional-dependencies]
-dev = [
-  "build>=1.2.2,<2",
-  "httpx2>=2.13,<3",
-  "mypy>=1.15,<2",
-  "pytest>=8.3,<10",
-  "ruff>=0.11,<1",
-]
-
-[tool.hatch.build.targets.wheel]
-packages = ["app"]
-
-[tool.pytest.ini_options]
-addopts = "-q"
-markers = [
-  "integration: requires the local infrastructure named by the test",
-]
-testpaths = ["tests"]
-
-[tool.ruff]
-line-length = 100
-target-version = "py313"
-
-[tool.ruff.lint]
-select = ["B", "E", "F", "I", "SIM", "UP"]
-
-[tool.mypy]
-files = ["app", "tests"]
-plugins = ["pydantic.mypy"]
-python_version = "3.13"
-strict = true
-```
-
----
-
-# `backend/.env.example`
-
-```dotenv
-OUTPOST_ENV=development
-OUTPOST_LOG_LEVEL=INFO
-OUTPOST_DATABASE_URL=postgresql+psycopg://outpost:outpost-local-dev-only@127.0.0.1:5433/outpost
-
-# Required for login: supply a cryptographically random secret of at least 32 bytes.
-# OUTPOST_AUTH_SIGNING_KEY=<set-in-local-env-or-secret-store>
-```
-
----
-
-# `backend/alembic.ini`
-
-```ini
-[alembic]
-script_location = %(here)s/alembic
-prepend_sys_path = .
-path_separator = os
-output_encoding = utf-8
-```
-
----
-
-# `backend/alembic/env.py`
-
-```python
-"""Alembic runtime configuration backed by Outpost settings."""
-
-from alembic import context
-from app.core.config import Settings
-from app.db.models import Base
-from app.db.session import create_engine_from_settings
-
-target_metadata = Base.metadata
-
-
-def run_migrations_offline() -> None:
-    """Render migration SQL without opening a database connection."""
-
-    settings = Settings()
-    context.configure(
-        url=str(settings.database_url),
-        target_metadata=target_metadata,
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
-        compare_type=True,
-    )
-
-    with context.begin_transaction():
-        context.run_migrations()
-
-
-def run_migrations_online() -> None:
-    """Run migrations through the canonical Outpost database engine."""
-
-    engine = create_engine_from_settings(Settings())
-    try:
-        with engine.connect() as connection:
-            context.configure(
-                connection=connection,
-                target_metadata=target_metadata,
-                compare_type=True,
-            )
-
-            with context.begin_transaction():
-                context.run_migrations()
-    finally:
-        engine.dispose()
-
-
-if context.is_offline_mode():
-    run_migrations_offline()
-else:
-    run_migrations_online()
-```
-
----
-
-# `backend/app/core/config.py`
-
-```python
-"""Typed runtime configuration for the Outpost backend."""
-
-from enum import StrEnum
-
-from pydantic import PostgresDsn, SecretStr, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-class Environment(StrEnum):
-    """Supported application environments."""
-
-    DEVELOPMENT = "development"
-    TEST = "test"
-    STAGING = "staging"
-    PRODUCTION = "production"
-
-
-class LogLevel(StrEnum):
-    """Supported application log levels."""
-
-    DEBUG = "DEBUG"
-    INFO = "INFO"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
-    CRITICAL = "CRITICAL"
-
-
-class Settings(BaseSettings):
-    """Outpost settings loaded from environment variables or a local env file."""
-
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_prefix="OUTPOST_",
-        extra="ignore",
-    )
-
-    env: Environment = Environment.DEVELOPMENT
-    log_level: LogLevel = LogLevel.INFO
-    database_url: PostgresDsn
-
-    auth_signing_key: SecretStr | None = None
-
-    @field_validator("auth_signing_key")
-    @classmethod
-    def strong_signing_key(cls, value: SecretStr | None) -> SecretStr | None:
-        if value is not None and len(value.get_secret_value().encode("utf-8")) < 32:
-            raise ValueError("Authentication signing key requires at least 32 bytes")
-        return value
-```
-
----
-
-# `backend/app/db/base.py`
-
-```python
-"""Declarative model base for future Alembic-managed schemas."""
-
-from sqlalchemy.orm import DeclarativeBase
-
-
-class Base(DeclarativeBase):
-    """Base class for Outpost SQLAlchemy models."""
-```
-
----
-
-# `backend/app/db/session.py`
-
-```python
-"""SQLAlchemy engine and transaction-safe session lifecycle."""
-
-from collections.abc import Iterator
-from contextlib import contextmanager
-
-from sqlalchemy import Engine, create_engine
-from sqlalchemy.orm import Session, sessionmaker
-
-from app.core.config import Settings
-
-
-def create_engine_from_settings(settings: Settings) -> Engine:
-    """Create the PostgreSQL engine from canonical application settings."""
-
-    return create_engine(str(settings.database_url), pool_pre_ping=True, hide_parameters=True)
-
-
-def create_session_factory(engine: Engine) -> sessionmaker[Session]:
-    """Create sessions bound to the supplied engine."""
-
-    return sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-
-
-@contextmanager
-def session_scope(session_factory: sessionmaker[Session]) -> Iterator[Session]:
-    """Commit a successful unit of work and roll back any failure."""
-
-    session = session_factory()
-    try:
-        yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
-```
-
----
-
-# `backend/app/main.py`
-
-```python
-"""FastAPI application factory and operational endpoints."""
-
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
-from typing import Literal
-
-from fastapi import FastAPI
-from pydantic import BaseModel
-from sqlalchemy import Engine, text
-from sqlalchemy.exc import SQLAlchemyError
-
-from app import __version__
-from app.api.v1.router import router as api_v1_router
-from app.core.config import Settings
-from app.core.errors import ServiceUnavailableError, install_error_handlers
-from app.core.logging import configure_logging
-from app.core.middleware import install_request_id_middleware
-from app.db.session import create_engine_from_settings
-
-
-class OperationalStatus(BaseModel):
-    """Liveness or readiness status returned to operators."""
-
-    status: Literal["healthy", "ready"]
-
-
-def create_app(
-    settings: Settings | None = None,
-    *,
-    engine: Engine | None = None,
-    configure_logs: bool = True,
-) -> FastAPI:
-    """Build the Outpost API with its verified core infrastructure."""
-
-    application_settings = settings or Settings()
-    if configure_logs:
-        configure_logging(application_settings)
-
-    owns_engine = engine is None
-    database_engine = engine or create_engine_from_settings(application_settings)
-
-    @asynccontextmanager
-    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-        yield
-        if owns_engine:
-            database_engine.dispose()
-
-    app = FastAPI(title="Outpost API", version=__version__, lifespan=lifespan)
-    app.state.database_engine = database_engine
-    app.state.settings = application_settings
-    install_error_handlers(app)
-    install_request_id_middleware(app)
-    app.include_router(api_v1_router)
-
-    @app.get("/health", response_model=OperationalStatus, include_in_schema=False)
-    def health() -> OperationalStatus:
-        return OperationalStatus(status="healthy")
-
-    @app.get("/ready", response_model=OperationalStatus, include_in_schema=False)
-    def readiness() -> OperationalStatus:
-        try:
-            with database_engine.connect() as connection:
-                connection.execute(text("SELECT 1")).scalar_one()
-        except SQLAlchemyError as error:
-            raise ServiceUnavailableError("Database is unavailable") from error
-        return OperationalStatus(status="ready")
-
-    return app
-```
-
----
-
-# Root `.env.example`
-
-```dotenv
-POSTGRES_DB=outpost
-POSTGRES_USER=outpost
-POSTGRES_PASSWORD=outpost-local-dev-only
-POSTGRES_PORT=5433
-VALKEY_PORT=6379
-MINIO_ROOT_USER=outpost
-MINIO_ROOT_PASSWORD=outpost-local-dev-only
-MINIO_API_PORT=9000
-MINIO_CONSOLE_PORT=9001
-MAILPIT_SMTP_PORT=1025
-MAILPIT_UI_PORT=8025
-```
-
----
-
-# `docker-compose.yml`
-
-```yaml
-name: outpost
-
-services:
-  postgres:
-    image: postgres:17.11-alpine3.24
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-outpost}
-      POSTGRES_USER: ${POSTGRES_USER:-outpost}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
-    ports:
-      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-    networks:
-      - outpost
-
-  valkey:
-    image: valkey/valkey:9.1.2-alpine3.24
-    restart: unless-stopped
-    command: ["valkey-server", "--appendonly", "yes", "--appendfsync", "everysec"]
-    ports:
-      - "127.0.0.1:${VALKEY_PORT:-6379}:6379"
-    volumes:
-      - valkey_data:/data
-    healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
-    networks:
-      - outpost
-
-  minio:
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
-    restart: unless-stopped
-    command: ["server", "/data", "--console-address", ":9001"]
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-outpost}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set in .env}
-    ports:
-      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
-      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
-    volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:9000/minio/health/live"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-    networks:
-      - outpost
-
-  mailpit:
-    image: axllent/mailpit:v1.31.1
-    restart: unless-stopped
-    environment:
-      MP_DATABASE: /data/mailpit.db
-      MP_DISABLE_VERSION_CHECK: "true"
-      MP_SMTP_DISABLE_RDNS: "true"
-      MP_ALLOWED_HOSTS: localhost:${MAILPIT_UI_PORT:-8025},127.0.0.1:${MAILPIT_UI_PORT:-8025},mailpit:8025
-    ports:
-      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
-      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
-    volumes:
-      - mailpit_data:/data
-    healthcheck:
-      test: ["CMD", "/mailpit", "readyz"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
-    networks:
-      - outpost
-
-volumes:
-  postgres_data:
-  valkey_data:
-  minio_data:
-  mailpit_data:
-
-networks:
-  outpost:
-    driver: bridge
-```
-
----
-
-# Active JavaScript frontend configuration
-
-The current frontend package, scripts, Vite proxy, ESLint rules, and JavaScript/JSX tests are defined by the files in `frontend/`. Use these files directly:
-
-- `frontend/package.json`
-- `frontend/vite.config.js`
-- `frontend/eslint.config.js`
-- `frontend/src/**/*.js` and `frontend/src/**/*.jsx`
-
-The old TypeScript package and tsconfig snapshots are retired. Keep the existing `/api/v1` contract while moving the API proxy after backend parity checks.
-
----
-
-# `.gitignore`
-
-```gitignore
-# Environment and secrets
-.env
-.env.*
-!.env.example
-
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.venv/
-venv/
-
-# Node
-node_modules/
-.npm/
-dist/
-.vite/
-*.tsbuildinfo
-
-# Coverage
-.coverage
-htmlcov/
-coverage/
-
-# IDE
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Local database files
-*.db
-*.sqlite
-*.sqlite3
-
-# Private keys / certificates
-*.pem
-*.key
-```
-
----
-
-# Stable Directory Tree
-
-The current layout during migration is summarized below. Inspect the repository for the complete file list.
+## Current directory layout
 
 ```text
 Outpost-New/
-├── backend-js/          # Express, Prisma, JavaScript tests
-├── backend/             # FastAPI and Alembic fallback
+├── backend-js/          # Express API, Prisma, JavaScript tests
 ├── frontend/            # React JavaScript/JSX and Vite
-├── docs/
-├── docker-compose.yml   # Infrastructure services only
+├── docs/                # Product specification, architecture, and review guide
+├── docker-compose.yml   # Local infrastructure
 └── README.md
 ```
 

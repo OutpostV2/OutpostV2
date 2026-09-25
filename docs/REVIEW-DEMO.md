@@ -13,9 +13,11 @@ docker compose up --detach postgres valkey
 In one terminal:
 
 ```powershell
-cd backend
-.\.venv\Scripts\python.exe -m alembic upgrade head
-.\.venv\Scripts\python.exe -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8000
+cd backend-js
+npm ci
+npm run db:generate
+npx prisma migrate status
+npm run dev
 ```
 
 In another terminal:
@@ -42,4 +44,4 @@ The organization, roadmap version, cohort, enrollment, and topic progress are st
 
 The original `/review` walkthrough and pages labeled **Sample** or **Illustrative scenario** use an example roadmap and peers. Those records are separate from the live learning workflow. Imports, deadlines, editable roadmap drafts, broader analytics, and Google frontend sign-in remain later work. Public Coordinator self-registration is suitable for this local review; real college deployment needs staff invitations or approval.
 
-The backend integration test `tests/integration/test_live_learning_workflow.py` exercises create → publish → cohort → join → progress → report and checks cross-organization and role boundaries.
+The Node API integration tests in `backend-js/tests/learning/routes.test.js` exercise create → publish → cohort → join → progress → report and check cross-organization and role boundaries.

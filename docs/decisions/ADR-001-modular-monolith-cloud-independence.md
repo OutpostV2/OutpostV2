@@ -16,7 +16,7 @@ Build one cohesive backend with explicit modules for users, authentication, orga
 
 HTTP handlers invoke application operations through the `/api/v1` API. Slow work moves through `JobQueue` to worker processes that reuse application and domain logic. Separate API and worker processes remain part of the modular monolith, not independently owned microservices.
 
-Use the target layout incrementally: business behavior in `backend/app/modules/`, integrations in `backend/app/integrations/`, worker entry points in `backend/app/workers/`, and runtime configuration in `backend/app/core/`. Do not scaffold these directories in this task.
+The current JavaScript implementation places business behavior in `backend-js/src/modules/`, shared infrastructure in `backend-js/src/core/` and `backend-js/src/db/`, and runtime configuration in `backend-js/src/core/config.js`. Add provider adapters and workers within this modular boundary when their features are implemented.
 
 ### Provider boundary and dependency direction
 
@@ -40,7 +40,7 @@ Google OAuth/OIDC remains the approved identity integration. Provider protocol h
 
 ### State and execution
 
-PostgreSQL is canonical in development, integration testing, staging, and production. Portability concerns its hosting, not replacement with SQLite or arbitrary database engines. Alembic exclusively owns schema evolution after initialization. Do not introduce database-per-tenant storage.
+PostgreSQL is canonical in development, integration testing, staging, and production. Portability concerns its hosting, not replacement with SQLite or arbitrary database engines. Prisma Migrate owns schema evolution after the verified baseline of the existing PostgreSQL database. Do not introduce database-per-tenant storage.
 
 Persistent data belongs in PostgreSQL and object storage. API and worker containers must not rely on container-local durable files. Redis-compatible infrastructure may hold ephemeral/distributed state. PostgreSQL remains authoritative; cached data must be reconstructible and have an invalidation strategy.
 

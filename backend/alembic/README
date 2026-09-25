@@ -1,2 +1,0 @@
-Outpost uses this single PostgreSQL migration environment. Database URLs are loaded through
-`app.core.config.Settings`; Alembic exclusively owns schema evolution.

@@ -1,19 +1,12 @@
-import { readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { loadEnvFile } from "node:process";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "prisma/config";
 
-function legacyDatabaseUrl() {
-  try {
-    const contents = readFileSync(new URL("../backend/.env", import.meta.url), "utf8");
-    const line = contents.split(/\r?\n/).find((item) => item.startsWith("OUTPOST_DATABASE_URL="));
-    return line?.slice("OUTPOST_DATABASE_URL=".length);
-  } catch (error) {
-    if (error.code === "ENOENT") return undefined;
-    throw error;
-  }
-}
+const envFile = fileURLToPath(new URL(".env", import.meta.url));
+if (existsSync(envFile)) loadEnvFile(envFile);
 
-const databaseUrl =
-  process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL || legacyDatabaseUrl() || "";
+const databaseUrl = process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL || "";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

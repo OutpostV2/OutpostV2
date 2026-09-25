@@ -2,10 +2,10 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 
-const fixture = JSON.parse(readFileSync(new URL('./contracts/fastapi-v1.contract.json', import.meta.url), 'utf8'));
+const fixture = JSON.parse(readFileSync(new URL('./contracts/api-v1.contract.json', import.meta.url), 'utf8'));
 const canonical = (method, path) => `${method.toUpperCase()} ${path.replace(/:[^/]+|\{[^}]+\}/g, '{}')}`;
 
-describe('FastAPI route surface parity', () => {
+describe('Frozen API route surface', () => {
   it('registers every existing /api/v1 method and path', () => {
     const app = createApp({ prisma: {}, settings: {} });
     const actual = app.router.stack

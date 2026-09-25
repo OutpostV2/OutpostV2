@@ -7,8 +7,7 @@
   },
   "scripts": {
     "test": "vitest run",
-    "contract:compare:invalid": "node scripts/compare-invalid-contract.js",
-    "test:db": "vitest run tests/db",
+    "test:db": "node --env-file-if-exists=.env ./node_modules/vitest/vitest.mjs run tests/db",
     "db:pull": "prisma db pull",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
