@@ -2628,13 +2628,13 @@ Outpost-New/
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-JavaScript cutover and repository cleanup complete. Phase 11 — Account Linking is the next product phase; it has not started in this task.
+Local development startup is unified at the repository root. Phase 11 — Account Linking remains the next product phase; it has not started in this task.
 
 CURRENT TASK:
 Next selected task: implement verified phone identity linking in the Node API when the user requests product work.
 
 TASK GOAL:
-Allow a signed-in user to prove control of a phone number with a LINK_PHONE OTP and attach that unique verified phone identity to the same account. Preserve login behavior and reject collisions without exposing account details. Do not begin this work as part of cleanup.
+Allow a signed-in user to prove control of a phone number with a LINK_PHONE OTP and attach that unique verified phone identity to the same account. Preserve login behavior and reject collisions without exposing account details. Do not begin this work as part of the startup-command task.
 
 Repository:
 Outpost
@@ -2646,23 +2646,22 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-f24410c55028ed2629e905ba14f5c01ff0c1898a
+bee3bc0b5ea7f15a91a8bcea33838e53a569cf9c
 
 CHECKPOINT FILE STATE:
-The project cleanup is committed in the hash above. This separate checkpoint updates only Layer 4.
+The root startup command is committed in the hash above. This separate checkpoint updates only Layer 4.
 
 Working tree at last verification:
 Clean immediately after the project commit and before this checkpoint update. Verify again after the checkpoint commit.
 
 Last verified baseline:
-- Retired Python backend, obsolete migration plans and notes, old caches, and generated frontend output removed. Current source is Node/Express, Prisma, React JavaScript/JSX, and Docker Compose infrastructure.
-- Node API tests: 32 passed, 1 skipped. Separate database test: 1 passed.
-- Frontend formatting and lint passed; 21 tests passed; production build passed. Generated `frontend/dist/` was removed after verification.
-- Prisma schema validated and migration status reported the existing PostgreSQL database up to date after Python removal.
-- Docker Compose configuration parsed successfully. Local `.env` files, PostgreSQL volumes, and `local-backups/` were preserved.
+- Root `npm run dev` started all four healthy Compose services, waited for the Node API `/ready` response, and then started Vite on port 5173.
+- API `/health` and `/ready` returned 200; the frontend returned 200; `/api/v1/me` through the Vite proxy returned the expected unauthenticated 401.
+- Ctrl+C closed both app listeners on ports 8000 and 5173. `npm run services:down` stopped Compose without deleting volumes.
+- `node --check scripts/dev.js` and `git diff --check` passed. No application source or schema changed in this task.
 
 COMPLETED WITHIN CURRENT PHASE:
-- JavaScript cutover cleanup is complete. No account-linking implementation was started.
+- One-command root startup and a separate infrastructure stop command are implemented and documented. No account-linking implementation was started.
 
 FILES RELEVANT TO CURRENT TASK:
 backend-js/src/modules/auth/phone.js
@@ -2676,16 +2675,16 @@ FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
 Only this file's Layer 4 checkpoint after the project commit.
 
 ENVIRONMENT:
-Windows / PowerShell. Node API and frontend dependencies are installed locally; PostgreSQL is reachable at 127.0.0.1:5433. No Git remote was configured at the last check.
+Windows / PowerShell. Node API and frontend dependencies are installed locally. Docker Desktop was started for verification; the Compose stack was stopped afterward. Git `origin` is configured.
 
 CURRENT REQUEST:
-Clean the repository after the JavaScript migration and keep relevant current-stack files.
+Start Docker services, the Node API, and the React frontend with one command from the repository root.
 
 LAST COMMAND:
-Verified the project commit with `git rev-parse HEAD` and confirmed a clean working tree before this checkpoint edit.
+Verified project commit `bee3bc0b5ea7f15a91a8bcea33838e53a569cf9c` with `git rev-parse HEAD` and confirmed a clean working tree before this checkpoint edit.
 
 CURRENT OUTPUT / ERROR:
-Project commit `f24410c55028ed2629e905ba14f5c01ff0c1898a` exists. No application test failure remains.
+Project commit `bee3bc0b5ea7f15a91a8bcea33838e53a569cf9c` exists. The root startup and stop commands passed the live checks above.
 
 OPTIONAL CURRENT FILE/SNIPPET:
 The Prisma OTP purpose enum already contains `link_phone`; inspect current Node auth routes and tests before implementing linking.
