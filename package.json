@@ -1,0 +1,12 @@
+{
+  "name": "outpost",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "services:down": "docker compose down"
+  }
+}

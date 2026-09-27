@@ -7,6 +7,18 @@ Outpost is a portable modular monolith for guided learning and career readiness.
 - Node.js 24.15+ LTS or Node.js 26+ with npm
 - Docker for the local PostgreSQL, Valkey, MinIO, and Mailpit services
 
+## Start locally
+
+With Docker Desktop running and dependencies installed in `backend-js/` and `frontend/`, start all local services and both development servers from the repository root:
+
+```powershell
+npm run dev
+```
+
+Open `http://localhost:5173`. The API runs at `http://127.0.0.1:8000`. Press Ctrl+C to stop the API and frontend. Docker services keep their data and continue running; stop them later with `npm run services:down`.
+
+For a new checkout, create the ignored root and `backend-js/.env` files from their examples, run `npm ci` in each application folder, and run `npm run db:generate` in `backend-js/` once.
+
 ## Node backend
 
 The Express API in `backend-js/` is the active runtime. Its 30 API routes and Prisma baseline have been verified against the existing PostgreSQL schema. The pre-baseline database backup is kept in the Git-ignored `local-backups/` directory. Set `OUTPOST_DATABASE_URL` in the ignored `backend-js/.env` file. Both the API and Prisma CLI accept the legacy Psycopg URL form. From `backend-js/`:

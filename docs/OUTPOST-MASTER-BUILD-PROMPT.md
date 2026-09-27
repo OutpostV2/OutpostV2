@@ -2596,10 +2596,11 @@ The current source of truth is the repository, not copied configuration snippets
 
 Project root: `D:\Shared Workspace\Projects\Outpost-New`
 Main development branch: `main`
-Git remote: not configured at the last check; verify with `git remote -v`.
+Git remote: `origin` points to `https://github.com/PriyanshuK1810/OutpostV2.git`; verify with `git remote -v`.
 
 ## Active source files
 
+- Root `package.json` and `scripts/dev.js`: one-command local startup for Compose, the Node API, and the React frontend.
 - `backend-js/package.json`, `backend-js/src/`, and `backend-js/tests/`: Node.js/Express API and tests.
 - `backend-js/prisma/schema.prisma` and `backend-js/prisma/migrations/`: Prisma schema and migration history. The `0_baseline` migration preserves the existing PostgreSQL schema.
 - `backend-js/prisma.config.js` and `backend-js/.env.example`: database configuration and example API settings.
@@ -2617,6 +2618,8 @@ Outpost-New/
 ├── frontend/            # React JavaScript/JSX and Vite
 ├── docs/                # Product specification, architecture, and review guide
 ├── docker-compose.yml   # Local infrastructure
+├── package.json         # Root development commands
+├── scripts/             # Root startup orchestration
 └── README.md
 ```
 
