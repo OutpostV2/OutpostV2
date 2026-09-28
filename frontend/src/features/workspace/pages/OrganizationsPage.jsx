@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { useWorkspace } from '../hooks/useWorkspace'
-import { listOrganizations } from '../learningApi'
+import { acceptOrganizationInvitation, listOrganizations } from '../learningApi'
 import { EmptyState, PageHeading } from '../components/WorkspaceUI'
 export default function OrganizationsPage() {
   const { user } = useWorkspace()
   const [organizations, setOrganizations] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
+  const [inviteBusy, setInviteBusy] = useState(false)
+  const [notice, setNotice] = useState('')
   useEffect(() => {
     let active = true
     void listOrganizations()
@@ -33,6 +36,25 @@ export default function OrganizationsPage() {
     user.account_type === 'coordinator'
       ? '/app/coordinator/learning'
       : '/app/student/learning'
+  function acceptInvitation(event) {
+    event.preventDefault()
+    setInviteBusy(true)
+    setError('')
+    void acceptOrganizationInvitation(inviteCode.trim())
+      .then(async (accepted) => {
+        setOrganizations(await listOrganizations())
+        setInviteCode('')
+        setNotice(`Joined ${accepted.organization_name} as ${accepted.role}.`)
+      })
+      .catch((cause) => {
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : 'Invitation could not be accepted.',
+        )
+      })
+      .finally(() => setInviteBusy(false))
+  }
   return (
     <>
       <PageHeading
@@ -53,6 +75,33 @@ export default function OrganizationsPage() {
         <p className="form-error" role="alert">
           {error}
         </p>
+      )}
+      {notice && (
+        <p className="workspace-notice" role="status">
+          {notice}
+        </p>
+      )}
+      {user.account_type === 'coordinator' && (
+        <section className="workspace-card">
+          <h2>Join an organization</h2>
+          <p>
+            Enter the staff invitation code sent by its owner. Your account
+            email must be verified and match the invitation.
+          </p>
+          <form className="learning-inline-form" onSubmit={acceptInvitation}>
+            <label className="form-field">
+              Staff invitation code
+              <input
+                required
+                value={inviteCode}
+                onChange={(event) => setInviteCode(event.target.value)}
+              />
+            </label>
+            <button className="workspace-button" disabled={inviteBusy}>
+              Accept invitation
+            </button>
+          </form>
+        </section>
       )}
       {!loading && organizations.length === 0 && (
         <EmptyState
@@ -79,13 +128,33 @@ export default function OrganizationsPage() {
             <div className="workspace-entity-icon">O</div>
             <div className="workspace-entity-body">
               <p className="workspace-card-label">
-                {organization.role === 'owner' ? 'Coordinator' : 'Student'}{' '}
+                {organization.role === 'owner'
+                  ? 'Owner'
+                  : organization.role === 'student'
+                    ? 'Student'
+                    : 'Staff'}{' '}
                 membership
               </p>
               <h2>{organization.name}</h2>
-              <Link className="workspace-text-link" to={destination}>
-                Open learning workspace →
-              </Link>
+              {organization.role === 'owner' && (
+                <Link
+                  className="workspace-text-link"
+                  to={`/app/organizations/${organization.id}`}
+                >
+                  Manage organization →
+                </Link>
+              )}
+              {organization.role === 'owner' ||
+              organization.role === 'student' ? (
+                <Link className="workspace-text-link" to={destination}>
+                  Open learning workspace →
+                </Link>
+              ) : (
+                <p>
+                  Staff membership active. Workspace permissions are being
+                  prepared.
+                </p>
+              )}
             </div>
           </article>
         ))}

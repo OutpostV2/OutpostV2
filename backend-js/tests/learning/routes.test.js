@@ -57,10 +57,13 @@ function workflowFixture() {
   let sequence = 1;
   const makeId = () => '00000000-0000-4000-8000-' + String(sequence++).padStart(12, '0');
   const tables = Object.fromEntries(
-    ['organization', 'organizationMembership', 'roadmap', 'roadmapVersion', 'phase', 'week', 'topic', 'cohort', 'cohortEnrollment', 'topicProgress', 'user']
+    ['organization', 'organizationMembership', 'organizationInvitation', 'roadmap', 'roadmapVersion', 'phase', 'week', 'topic', 'cohort', 'cohortEnrollment', 'topicProgress', 'user']
       .map((name) => [name, []]),
   );
-  tables.user.push({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', displayName: 'Learner' });
+  tables.user.push(
+    { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', displayName: 'Coordinator', primaryEmail: 'owner@example.edu', emailVerifiedAt: new Date(), accountType: 'coordinator', status: 'active' },
+    { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', displayName: 'Learner', primaryEmail: 'student@example.edu', accountType: 'student', status: 'active' },
+  );
   const matches = (row, where = {}) => Object.entries(where).every(([key, value]) =>
     value && typeof value === 'object' && 'in' in value
       ? value.in.includes(row[key])
@@ -81,6 +84,12 @@ function workflowFixture() {
     findMany: async ({ where = {} } = {}) => tables[name].filter((row) => matches(row, where)),
     findFirst: async ({ where }) => tables[name].find((row) => matches(row, where)) ?? null,
     findUnique: async ({ where }) => tables[name].find((row) => matches(row, where)) ?? null,
+    update: async ({ where, data }) => {
+      const row = tables[name].find((entry) => matches(entry, where));
+      if (!row) throw new Error('Missing row');
+      Object.assign(row, data);
+      return row;
+    },
     count: async ({ where }) => tables[name].filter((row) => matches(row, where)).length,
     upsert: async ({ where, create, update }) => {
       const key = where.userId_topicId;
@@ -94,6 +103,7 @@ function workflowFixture() {
   });
   const prisma = Object.fromEntries(Object.keys(tables).map((name) => [name, model(name)]));
   prisma.$transaction = async (fn) => fn(prisma);
+  prisma.$queryRaw = async () => [{ id: 'locked' }];
   const app = express();
   app.use(express.json());
   const requireUser = (req, _res, next) => {
@@ -148,6 +158,153 @@ describe('live learning workflow', () => {
     expect((await request(app).get('/api/v1/cohorts/' + cohort.body.id + '/progress').set(student)).status).toBe(403);
     expect((await request(app).put('/api/v1/progress/topics/' + topicId).set(student).send({ completed: false })).status).toBe(204);
     expect((await request(app).get('/api/v1/progress/me').set(student)).body[0].completed).toBe(0);
+  });
+
+  it('revokes learning access when an organization membership becomes inactive', async () => {
+    const { app, tables } = workflowFixture();
+    const owner = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
+    const learner = { 'X-Test-Role': 'student', 'X-Test-User': 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' };
+    const organization = await request(app).post('/api/v1/organizations').set(owner).send({ name: 'Campus' });
+    const roadmap = await request(app).post(`/api/v1/organizations/${organization.body.id}/roadmaps`).set(owner)
+      .send({ name: 'Plan', topics: [{ title: 'Topic' }] });
+    const cohort = await request(app).post(`/api/v1/organizations/${organization.body.id}/cohorts`).set(owner)
+      .send({ name: 'Cohort', roadmap_version_id: roadmap.body.version_id });
+    await request(app).post('/api/v1/cohorts/join').set(learner).send({ invite_code: cohort.body.invite_code });
+    const member = tables.organizationMembership.find((row) => row.userId === learner['X-Test-User']);
+    expect((await request(app).delete(`/api/v1/organizations/${organization.body.id}/members/${member.id}`)
+      .set(owner)).status).toBe(204);
+    expect((await request(app).get('/api/v1/progress/me').set(learner)).body).toEqual([]);
+    expect((await request(app).put(`/api/v1/progress/topics/${roadmap.body.topics[0].id}`).set(learner)
+      .send({ completed: true })).status).toBe(404);
+    expect((await request(app).post('/api/v1/cohorts/join').set(learner)
+      .send({ invite_code: cohort.body.invite_code })).status).toBe(403);
+    expect((await request(app).get(`/api/v1/cohorts/${cohort.body.id}/progress`).set(owner)).body.students).toEqual([]);
+  });
+});
+
+describe('organization management reads', () => {
+  it('shows only an active owner the organization and safe member directory', async () => {
+    const { app, tables } = workflowFixture();
+    const owner = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
+    const student = { 'X-Test-Role': 'student', 'X-Test-User': 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' };
+    const outsider = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' };
+    const created = await request(app).post('/api/v1/organizations').set(owner).send({ name: 'Campus' });
+    const path = '/api/v1/organizations/' + created.body.id;
+    const detail = await request(app).get(path).set(owner);
+    expect(detail.status).toBe(200);
+    expect(detail.body).toMatchObject({ id: created.body.id, name: 'Campus', role: 'owner' });
+    const members = await request(app).get(path + '/members').set(owner);
+    expect(members.status).toBe(200);
+    expect(members.body).toMatchObject([{ user_id: owner['X-Test-User'], display_name: 'Coordinator', role: 'owner', status: 'active' }]);
+    expect(members.body[0]).not.toHaveProperty('password_hash');
+    expect((await request(app).get(path + '/members').set(student)).status).toBe(403);
+    expect((await request(app).get(path).set(outsider)).status).toBe(403);
+    tables.organizationMembership[0].status = 'inactive';
+    expect((await request(app).get(path).set(owner)).status).toBe(403);
+    expect((await request(app).get(path + '/members').set(owner)).status).toBe(403);
+  });
+
+  it('lets an owner manage non-owner membership without demoting themselves or crossing tenants', async () => {
+    const { app, tables } = workflowFixture();
+    const owner = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
+    const other = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' };
+    const organization = await request(app).post('/api/v1/organizations').set(owner).send({ name: 'Campus' });
+    const otherOrganization = await request(app).post('/api/v1/organizations').set(other).send({ name: 'Other Campus' });
+    const staffId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    tables.user.push({ id: staffId, displayName: 'Staff', primaryEmail: 'staff@example.edu', accountType: 'coordinator', status: 'active' });
+    const staff = { id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', organizationId: organization.body.id,
+      userId: staffId, role: 'coordinator', status: 'active', joinedAt: new Date() };
+    tables.organizationMembership.push(staff);
+    const path = `/api/v1/organizations/${organization.body.id}/members/${staff.id}`;
+    const changed = await request(app).patch(path).set(owner).send({ role: 'mentor', status: 'inactive' });
+    expect(changed.status).toBe(200);
+    expect(changed.body).toMatchObject({ id: staff.id, role: 'mentor', status: 'inactive' });
+    expect(tables.organizationMembership.find((row) => row.id === staff.id)).toMatchObject({ role: 'mentor', status: 'inactive' });
+    const ownerMembership = tables.organizationMembership.find((row) => row.userId === owner['X-Test-User']);
+    expect((await request(app).patch(`/api/v1/organizations/${organization.body.id}/members/${ownerMembership.id}`)
+      .set(owner).send({ status: 'inactive' })).status).toBe(403);
+    expect((await request(app).patch(path).set(other).send({ status: 'active' })).status).toBe(403);
+    expect((await request(app).patch(`/api/v1/organizations/${otherOrganization.body.id}/members/${staff.id}`)
+      .set(other).send({ status: 'active' })).status).toBe(404);
+  });
+
+  it('transfers ownership atomically to active staff and rejects a missing target', async () => {
+    const { app, tables } = workflowFixture();
+    const owner = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
+    const nextOwner = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' };
+    const organization = await request(app).post('/api/v1/organizations').set(owner).send({ name: 'Campus' });
+    const targetId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    tables.user.push({ id: nextOwner['X-Test-User'], displayName: 'Next owner', primaryEmail: 'next@example.edu', accountType: 'coordinator', status: 'active' });
+    tables.organizationMembership.push({ id: targetId, organizationId: organization.body.id,
+      userId: nextOwner['X-Test-User'], role: 'coordinator', status: 'active', joinedAt: new Date() });
+    const path = `/api/v1/organizations/${organization.body.id}/ownership-transfer`;
+    expect((await request(app).post(path).set(owner).send({ membership_id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' })).status).toBe(404);
+    const transferred = await request(app).post(path).set(owner).send({ membership_id: targetId });
+    expect(transferred.status).toBe(200);
+    expect(tables.organizationMembership.find((row) => row.id === targetId).role).toBe('owner');
+    expect(tables.organizationMembership.find((row) => row.userId === owner['X-Test-User']).role).toBe('coordinator');
+    expect((await request(app).get(`/api/v1/organizations/${organization.body.id}/members`).set(owner)).status).toBe(403);
+    expect((await request(app).get(`/api/v1/organizations/${organization.body.id}/members`).set(nextOwner)).status).toBe(200);
+  });
+});
+
+describe('organization staff invitations', () => {
+  it('issues a one-time invitation and permits only its verified-email coordinator to accept', async () => {
+    const { app, tables } = workflowFixture();
+    const owner = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
+    const invited = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' };
+    const organization = await request(app).post('/api/v1/organizations').set(owner).send({ name: 'Campus' });
+    const path = `/api/v1/organizations/${organization.body.id}/invitations`;
+    tables.user.push({ id: invited['X-Test-User'], displayName: 'Invited', primaryEmail: 'invited@example.edu',
+      emailVerifiedAt: new Date(), accountType: 'coordinator', status: 'active' });
+    const issued = await request(app).post(path).set(owner).send({ email: ' Invited@Example.edu ', role: 'mentor' });
+    expect(issued.status).toBe(201);
+    expect(issued.body.code.length).toBeGreaterThanOrEqual(40);
+    expect(tables.organizationInvitation[0].tokenHash).not.toBe(issued.body.code);
+    const listed = await request(app).get(path).set(owner);
+    expect(listed.status).toBe(200);
+    expect(listed.body[0]).toMatchObject({ email: 'invited@example.edu', role: 'mentor', status: 'pending' });
+    expect(listed.body[0]).not.toHaveProperty('code');
+    expect((await request(app).get(path).set(invited)).status).toBe(403);
+    expect((await request(app).post('/api/v1/organization-invitations/accept').set(owner)
+      .send({ code: issued.body.code })).status).toBe(403);
+    tables.user.find((user) => user.id === invited['X-Test-User']).emailVerifiedAt = null;
+    expect((await request(app).post('/api/v1/organization-invitations/accept').set(invited)
+      .send({ code: issued.body.code })).status).toBe(403);
+    tables.user.find((user) => user.id === invited['X-Test-User']).emailVerifiedAt = new Date();
+    const accepted = await request(app).post('/api/v1/organization-invitations/accept').set(invited)
+      .send({ code: issued.body.code });
+    expect(accepted.status).toBe(200);
+    expect(accepted.body).toMatchObject({ organization_id: organization.body.id, role: 'mentor' });
+    expect((await request(app).post('/api/v1/organization-invitations/accept').set(invited)
+      .send({ code: issued.body.code })).status).toBe(404);
+    expect(tables.organizationMembership.filter((row) => row.userId === invited['X-Test-User'])).toHaveLength(1);
+  });
+
+  it('rotates and revokes codes, blocks expired codes and existing memberships', async () => {
+    const { app, tables } = workflowFixture();
+    const owner = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
+    const invited = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' };
+    tables.user.push({ id: invited['X-Test-User'], displayName: 'Invited', primaryEmail: 'invited@example.edu',
+      emailVerifiedAt: new Date(), accountType: 'coordinator', status: 'active' });
+    const organization = await request(app).post('/api/v1/organizations').set(owner).send({ name: 'Campus' });
+    const path = `/api/v1/organizations/${organization.body.id}/invitations`;
+    const first = await request(app).post(path).set(owner).send({ email: 'invited@example.edu', role: 'admin' });
+    const rotated = await request(app).post(path).set(owner).send({ email: 'invited@example.edu', role: 'mentor' });
+    expect(rotated.status).toBe(201);
+    expect((await request(app).post('/api/v1/organization-invitations/accept').set(invited)
+      .send({ code: first.body.code })).status).toBe(404);
+    const invitation = tables.organizationInvitation[0];
+    invitation.expiresAt = new Date('2020-01-01');
+    expect((await request(app).post('/api/v1/organization-invitations/accept').set(invited)
+      .send({ code: rotated.body.code })).status).toBe(404);
+    invitation.expiresAt = new Date(Date.now() + 86_400_000);
+    expect((await request(app).delete(`${path}/${invitation.id}`).set(owner)).status).toBe(204);
+    expect((await request(app).post('/api/v1/organization-invitations/accept').set(invited)
+      .send({ code: rotated.body.code })).status).toBe(404);
+    tables.organizationMembership.push({ id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      organizationId: organization.body.id, userId: invited['X-Test-User'], role: 'mentor', status: 'inactive' });
+    expect((await request(app).post(path).set(owner).send({ email: 'invited@example.edu', role: 'mentor' })).status).toBe(409);
   });
 });
 

@@ -7,6 +7,7 @@ import AccountPage from '../features/auth/AccountPage'
 import ReviewPage from '../features/review/ReviewPage'
 import WorkspaceShell from '../features/workspace/components/WorkspaceShell'
 import OrganizationsPage from '../features/workspace/pages/OrganizationsPage'
+import OrganizationDetailPage from '../features/workspace/pages/OrganizationDetailPage'
 import StudentDashboardPage from '../features/workspace/pages/StudentDashboardPage'
 import StudentRoadmapPage from '../features/workspace/pages/StudentRoadmapPage'
 import StudentActivityPage from '../features/workspace/pages/StudentActivityPage'
@@ -82,6 +83,10 @@ export default function App() {
         <Route path="/app" element={<WorkspaceShell />}>
           <Route index element={<Navigate to="student" replace />} />
           <Route path="organizations" element={<OrganizationsPage />} />
+          <Route
+            path="organizations/:organizationId"
+            element={<OrganizationDetailPage />}
+          />
           <Route path="account" element={<AccountPage />} />
           <Route path="student" element={<StudentDashboardPage />} />
           <Route path="student/roadmap" element={<StudentRoadmapPage />} />

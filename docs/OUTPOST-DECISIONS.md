@@ -12,3 +12,4 @@ Routine task history belongs in Git and Layer 4, not here.
 - [ADR-003: Outpost-owned authentication model](decisions/ADR-003-authentication-model.md) — Accepted. Defines canonical identity, authentication methods, explicit linking, rotating sessions, and Phase 6 signed access credentials with live revocation/account-state checks.
 - [ADR-004: Centralized tenant-aware authorization](decisions/ADR-004-tenant-aware-authorization.md) — Accepted. Defines reusable policies, resource-scope checks, and backend enforcement.
 - [ADR-005: Roadmap versioning and publication](decisions/ADR-005-roadmap-versioning.md) — Accepted. Defines immutable curriculum snapshots, cohort pinning, archival, and progress identity.
+- [ADR-006: Organization membership management and staff invitations](decisions/ADR-006-organization-membership-management.md) — Accepted. Defines owner controls, verified-email invitations, deactivation, and atomic ownership transfer.

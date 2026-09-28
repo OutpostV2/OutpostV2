@@ -1,0 +1,181 @@
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
+import { MemoryRouter, Route, Routes } from 'react-router'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import * as learningApi from '../learningApi'
+import { useWorkspace } from '../hooks/useWorkspace'
+import OrganizationsPage from './OrganizationsPage'
+import OrganizationDetailPage from './OrganizationDetailPage'
+
+vi.mock('../hooks/useWorkspace', () => ({ useWorkspace: vi.fn() }))
+vi.mock('../learningApi', () => ({
+  listOrganizations: vi.fn(),
+  getOrganization: vi.fn(),
+  listOrganizationMembers: vi.fn(),
+  listOrganizationInvitations: vi.fn(),
+  createOrganizationInvitation: vi.fn(),
+  revokeOrganizationInvitation: vi.fn(),
+  acceptOrganizationInvitation: vi.fn(),
+  updateOrganizationMember: vi.fn(),
+  transferOrganizationOwnership: vi.fn(),
+}))
+
+afterEach(cleanup)
+beforeEach(() => {
+  vi.clearAllMocks()
+  vi.mocked(useWorkspace).mockReturnValue({
+    user: { id: 'owner-1', account_type: 'coordinator' },
+  })
+  vi.mocked(learningApi.listOrganizations).mockResolvedValue([
+    { id: 'org-1', name: 'Campus', role: 'owner' },
+  ])
+  vi.mocked(learningApi.getOrganization).mockResolvedValue({
+    id: 'org-1',
+    name: 'Campus',
+    role: 'owner',
+  })
+  vi.mocked(learningApi.listOrganizationMembers).mockResolvedValue([
+    {
+      id: 'membership-1',
+      user_id: 'owner-1',
+      display_name: 'Mira',
+      email: 'mira@example.edu',
+      role: 'owner',
+      status: 'active',
+    },
+  ])
+  vi.mocked(learningApi.listOrganizationInvitations).mockResolvedValue([])
+})
+
+it('lets an owner issue an invitation and displays its one-time code', async () => {
+  vi.mocked(learningApi.createOrganizationInvitation).mockResolvedValue({
+    code: 'secret-code',
+  })
+  render(
+    <MemoryRouter initialEntries={['/app/organizations/org-1']}>
+      <Routes>
+        <Route
+          path="/app/organizations/:organizationId"
+          element={<OrganizationDetailPage />}
+        />
+      </Routes>
+    </MemoryRouter>,
+  )
+  fireEvent.change(await screen.findByLabelText('Staff email'), {
+    target: { value: 'new@example.edu' },
+  })
+  fireEvent.change(screen.getByLabelText('Invitation role'), {
+    target: { value: 'mentor' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }))
+  await waitFor(() =>
+    expect(learningApi.createOrganizationInvitation).toHaveBeenCalledWith(
+      'org-1',
+      'new@example.edu',
+      'mentor',
+    ),
+  )
+  expect(await screen.findByText('secret-code')).toBeInTheDocument()
+})
+
+it('lets a coordinator accept a staff invitation', async () => {
+  vi.mocked(learningApi.acceptOrganizationInvitation).mockResolvedValue({
+    organization_name: 'Campus',
+    role: 'mentor',
+  })
+  render(
+    <MemoryRouter>
+      <OrganizationsPage />
+    </MemoryRouter>,
+  )
+  fireEvent.change(await screen.findByLabelText('Staff invitation code'), {
+    target: { value: 'valid-code' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Accept invitation' }))
+  await waitFor(() =>
+    expect(learningApi.acceptOrganizationInvitation).toHaveBeenCalledWith(
+      'valid-code',
+    ),
+  )
+  expect(await screen.findByText(/joined Campus/i)).toBeInTheDocument()
+})
+
+it('lets an owner deactivate a staff member from the member directory', async () => {
+  vi.mocked(learningApi.listOrganizationMembers).mockResolvedValue([
+    {
+      id: 'membership-1',
+      user_id: 'owner-1',
+      display_name: 'Mira',
+      email: 'mira@example.edu',
+      account_type: 'coordinator',
+      role: 'owner',
+      status: 'active',
+    },
+    {
+      id: 'membership-2',
+      user_id: 'staff-1',
+      display_name: 'Ari',
+      email: 'ari@example.edu',
+      account_type: 'coordinator',
+      role: 'mentor',
+      status: 'active',
+    },
+  ])
+  vi.mocked(learningApi.updateOrganizationMember).mockResolvedValue({
+    status: 'inactive',
+  })
+  render(
+    <MemoryRouter initialEntries={['/app/organizations/org-1']}>
+      <Routes>
+        <Route
+          path="/app/organizations/:organizationId"
+          element={<OrganizationDetailPage />}
+        />
+      </Routes>
+    </MemoryRouter>,
+  )
+  fireEvent.click(await screen.findByRole('button', { name: 'Deactivate' }))
+  await waitFor(() =>
+    expect(learningApi.updateOrganizationMember).toHaveBeenCalledWith(
+      'org-1',
+      'membership-2',
+      { status: 'inactive' },
+    ),
+  )
+})
+
+it('links an owner to organization management', async () => {
+  render(
+    <MemoryRouter initialEntries={['/app/organizations']}>
+      <OrganizationsPage />
+    </MemoryRouter>,
+  )
+  expect(
+    await screen.findByRole('link', { name: /manage organization/i }),
+  ).toHaveAttribute('href', '/app/organizations/org-1')
+})
+
+it('shows an owner the member directory without credential fields', async () => {
+  render(
+    <MemoryRouter initialEntries={['/app/organizations/org-1']}>
+      <Routes>
+        <Route
+          path="/app/organizations/:organizationId"
+          element={<OrganizationDetailPage />}
+        />
+      </Routes>
+    </MemoryRouter>,
+  )
+  expect(
+    await screen.findByRole('heading', { name: 'Campus' }),
+  ).toBeInTheDocument()
+  expect(await screen.findByText('Mira')).toBeInTheDocument()
+  expect(screen.getByText('mira@example.edu')).toBeInTheDocument()
+  expect(learningApi.getOrganization).toHaveBeenCalledWith('org-1')
+  expect(learningApi.listOrganizationMembers).toHaveBeenCalledWith('org-1')
+})

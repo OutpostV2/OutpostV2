@@ -125,8 +125,32 @@ model Organization {
   createdAt               DateTime                   @default(now()) @db.Timestamptz(6) @map("created_at")
   cohorts                  Cohort[]
   organizationMemberships OrganizationMembership[]
+  invitations              OrganizationInvitation[]
   roadmaps                 Roadmap[]
   @@map("organizations")
+}
+
+model OrganizationInvitation {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String       @db.Uuid @map("organization_id")
+  email          String       @db.VarChar(320)
+  role           String       @db.VarChar(16)
+  status         String       @default("pending") @db.VarChar(16)
+  tokenHash      String       @unique @db.VarChar(64) @map("token_hash")
+  createdBy      String       @db.Uuid @map("created_by")
+  createdAt      DateTime     @default(now()) @db.Timestamptz(6) @map("created_at")
+  expiresAt      DateTime     @db.Timestamptz(6) @map("expires_at")
+  acceptedAt     DateTime?    @db.Timestamptz(6) @map("accepted_at")
+  acceptedBy     String?      @db.Uuid @map("accepted_by")
+  revokedAt      DateTime?    @db.Timestamptz(6) @map("revoked_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator        User         @relation("InvitationCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  accepter       User?        @relation("InvitationAccepter", fields: [acceptedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([organizationId, email], map: "uq_organization_invitations_email")
+  @@index([organizationId], map: "ix_organization_invitations_organization_id")
+  @@index([expiresAt], map: "ix_organization_invitations_expires_at")
+  @@map("organization_invitations")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -300,6 +324,8 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   oauthIdentities          OAuthIdentity[]
   organizationMemberships  OrganizationMembership[]
+  invitationsCreated        OrganizationInvitation[] @relation("InvitationCreator")
+  invitationsAccepted       OrganizationInvitation[] @relation("InvitationAccepter")
   passwordCredential       PasswordCredential?
   passwordResetTokens     PasswordResetToken[]
   phoneIdentities          PhoneIdentity[]

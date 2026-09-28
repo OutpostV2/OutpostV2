@@ -16,6 +16,7 @@ In one terminal:
 cd backend-js
 npm ci
 npm run db:generate
+npx prisma migrate deploy
 npx prisma migrate status
 npm run dev
 ```
@@ -48,8 +49,26 @@ node --env-file-if-exists=.env scripts/smoke-learning.js
 
 It creates temporary coordinator/student accounts and organizations, checks registration conflicts, refresh-session restoration, session revocation and fresh sign-in, zero-progress reporting, role and tenant boundaries, and separation from the illustrative review. It removes its own records afterward.
 
+## Demonstrate organization administration
+
+1. Sign in as the organization owner and open **Organizations → Manage organization**. Review the member directory.
+2. Under **Invite staff**, enter a recipient's email and choose Coordinator, Admin, or Mentor. Copy the one-time code when it appears. It expires after seven days and cannot be retrieved later from the invitation list.
+3. Sign in with a separate **Coordinator** account whose verified primary email matches the invitation. Open **Organizations**, enter the code under **Join an organization**, and accept it. The staff membership appears in the owner's directory.
+4. Return as the owner to change the staff member's role or active status. An inactive member no longer sees the organization. Reactivate the member before using **Transfer ownership**; this explicit action moves owner access to the selected staff member.
+
+Staff roles in this phase establish membership only. Resource permissions for Coordinator, Admin, and Mentor are assigned in Phase 13. Owner controls enforce permissions in the API, including when a user guesses a URL. The PostgreSQL integration test in `backend-js/tests/db/organization-management.test.js` checks invitation consumption, membership changes, tenant boundaries, and transfer.
+
+With the API and frontend running, verify the same administration flow over HTTP from `backend-js/`:
+
+```powershell
+node --env-file-if-exists=.env scripts/smoke-organizations.js
+$env:SMOKE_API_BASE='http://localhost:5173'; node --env-file-if-exists=.env scripts/smoke-organizations.js
+```
+
+The script creates temporary accounts and organizations, checks single-use invitations, tenant and inactive-member denial, and ownership transfer, then removes its own data. The second command checks the Vite proxy path used by the browser.
+
 ## What is still a preview
 
-The original `/review` walkthrough and pages labeled **Sample** or **Illustrative scenario** use an example roadmap and peers. Those records are separate from the live learning workflow. Imports, deadlines, editable roadmap drafts, broader analytics, and Google frontend sign-in remain later work. Public Coordinator self-registration is suitable for this local review; real college deployment needs staff invitations or approval.
+The original `/review` walkthrough and pages labeled **Sample** or **Illustrative scenario** use an example roadmap and peers. Those records are separate from the live learning workflow. Imports, deadlines, editable roadmap drafts, broader analytics, and Google frontend sign-in remain later work. Public Coordinator self-registration can still create a new organization for this local review; an existing organization's staff access requires an owner-issued invitation.
 
 The Node API integration tests in `backend-js/tests/learning/routes.test.js` exercise create → publish → cohort → join → progress → report and check cross-organization and role boundaries.
