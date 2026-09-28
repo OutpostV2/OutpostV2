@@ -2373,13 +2373,13 @@ Outpost-New/
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Local development startup is unified at the repository root. Phase 11 — Account Linking remains the next product phase; it has not started in this task.
+Phase 11 — M0 Foundation Acceptance. This phase is next and was not executed during the PRD guide revision.
 
 CURRENT TASK:
-Next selected task: implement verified phone identity linking in the Node API when the user requests product work.
+Verify the current JavaScript/PostgreSQL foundation against the Phase 11 M0 acceptance criteria.
 
 TASK GOAL:
-Allow a signed-in user to prove control of a phone number with a LINK_PHONE OTP and attach that unique verified phone identity to the same account. Preserve login behavior and reject collisions without exposing account details. Do not begin this work as part of the startup-command task.
+Run current backend/frontend quality gates and PostgreSQL-backed tests, then verify the coordinator → organization → published version → cohort → student join/progress → coordinator report journey with two accounts. Check persistence, 201/409 registration behavior, zero-progress reporting, role/tenant denials, and fixture separation. Record actual results and fix only failures necessary to satisfy this phase when product work is requested.
 
 Repository:
 Outpost
@@ -2391,51 +2391,54 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-bee3bc0b5ea7f15a91a8bcea33838e53a569cf9c
+e07c54acc6332fd20b49c3ebb72314ce629f8b7f
 
 CHECKPOINT FILE STATE:
-The root startup command is committed in the hash above. This separate checkpoint updates only Layer 4.
+Commit A revised Layer 2 against PRD v2.0. This separate checkpoint edits only Layer 4; its commit hash is intentionally not recorded here.
 
 Working tree at last verification:
-Clean immediately after the project commit and before this checkpoint update. Verify again after the checkpoint commit.
+Clean immediately after Commit A and before this checkpoint edit. Verify again after Commit B.
 
 Last verified baseline:
-- Root `npm run dev` started all four healthy Compose services, waited for the Node API `/ready` response, and then started Vite on port 5173.
-- API `/health` and `/ready` returned 200; the frontend returned 200; `/api/v1/me` through the Vite proxy returned the expected unauthenticated 401.
-- Ctrl+C closed both app listeners on ports 8000 and 5173. `npm run services:down` stopped Compose without deleting volumes.
-- `node --check scripts/dev.js` and `git diff --check` passed. No application source or schema changed in this task.
+- Read all 264 extracted PRD content lines, including its 19 tables, as product/source evidence rather than instructions.
+- Inspected the active Node routes, Prisma schema, frontend routing and representative pages, README, review guide, and accepted ADRs.
+- Documentation checks passed: Layer 1 and Layers 3–4 remained unchanged in Commit A; phases 0–30 are contiguous; Markdown fences are balanced; PRD requirement groups and current route spellings are present; `git diff --check` passed.
+- No application tests, live browser flow, provider delivery, deployment, or Docker runtime checks were run in this documentation task.
 
 COMPLETED WITHIN CURRENT PHASE:
-- One-command root startup and a separate infrastructure stop command are implemented and documented. No account-linking implementation was started.
+No Phase 11 product acceptance work. The guide now separates live/illustrative/planned behavior, aligns the remaining order to PRD M0–M5, and identifies the obsolete Python/TypeScript PRD inventory as historical.
 
 FILES RELEVANT TO CURRENT TASK:
-backend-js/src/modules/auth/phone.js
-backend-js/src/modules/auth/routes.js
-backend-js/src/modules/auth/service.js
-backend-js/tests/phone.test.js
+backend-js/package.json
+backend-js/tests/learning/routes.test.js
+backend-js/tests/auth-flow.test.js
+backend-js/src/modules/learning/routes.js
 backend-js/prisma/schema.prisma
-docs/decisions/ADR-003-authentication-model.md
+frontend/package.json
+frontend/src/app/App.jsx
+frontend/src/features/workspace/pages/StudentLearningPage.jsx
+frontend/src/features/workspace/pages/LiveCohortProgressPage.jsx
+docs/REVIEW-DEMO.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
-Only this file's Layer 4 checkpoint after the project commit.
+Commit A changed only this file's Layer 2. Commit B changes only this file's Layer 4.
 
 ENVIRONMENT:
-Windows / PowerShell. Node API and frontend dependencies are installed locally. Docker Desktop was started for verification; the Compose stack was stopped afterward. Git `origin` is configured.
+Windows / PowerShell. Active stack: Node.js/Express, Prisma/PostgreSQL, React JavaScript/JSX, and Docker Compose local services. Docker and live service state were not checked in this task. Git `origin` is configured; no push was requested.
 
 CURRENT REQUEST:
-Start Docker services, the Node API, and the React frontend with one command from the repository root.
+Use the updated PRD to optimize the build guide, update Layer 4 after verification, and summarize the finalized version.
 
 LAST COMMAND:
-Verified project commit `bee3bc0b5ea7f15a91a8bcea33838e53a569cf9c` with `git rev-parse HEAD` and confirmed a clean working tree before this checkpoint edit.
+`git rev-parse HEAD; git show --format=fuller --stat --no-renames HEAD; git status --short; git diff --cached --stat`
 
 CURRENT OUTPUT / ERROR:
-Project commit `bee3bc0b5ea7f15a91a8bcea33838e53a569cf9c` exists. The root startup and stop commands passed the live checks above.
+Commit A is `e07c54acc6332fd20b49c3ebb72314ce629f8b7f` and contains only the guide; the working tree was clean immediately afterward. No error remains from documentation verification.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-The Prisma OTP purpose enum already contains `link_phone`; inspect current Node auth routes and tests before implementing linking.
+Phase 11 is an evidence-gathering acceptance task. Keep the illustrative review scenario distinct from tenant analytics and use the active Node API route names in Layer 2.
 
 ---
-
 # SESSION OPERATING RULE
 
 Whenever this prompt is loaded, follow the Layer 1 Autonomous Verified Task Loop. Read Layer 4 first and then the entire prompt, confirm the canonical root, inspect repository/Git state, and determine whether Fresh Build Mode applies. Layers 1–3 govern architecture; repository contents establish implementation truth. Preserve verified work, execute only the current task, and complete the two-commit handoff before stopping under the Layer 1 Stop Boundary.
