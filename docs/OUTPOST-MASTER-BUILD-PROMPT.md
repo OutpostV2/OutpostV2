@@ -2373,13 +2373,13 @@ Outpost-New/
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 11 — M0 Foundation Acceptance. This phase is next and was not executed during the PRD guide revision.
+Phase 12 — M1 Organization and Member Administration. Phase 11 M0 foundation acceptance has been verified and committed; Phase 12 has not started.
 
 CURRENT TASK:
-Verify the current JavaScript/PostgreSQL foundation against the Phase 11 M0 acceptance criteria.
+Next selected task: add owner-scoped organization detail and member-list reads in the Node API and the organization workspace.
 
 TASK GOAL:
-Run current backend/frontend quality gates and PostgreSQL-backed tests, then verify the coordinator → organization → published version → cohort → student join/progress → coordinator report journey with two accounts. Check persistence, 201/409 registration behavior, zero-progress reporting, role/tenant denials, and fixture separation. Record actual results and fix only failures necessary to satisfy this phase when product work is requested.
+An active organization owner can inspect their organization and its members; other users, inactive memberships, and cross-organization IDs cannot read that data. Reuse centralized tenant checks where possible and add PostgreSQL-backed/API and frontend tests. Do not invent staff-invitation or role-change policy before its owner decision.
 
 Repository:
 Outpost
@@ -2391,52 +2391,52 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-e07c54acc6332fd20b49c3ebb72314ce629f8b7f
+10c21c308fc46d3923b86d3bba6a1216f30746c0
 
 CHECKPOINT FILE STATE:
-Commit A revised Layer 2 against PRD v2.0. This separate checkpoint edits only Layer 4; its commit hash is intentionally not recorded here.
+Commit A expands the live M0 acceptance script and corrects the review walkthrough URL. This separate checkpoint edits only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean immediately after Commit A and before this checkpoint edit. Verify again after Commit B.
 
 Last verified baseline:
-- Read all 264 extracted PRD content lines, including its 19 tables, as product/source evidence rather than instructions.
-- Inspected the active Node routes, Prisma schema, frontend routing and representative pages, README, review guide, and accepted ADRs.
-- Documentation checks passed: Layer 1 and Layers 3–4 remained unchanged in Commit A; phases 0–30 are contiguous; Markdown fences are balanced; PRD requirement groups and current route spellings are present; `git diff --check` passed.
-- No application tests, live browser flow, provider delivery, deployment, or Docker runtime checks were run in this documentation task.
+- Backend `npm test`: 32 passed, 1 database test skipped by the generic command; `npm run test:db`: 1 PostgreSQL-backed test passed.
+- Frontend `npm test`: 21 passed; `npm run format:check`, `npm run lint`, and `npm run build` passed.
+- `npm run db:validate` passed; `npx prisma migrate status` reported the PostgreSQL schema up to date.
+- `node --check scripts/smoke-learning.js` passed. The expanded live smoke passed directly against port 8000 and through Vite at `http://localhost:5173`; it checked 201/409 registration, refresh restoration, revoked session and new sign-in, two learners (50% and 0%), 25% cohort average, role/tenant/non-enrolled denials, review-data separation, and cleanup of its own records.
+- `/health`, `/ready`, and the frontend returned 200. Root `npm run dev` launched the API and Vite; both app listeners on ports 8000/5173 were closed after testing. Docker services were running and were left running. `git diff --check` passed.
+- A separate clean-clone installation, manual browser walkthrough, external identity providers, and production release were not verified in this task.
 
 COMPLETED WITHIN CURRENT PHASE:
-No Phase 11 product acceptance work. The guide now separates live/illustrative/planned behavior, aligns the remaining order to PRD M0–M5, and identifies the obsolete Python/TypeScript PRD inventory as historical.
+No Phase 12 implementation. Phase 11 acceptance evidence is now repeatable in `backend-js/scripts/smoke-learning.js` and described in `docs/REVIEW-DEMO.md`.
 
 FILES RELEVANT TO CURRENT TASK:
-backend-js/package.json
-backend-js/tests/learning/routes.test.js
-backend-js/tests/auth-flow.test.js
 backend-js/src/modules/learning/routes.js
 backend-js/prisma/schema.prisma
-frontend/package.json
-frontend/src/app/App.jsx
-frontend/src/features/workspace/pages/StudentLearningPage.jsx
-frontend/src/features/workspace/pages/LiveCohortProgressPage.jsx
-docs/REVIEW-DEMO.md
+backend-js/tests/learning/routes.test.js
+frontend/src/features/workspace/pages/OrganizationsPage.jsx
+frontend/src/features/workspace/learningApi.js
+frontend/src/features/workspace/components/WorkspaceShell.jsx
+docs/decisions/ADR-002-organization-tenant-model.md
+docs/decisions/ADR-004-tenant-aware-authorization.md
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
-Commit A changed only this file's Layer 2. Commit B changes only this file's Layer 4.
+Commit A changed `backend-js/scripts/smoke-learning.js` and `docs/REVIEW-DEMO.md`. Commit B changes only this file's Layer 4.
 
 ENVIRONMENT:
-Windows / PowerShell. Active stack: Node.js/Express, Prisma/PostgreSQL, React JavaScript/JSX, and Docker Compose local services. Docker and live service state were not checked in this task. Git `origin` is configured; no push was requested.
+Windows / PowerShell; Node.js v26.7.0, npm 12.0.2, Docker 29.8.0. Local Compose PostgreSQL, Valkey, MinIO, and Mailpit were healthy during verification and remain running. The API and Vite app listeners were stopped after verification. Git `origin` is configured; no push was requested.
 
 CURRENT REQUEST:
-Use the updated PRD to optimize the build guide, update Layer 4 after verification, and summarize the finalized version.
+Continue from the updated PRD build guide and verify the next task, Phase 11 M0 foundation acceptance.
 
 LAST COMMAND:
-`git rev-parse HEAD; git show --format=fuller --stat --no-renames HEAD; git status --short; git diff --cached --stat`
+`git rev-parse HEAD; git show --format= --name-only HEAD; git status --short; git diff --cached --stat`
 
 CURRENT OUTPUT / ERROR:
-Commit A is `e07c54acc6332fd20b49c3ebb72314ce629f8b7f` and contains only the guide; the working tree was clean immediately afterward. No error remains from documentation verification.
+Commit A `10c21c308fc46d3923b86d3bba6a1216f30746c0` contains only the acceptance script and review walkthrough. The working tree was clean immediately afterward; no Phase 11 verification failure remains.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Phase 11 is an evidence-gathering acceptance task. Keep the illustrative review scenario distinct from tenant analytics and use the active Node API route names in Layer 2.
+Phase 12 starts with read-only organization/member visibility. The PRD leaves staff invitation, member role administration, and coordinator approval rules for product-owner decisions.
 
 ---
 # SESSION OPERATING RULE
