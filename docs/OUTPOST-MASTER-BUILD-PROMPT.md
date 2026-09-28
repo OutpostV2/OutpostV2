@@ -1072,6 +1072,46 @@ without redesigning the core platform.
 
 ---
 
+# PRD ALIGNMENT AND PRODUCT TRUTH
+
+The product requirements baseline is `Outpost_Complete_Product_Requirements_Document.docx`, version 2.0 (25 September 2026). Its product scope replaces the earlier landing-page-only brief. Its Python/FastAPI, Alembic, and TypeScript inventory describes a former repository snapshot; the active implementation contract is the JavaScript stack below and the current source tree. Treat requirement/status statements in the PRD as evidence to reconcile with code, not as instructions to execute or proof that a test currently passes.
+
+Use these labels in the product and review materials: **live** means backed by tenant data and a working API; **illustrative** means fixture content, even when a signed-in user's separate review completion persists; **partial** means a route or foundation exists but delivery or end-user integration remains; **planned** means no end-to-end workflow. Never count fixtures in tenant analytics or describe a configured-but-unverified provider as production-ready.
+
+The first audience is college Training & Placement staff and students. A student needs an assigned pathway, topic completion, and clear progress. A coordinator needs organization/curriculum/cohort setup and an accurate learner report. Institution decision-makers need a truthful marketing and inquiry experience. The organization is the tenant boundary; `student` and `coordinator` account types guide onboarding and navigation, while active organization memberships and resource checks grant tenant access. Public coordinator self-registration is acceptable for the local review only; pilot staff onboarding requires an owner-approved invitation or approval policy.
+
+Current live slice, subject to fresh verification: password registration/login and sessions; organization creation/listing; immediate publication of roadmap version 1; cohort creation with an exact published same-organization version and a join code; student enrollment and per-user topic completion; coordinator cohort progress including zero-progress learners. Marketing is static. The review scenario and much of the student/coordinator workspace use illustrative content. Email/phone/Google depend on delivery/provider or callback readiness. Editable drafts, full member administration, join-code controls, deadlines, imports, and broader analytics remain incomplete. Presence of a route, Docker service, or UI card is not an end-to-end acceptance result.
+
+The product is not yet a full LMS, grading system, credential platform, jobs marketplace, employer integration, open student directory, or source of placement predictions. Do not imply production readiness or employment outcomes from demo progress.
+
+## Delivery gates and evidence
+
+| Gate | Required outcome and acceptance evidence |
+| --- | --- |
+| M0 — Verified foundation | Run JavaScript quality gates and PostgreSQL-backed two-account create → publish → cohort → join → complete → report flow. Confirm reload/sign-in persistence, 201 registration, controlled 409 conflict, unauthorized/cross-tenant denials, and visible demo labels. Record actual results, not PRD assertions. |
+| M1 — Core management | Authorized member administration and staff onboarding policy; editable/reviewed/published/archived immutable versions; explicit exact-version cohort assignment; controlled join-code lifecycle. Preserve existing live data through Prisma migrations. |
+| M2 — Real workspace | Replace sample dashboards with tenant data; add activity/deadlines and transparent cohort/topic analytics; retain zero-progress students and correct loading, empty, and error states. |
+| M3 — Identity and communications | Explicit, verified account linking; provider-backed email/SMS/Google end-to-end; callback, HTTPS cookie, abuse, and recovery checks. |
+| M4 — Imports and scale | Tenant-safe import storage, deterministic parsing, preview/correction, draft commit, queue/worker retries and idempotency; no automatic publication. |
+| M5 — Release readiness | CI, security/privacy/accessibility/performance review, production hosting, observability, restore drills, rollback and incident runbooks. Release claims require evidence. |
+
+## PRD requirement trace
+
+| PRD IDs | Current code-level state | Delivery phase |
+| --- | --- | --- |
+| FR-01–04 | Password auth, sessions and account-type routing exist; provider/UI completeness varies for FR-03. | Phase 11 acceptance; Phases 19–20 for remaining identity work. |
+| FR-05–10 | Live organization → published version → cohort → join → personal progress → cohort report slice exists; roadmap editing is partial. | Phase 11 acceptance; Phases 12–18 for governed and full workspaces. |
+| FR-11 | Illustrative review is separately labeled and has personal persistence. | Phase 11 separation check; maintain through Phase 18. |
+| FR-12–13 | Email/phone/Google foundations are partial or provider-dependent. | Phases 19–20. |
+| FR-14–15 | Full version lifecycle and tenant-safe imports are planned. | Phases 14 and 21–23. |
+| FR-16 | Inquiry destination, privacy, abuse, and retention require owner decisions. | Decide before operational marketing capture or release. |
+
+These states are based on inspected source and the supplied PRD, not on a fresh end-to-end test run. Phase 11 must establish runtime evidence.
+
+Before pilot or production, the owner must decide launch level, institution segment, organization provisioning and staff invitations, member permissions, roadmap review/approval, join-code expiry/rotation/revocation, student-data notice/ownership/retention/export/deletion, supported identity providers, inquiry destination/privacy/abuse handling, analytics definitions, accessibility/browser targets, service targets, and support ownership. Record choices in product/architecture documentation before implementing a policy that depends on them.
+
+---
+
 # CORE PRODUCT LOOP
 
 ```text
@@ -1093,6 +1133,8 @@ Coordinator views analytics
     ↓
 Curriculum can be improved
 ```
+
+Today the live create endpoint publishes version 1 directly. Draft/review/publish/archive is the M1 target, not current live behavior.
 
 ---
 
@@ -1232,11 +1274,12 @@ primary_email       String nullable
 email_verified_at   Timestamp nullable
 username            String nullable unique
 status              Enum(active, suspended, deleted)
+account_type        Enum(student, coordinator) for onboarding/navigation
 created_at          Timestamp
 updated_at          Timestamp
 ```
 
-No global application role.
+Account type is not an organization permission. There is no global tenant role; memberships carry tenant roles.
 
 ---
 
@@ -1489,6 +1532,12 @@ no row == not_started
 
 ---
 
+## review_topic_progress
+
+Separate `(user_id, topic_key)` completion for the illustrative review scenario. It must never be joined into organization/cohort analytics or presented as assigned learning.
+
+---
+
 ## activity_events
 
 ```text
@@ -1539,6 +1588,7 @@ display name
 username
 email
 password
+account type: student OR coordinator
     ↓
 validation
     ↓
@@ -1552,10 +1602,10 @@ transaction:
   create user
   create password credential
     ↓
-email verification
-    ↓
-session
+201 safe user response; frontend redirects to login
 ```
+
+Email verification is a separate workflow after account creation and requires configured delivery; it is not a hidden registration/session step. Registration does not create a session. On 409, show a safe identifier-conflict message and offer sign-in; never submit repeatedly after a successful 201 because the page failed to navigate. Login creates the session and redirects according to `/me` account type. Frontend route guards improve navigation, but the API enforces account type, active membership, and resource ownership.
 
 ---
 
@@ -1773,6 +1823,16 @@ Zero-progress students must appear.
 
 Avoid N+1 queries.
 
+Define every metric's numerator, denominator, time window, and eligibility before display. Completion is not an employment outcome; any at-risk label must be transparent and must not imply a validated prediction. Use real enrollment and the cohort's pinned version; exclude review fixtures.
+
+---
+
+# FRONTEND INFORMATION ARCHITECTURE AND QUALITY
+
+`/` is public marketing; `/register` and `/login` use real password APIs. `/auth/phone` is provider-dependent, `/auth/google` needs verified callback UX, and recovery/verification needs configured delivery. `/review` and `/review/status` are explicitly illustrative. `/app/account`, `/app/organizations`, `/app/student/learning`, `/app/coordinator/learning`, and its cohort report represent real API-backed slices. Other student/coordinator dashboard, roadmap, deadline, import, student-list, topic-statistics, and at-risk routes must retain sample/empty labels until wired to authorized tenant data.
+
+Keep the existing forest/sage/lime palette and readable system-sans typography as the baseline. Responsive layouts, visible focus, and reduced-motion CSS are a foundation; complete keyboard, labels/semantics, contrast, screen-reader error/dialog, and mobile checks before release. Every live page needs loading, empty, error, unauthorized, and success states. Marketing inquiry capture requires an approved destination, privacy notice, abuse controls, retention rule, and verified success/error behavior before it is called operational.
+
 ---
 
 # API ROOT
@@ -1780,6 +1840,8 @@ Avoid N+1 queries.
 ```text
 /api/v1
 ```
+
+The endpoint lists below mix active routes with future contract targets; inspect active Node routes and the frozen API contract before implementing or documenting an endpoint as live. Operations endpoints `/health` and `/ready` are distinct; the API does not serve the frontend at `/`. Use the current Node route spelling for existing flows; add new routes only when their phase is implemented.
 
 ---
 
@@ -1789,10 +1851,10 @@ Avoid N+1 queries.
 POST /auth/password/register
 POST /auth/password/login
 
-POST /auth/phone/request-otp
-POST /auth/phone/verify-otp
+POST /auth/phone/request
+POST /auth/phone/verify
 
-GET  /auth/google/start
+GET  /auth/google/authorize
 GET  /auth/google/callback
 
 POST /auth/refresh
@@ -1823,6 +1885,18 @@ GET /me
 
 ---
 
+# REVIEW API — ILLUSTRATIVE
+
+```text
+GET    /review/overview
+PUT    /review/progress/{topic_key}
+DELETE /review/progress
+```
+
+These active routes persist only the signed-in user's completion of fixture topics in `review_topic_progress`. They never create organization learning records or feed cohort analytics.
+
+---
+
 # ORGANIZATION API
 
 ```text
@@ -1845,6 +1919,7 @@ POST /organizations/{organization_id}/cohorts
 GET  /organizations/{organization_id}/cohorts
 GET  /cohorts/{cohort_id}
 
+POST   /cohorts/join
 POST   /cohorts/{cohort_id}/enrollments
 GET    /cohorts/{cohort_id}/enrollments
 DELETE /cohorts/{cohort_id}/enrollments/{enrollment_id}
@@ -1893,7 +1968,7 @@ GET /cohorts/{cohort_id}/at-risk
 
 # BUILD SEQUENCE
 
-The phases below record the original build sequence and remaining product goals. Phases 0–10 describe historical implementation work; use the current JavaScript source and Prisma migrations for active work.
+Phases 0–10 are historical milestones. For a fresh build, use the active JavaScript/Prisma stack rather than reproducing obsolete Python tooling. Phase 11 onward follows the PRD M0→M5 delivery gates above. A code file or route does not complete a phase without its stated acceptance evidence.
 
 # PHASE 0 — Architecture Freeze
 
@@ -1924,9 +1999,9 @@ Build from scratch if absent:
 ```text
 Git repository
 root .gitignore
-backend Python project
-backend pyproject.toml
-frontend React + TypeScript + Vite project
+backend Node.js/Express project
+backend package.json and Prisma configuration
+frontend React + JavaScript/JSX + Vite project
 formatting
 linting
 type checking
@@ -1977,19 +2052,19 @@ readiness
 
 ---
 
-# PHASE 4 — Alembic Foundation (historical)
+# PHASE 4 — Database Migration Foundation (historical)
 
-Initialize Alembic.
+The original database was created with Alembic, then safely baselined in Prisma. In the current repository Prisma Migrate is the sole migration owner; a fresh build starts with Prisma migrations.
 
 Verify:
 
 ```text
 empty PostgreSQL
-→ alembic upgrade head
+→ prisma migrate deploy
 → expected schema
 ```
 
-Alembic established the existing schema. Prisma takes migration ownership only after a verified, non-destructive baseline.
+Never reset the existing local database or run `prisma db push` against it. Preserve the verified baseline and local data.
 
 ---
 
@@ -2096,407 +2171,123 @@ existing-user path
 
 ---
 
-# PHASE 11 — Account Linking
+# PHASE 11 — M0 Foundation Acceptance
 
-Implement:
-
-```text
-link phone
-link Google
-add password credential
-list identities
-unlink identity
-collision handling
-lockout prevention
-```
+Re-run the current JavaScript backend/frontend quality gates and PostgreSQL integration tests. Demonstrate, with separate coordinator and student accounts, registration → login → organization → version 1 publication → cohort → join → topic completion → report, including persistence after refresh and a new sign-in. Check 201/409 response behavior, wrong-role and cross-tenant denial, non-enrolled topic denial, zero-progress learners, and separation of illustrative review data. Document actual failures; do not infer success from existing tests or the PRD. This is the next product task after this guide revision.
 
 ---
 
-# PHASE 12 — Organizations
+# PHASE 12 — M1 Organization and Member Administration
 
-Implement:
-
-```text
-organizations
-memberships
-membership roles
-organization creation
-organization listing
-```
+Implement tenant-safe organization details, member listing and status/role administration, plus a staff invitation or approval workflow once the owner decides the policy. Preserve active-membership checks. A registered `coordinator` account type alone never grants ownership of an existing organization. Test inactive membership, owner removal/transfer, duplicate membership, and cross-organization access.
 
 ---
 
-# PHASE 13 — Authorization
+# PHASE 13 — M1 Authorization Consolidation
 
-Implement centralized tenant-aware authorization.
-
-Add cross-organization security tests.
+Centralize account-type, active-membership, role, cohort, and resource-parent policies in the Express API. Enforce them on every live read/write; client route guards are navigation only. Test guessed IDs, mismatched organization/version/topic parents, suspended users, and wrong-role requests with PostgreSQL-backed cases.
 
 ---
 
-# PHASE 14 — Roadmaps and Versioning
+# PHASE 14 — M1 Roadmap Drafts and Immutable Versions
 
-Implement:
-
-```text
-roadmaps
-versions
-phases
-weeks
-topics
-draft editing
-publishing
-published immutability
-archiving
-```
+Replace the direct-publication creation shortcut with editable drafts, explicit review/publish, complete ordered snapshots, archived history, and authorized version management. Publishing is an atomic validation boundary. Published content is immutable; existing cohorts keep their exact assigned version and progress. Preserve current version-1 data through a reviewed Prisma migration. Test concurrent publication and forbidden edits, and follow ADR-005.
 
 ---
 
-# PHASE 15 — Cohorts
+# PHASE 15 — M1 Cohort and Join-Code Governance
 
-Implement:
-
-```text
-cohorts
-enrollment
-exact roadmap-version assignment
-organization-safe access
-```
+Keep same-organization published-version pinning and idempotent enrollment. Implement explicit cohort/version adoption only if its history model is approved; never silently follow latest. Define and then implement join-code expiry, rotation, revocation, misuse/rate controls, and withdrawal/enrollment rules. Test invalid, revoked, cross-tenant, and repeat joins.
 
 ---
 
-# PHASE 16 — Progress
+# PHASE 16 — M2 Student Live Workspace
 
-Implement:
-
-```text
-topic_progress
-activity_events
-progress mutations
-progress-aware roadmap reads
-summary calculations
-```
-
-Verify independent progress between users.
+Make assigned learning the primary student dashboard. Replace fixture metrics with enrolled cohort/version data; show topic tree, personal completion, current progress, next step, and activity where real events exist. Keep the review scenario as separately labeled illustrative content. Verify authorized reads, independent user state, refresh persistence, and loading/empty/error/mobile states.
 
 ---
 
-# PHASE 17 — Parser Core
+# PHASE 17 — M2 Coordinator Live Workspace and Analytics
 
-Build deterministic pure parser.
-
-No PDF integration yet.
+Replace sample coordinator cards, cohort/student/topic-statistics, and at-risk views with authorized tenant data. Report completion counts/rates and cohort average including enrolled zero-progress students. Define denominators/time windows; show transparent signals rather than unsupported predictions. Use aggregation and inspect query plans for N+1 behavior. Test role, tenant, version, and empty-cohort cases.
 
 ---
 
-# PHASE 18 — Storage and Worker Foundation
+# PHASE 18 — M2 Activity and Deadlines
 
-Implement:
-
-```text
-ObjectStorage interface
-MinIO adapter
-JobQueue interface
-local queue implementation
-worker process
-import records
-```
+Record auditable progress activity and expose real student/coordinator history. Define scheduling rules before adding deadline data or missed-deadline signals. Replace preview/empty routes only when backend, migration, and UI are connected. Verify time-zone handling, enrollment scope, and no fixture contamination.
 
 ---
 
-# PHASE 19 — Import Pipeline
+# PHASE 19 — M3 Explicit Account Linking
 
-Implement:
-
-```text
-upload
-extraction
-background parsing
-ready-for-review
-editable preview
-commit
-```
-
-Never publish automatically.
+Allow signed-in users to prove control before linking phone, Google, or a password credential; list/unlink identities with collision and lockout prevention. Never merge established users solely by email. Verify that all sign-in methods resolve to the intended canonical user and cannot take over another account. Phone linking uses a distinct challenge purpose from phone login.
 
 ---
 
-# PHASE 20 — Cohort Analytics
+# PHASE 20 — M3 Provider and Recovery Completion
 
-Implement:
-
-```text
-student completion
-topic completion
-activity
-at-risk detection
-```
-
-Use aggregation and outer joins.
+Validate email verification and recovery, SMS OTP delivery, and Google callback UX end-to-end with configured providers. Cover expiring single-use secrets, resend/attempt limits, generic errors, secure HTTPS cookies, session revocation after recovery, and provider failure states. Development adapters are not production delivery. Owner selects supported launch methods and provider operators.
 
 ---
 
-# PHASE 21 — Frontend Authentication
+# PHASE 21 — M4 Deterministic Parser
 
-Implement:
-
-```text
-registration
-password login
-phone OTP login
-Google login
-session restoration
-logout
-authentication error handling
-```
+Build pure, tested parsing for supported text input with stable normalization and validation. Define supported formats, limits, and correction model. Do not parse directly into published curriculum; leave PDF and complex formats until justified.
 
 ---
 
-# PHASE 22 — Organization-Aware Frontend
+# PHASE 22 — M4 Storage, Queue, and Worker Foundation
 
-Implement:
-
-```text
-organization selector
-organization context
-role-aware navigation
-protected routes
-```
+Add tenant-scoped import records, an ObjectStorage adapter (local MinIO), a JobQueue adapter, and a worker process. Define object-key isolation, upload limits, retries, idempotency, cancellation, and retention. Keep the API stateless and use PostgreSQL as the canonical record.
 
 ---
 
-# PHASE 23 — Student Dashboard
+# PHASE 23 — M4 Import Review and Commit
 
-Implement:
-
-```text
-progress summary
-roadmap tree
-topic status
-optimistic updates
-what's next
-activity
-deadlines
-```
+Implement upload → extraction → parse → preview → human correction → commit to an authorized draft. Track pending/processing/ready/failed/committed states, error recovery, and worker observability. Never auto-publish. Test malformed files, retries, duplicate jobs, cross-tenant IDs/object keys, and draft preservation.
 
 ---
 
-# PHASE 24 — Coordinator Dashboard
+# PHASE 24 — M5 Security, Privacy, and Accessibility
 
-Implement:
-
-```text
-cohorts
-roadmaps
-version management
-imports
-student progress
-topic statistics
-at-risk panel
-```
+Review auth, sessions, OTP/OAuth/linking, tenant isolation, uploads, CORS/headers, rate limits, secrets/dependencies, and educational-data access. Establish notice, ownership, retention, export/deletion, and incident policy with the owner. Complete keyboard, focus, labels, contrast, reduced-motion, screen-reader, and mobile verification. Do not claim certification without evidence.
 
 ---
 
-# PHASE 25 — Performance Analysis
+# PHASE 25 — M5 CI and Release Gates
 
-First:
-
-```text
-measure
-profile
-EXPLAIN ANALYZE
-inspect indexes
-```
-
-Then add only justified caching.
+Add GitHub Actions for formatting, linting, Node backend and frontend tests, PostgreSQL integration/contract tests, Prisma migration validation, production builds, dependency/security checks, and a browser path through the core loop. Keep fixtures and provider secrets out of logs/artifacts. Require a clean-clone setup test before release.
 
 ---
 
-# PHASE 26 — Security Hardening
+# PHASE 26 — M5 Performance and Load
 
-Review:
-
-```text
-authentication
-sessions
-OTP
-OAuth
-identity linking
-tenant isolation
-authorization
-uploads
-CORS
-headers
-rate limits
-secrets
-dependencies
-```
+Set agreed latency/availability budgets. Measure realistic registration/login/refresh, roadmap reads, progress writes, cohort reports, imports and worker throughput using representative tenant data. Profile and run `EXPLAIN ANALYZE` before adding indexes or caching; check connection and queue limits. Record baseline and regression thresholds.
 
 ---
 
-# PHASE 27 — CI
+# PHASE 27 — M5 Portable Deployment
 
-GitHub Actions gates:
-
-```text
-format
-lint
-types
-backend tests
-frontend tests
-integration tests
-migration validation
-production build
-dependency/security checks
-```
+Build production API/worker images and a static frontend host; use non-root containers where practical. Deploy with TLS, managed PostgreSQL, Redis-compatible state, object storage, secret management, and migration/rollback strategy. Provider choice must not change domain logic. AWS mapping and Terraform come only after a portable topology is proven; neither implies current deployment.
 
 ---
 
-# PHASE 28 — Production Containers
+# PHASE 28 — M5 Observability and Operations
 
-Create production images for:
-
-```text
-API
-worker
-frontend where appropriate
-```
-
-Use runtime configuration.
-
-Run non-root where practical.
+Extend structured logs and request IDs with metrics, traces, alerts, worker/database telemetry, and privacy-aware retention. Distinguish liveness `/health` from database readiness `/ready`. Document service targets, incident ownership, on-call action, and failed-provider/queue behavior.
 
 ---
 
-# PHASE 29 — Observability
+# PHASE 29 — M5 Backup and Recovery
 
-Implement:
-
-```text
-JSON logs
-request IDs
-metrics
-worker telemetry
-database telemetry
-OpenTelemetry
-error reporting
-```
+Verify PostgreSQL backup/restore, object durability, migration recovery, key rotation, session invalidation, and rollback with a timed drill. Define recovery objectives and data-retention windows with the owner. A configured volume or backup script alone is not proof of recoverability.
 
 ---
 
-# PHASE 30 — Load Testing
+# PHASE 30 — M5 Documentation and Release Decision
 
-Use realistic data and k6.
-
-Test:
-
-```text
-login bursts
-OTP bursts
-refresh load
-roadmap reads
-progress writes
-analytics
-imports
-workers
-database connections
-```
-
----
-
-# PHASE 31 — Backup and Recovery
-
-Verify:
-
-```text
-database backup
-database restore
-object-storage durability
-migration recovery
-secret rotation
-session invalidation
-```
-
----
-
-# PHASE 32 — Portable Production Deployment
-
-Deploy using conceptual components:
-
-```text
-frontend/CDN
-API containers
-worker containers
-managed PostgreSQL
-Redis-compatible service
-object storage
-TLS
-secrets
-logging
-```
-
-Provider choice must not alter domain logic.
-
----
-
-# PHASE 33 — AWS Deployment Mapping
-
-Possible future mapping:
-
-```text
-frontend          → S3 + CloudFront
-API               → ECS/Fargate
-worker            → ECS/Fargate
-PostgreSQL        → RDS
-Redis/Valkey      → ElastiCache
-object storage    → S3
-secrets           → Secrets Manager
-load balancing    → ALB
-DNS               → Route 53
-TLS               → ACM
-edge protection   → WAF/CloudFront
-container images  → ECR
-```
-
-AWS remains infrastructure only.
-
----
-
-# PHASE 34 — Infrastructure as Code
-
-After production topology stabilizes:
-
-```text
-Terraform
-```
-
-under:
-
-```text
-infrastructure/
-```
-
----
-
-# PHASE 35 — Documentation and Release Readiness
-
-Document and verify:
-
-```text
-architecture
-authentication
-tenant model
-authorization
-roadmap versioning
-progress architecture
-imports
-local setup
-deployment
-backup/recovery
-known limitations
-```
-
-Test setup from a clean clone.
+Document architecture, auth, tenancy/authorization, roadmap/versioning, progress, imports, local setup, deployment, privacy, operations, known limitations, and real-versus-illustrative UI. Re-run all gates from a clean clone and approve demo/pilot/production scope explicitly. Do not describe sample dashboards, unverified providers, or incomplete operations as a complete website.
 
 ---
 
@@ -2538,55 +2329,9 @@ Never trade tenant/security correctness for feature speed.
 
 # DEFINITION OF INITIAL PRODUCT SUCCESS
 
-A successful Outpost implementation proves:
+For the college review/M0, the accepted product proof is a reproducible local, PostgreSQL-backed two-account journey: coordinator registration and login; organization, published version-1 roadmap and cohort creation; student registration, login and code enrollment; independently persisted topic completion; and a real coordinator report that includes zero-progress students. Demonstrate refresh/new-sign-in persistence, session revocation, role and tenant denials, clear illustrative labels, and a clean-clone run without AWS. A 201 registration is followed by login; a 409 is an understandable conflict, not a successful registration. Record actual verification before calling this gate complete.
 
-```text
-1. Fresh repository can be built from scratch using this guide.
-
-2. User registers with email/username + password.
-
-3. User verifies email.
-
-4. User links phone.
-
-5. User logs in passwordlessly using phone OTP.
-
-6. User links Google.
-
-7. All authentication methods resolve to one canonical user.
-
-8. Refresh sessions rotate and can be revoked.
-
-9. User creates or joins an organization.
-
-10. Roles are scoped to organization membership.
-
-11. Coordinator creates/imports roadmap.
-
-12. Parsed content is reviewed before commit.
-
-13. Coordinator publishes immutable roadmap version.
-
-14. Exact roadmap version is assigned to cohort.
-
-15. Students enroll.
-
-16. Students maintain independent progress.
-
-17. Activity history is retained.
-
-18. Zero-progress students remain visible.
-
-19. Topic bottlenecks appear in analytics.
-
-20. At-risk users can be identified.
-
-21. Organization A cannot access Organization B data.
-
-22. Complete application runs locally without AWS.
-
-23. Application can later deploy onto AWS without rewriting domain logic.
-```
+M0 is a reviewable foundation, not a production release. M1 adds governed memberships, immutable draft/publish/version lifecycle and join-code controls; M2 makes the workspaces and analytics genuinely live; M3 completes verified identity/provider flows; M4 adds reviewed imports; M5 supplies security, accessibility, operations, and release evidence. Do not collapse these into an unsupported “complete website” claim.
 
 ---
 
