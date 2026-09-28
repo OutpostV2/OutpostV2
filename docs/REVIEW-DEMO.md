@@ -27,7 +27,7 @@ cd frontend
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173`. If your installation uses another Vite port, use the URL printed by Vite.
+Open `http://localhost:5173`. If your installation uses another Vite port or host, use the URL printed by Vite.
 
 ## Demonstrate the full loop
 
@@ -39,6 +39,14 @@ Open `http://127.0.0.1:5173`. If your installation uses another Vite port, use t
 6. Sign out and sign back in as the Coordinator. Open **Live learning → View live progress** for that cohort. The student's completion appears in the cohort report. Students who have joined but completed nothing appear with 0% progress.
 
 The organization, roadmap version, cohort, enrollment, and topic progress are stored in PostgreSQL. The cohort pins the exact published roadmap version. The join code is the only enrollment path in this slice; it avoids exposing a searchable account directory.
+
+With the API running, repeat the live acceptance check from `backend-js/`:
+
+```powershell
+node --env-file-if-exists=.env scripts/smoke-learning.js
+```
+
+It creates temporary coordinator/student accounts and organizations, checks registration conflicts, refresh-session restoration, session revocation and fresh sign-in, zero-progress reporting, role and tenant boundaries, and separation from the illustrative review. It removes its own records afterward.
 
 ## What is still a preview
 
