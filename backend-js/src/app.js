@@ -55,7 +55,7 @@ export function createApp({ prisma, settings = {}, emailProvider, redisClient, s
   registerGoogleRoutes(app, { prisma, settings, redisClient });
   registerPhoneRoutes(app, { prisma, settings, redisClient, smsProvider });
   registerReviewRoutes(app, { prisma, settings, requireUser });
-  registerLearningRoutes(app, { prisma, settings, requireUser });
+  registerLearningRoutes(app, { prisma, settings, requireUser, redisClient });
 
   app.use((_request, _response, next) => next(notFound()));
   app.use(errorHandler);

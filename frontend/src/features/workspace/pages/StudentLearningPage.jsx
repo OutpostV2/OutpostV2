@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { EmptyState, PageHeading, ProgressBar } from '../components/WorkspaceUI'
-import { getMyLearning, joinCohort, setTopicProgress } from '../learningApi'
+import {
+  getMyLearning,
+  joinCohort,
+  setTopicProgress,
+  withdrawFromCohort,
+} from '../learningApi'
 export default function StudentLearningPage() {
   const [learning, setLearning] = useState([])
   const [inviteCode, setInviteCode] = useState('')
@@ -62,6 +67,26 @@ export default function StudentLearningPage() {
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : 'Progress could not be saved.',
+      )
+    } finally {
+      setBusy('')
+    }
+  }
+  async function leaveCohort(assignment) {
+    setBusy(`leave:${assignment.cohort_id}`)
+    setError('')
+    setMessage('')
+    try {
+      await withdrawFromCohort(assignment.cohort_id)
+      await reload()
+      setMessage(
+        `You left ${assignment.cohort_name}. Your saved progress is retained.`,
+      )
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'You could not leave this cohort.',
       )
     } finally {
       setBusy('')
@@ -136,6 +161,21 @@ export default function StudentLearningPage() {
               value={assignment.percent}
               label={`${assignment.roadmap_name} completion`}
             />
+            <div className="learning-assignment-actions">
+              <button
+                type="button"
+                className="workspace-button workspace-button-outline"
+                disabled={busy !== ''}
+                onClick={() => void leaveCohort(assignment)}
+              >
+                {busy === `leave:${assignment.cohort_id}`
+                  ? 'Leaving…'
+                  : 'Leave cohort'}
+              </button>
+              <small>
+                Your completed topics remain saved if you join again.
+              </small>
+            </div>
             <div className="learning-topic-list">
               {assignment.topics.map((topic) => (
                 <div className="learning-topic" key={topic.id}>

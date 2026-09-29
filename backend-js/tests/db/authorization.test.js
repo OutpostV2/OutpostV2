@@ -55,7 +55,8 @@ describe.skipIf(!(process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL))
     };
     const createCohort = async (organization, actor, version, name) => prisma.cohort.create({ data: {
       organizationId: organization.id, roadmapVersionId: version.id, name, createdBy: actor.id,
-      inviteCode: randomUUID().replaceAll('-', ''),
+      inviteCodeHash: randomUUID().replaceAll('-', '').repeat(2),
+      inviteCodeExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     } });
 
     try {
@@ -90,7 +91,7 @@ describe.skipIf(!(process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL))
       const app = express();
       app.use(express.json());
       const requireUser = createRequireUser(prisma, settings);
-      registerLearningRoutes(app, { prisma, settings, requireUser });
+      registerLearningRoutes(app, { prisma, settings, requireUser, redisClient: { eval: async () => 1 } });
       registerReviewRoutes(app, { prisma, settings, requireUser });
       app.get('/api/v1/test/current-user', requireUser, (req, res) => res.json({ id: req.user.id }));
       app.use(errorHandler);
@@ -144,7 +145,7 @@ describe.skipIf(!(process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL))
       expect((await request(app).get(`/api/v1/cohorts/${cohortA.id}/progress`).set(await auth(student))).status).toBe(403);
       expect((await request(app).get(`/api/v1/cohorts/${corruptCohort.id}/progress`).set(await auth(ownerA))).status).toBe(404);
       expect((await request(app).post('/api/v1/cohorts/join').set(await auth(student))
-        .send({ invite_code: corruptCohort.inviteCode })).status).toBe(404);
+        .send({ invite_code: randomUUID() })).status).toBe(404);
       expect((await request(app).put(`/api/v1/progress/topics/${versionB.topic.id}`)
         .set(await auth(student)).send({ completed: true })).status).toBe(404);
       expect((await request(app).put(`/api/v1/progress/topics/${versionA.topic.id}`)
@@ -163,7 +164,7 @@ describe.skipIf(!(process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL))
       expect((await request(app).get(`/api/v1/organizations/${orgA.id}/roadmaps`).set(await auth(admin))).status).toBe(403);
       expect((await request(app).get(`/api/v1/cohorts/${cohortA.id}/progress`).set(await auth(admin))).status).toBe(403);
       await prisma.cohortEnrollment.updateMany({ where: { cohortId: cohortA.id, userId: student.id },
-        data: { status: 'inactive' } });
+        data: { status: 'inactive', endedAt: new Date(), endedBy: ownerA.id, endReason: 'staff_removed' } });
       expect((await request(app).get('/api/v1/progress/me').set(await auth(student))).body).toEqual([]);
       expect((await request(app).put(`/api/v1/progress/topics/${versionA.topic.id}`)
         .set(await auth(student)).send({ completed: true })).status).toBe(404);

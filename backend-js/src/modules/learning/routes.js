@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { registerRoadmapRoutes } from './roadmapRoutes.js';
-import { AppError, conflict, forbidden, notFound } from '../../core/errors.js';
+import { AppError, conflict, forbidden, notFound, notReady } from '../../core/errors.js';
 import {
   hasAccountRoleCompatibility,
   LEARNING_RESOURCE_ROLES,
@@ -31,11 +31,48 @@ const invitationInput = z.strictObject({
 const acceptInvitationInput = z.strictObject({ code: z.string().min(40).max(128) });
 const invitationDurationMs = 7 * 24 * 60 * 60 * 1000;
 const codeDigest = (code) => createHash('sha256').update(code).digest('hex');
+const cohortJoinCodeDurationMs = 7 * 24 * 60 * 60 * 1000;
+const cohortJoinCodeRateWindowSeconds = 15 * 60;
+const cohortJoinRateLimitScript = `local count = redis.call('INCR', KEYS[1])
+if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+return count`;
 const invitationOut = (row) => ({
   id: row.id, organization_id: row.organizationId, email: row.email, role: row.role,
   status: row.status === 'pending' && row.expiresAt <= new Date() ? 'expired' : row.status,
   expires_at: row.expiresAt, created_at: row.createdAt,
 });
+
+function joinCodeStatus(cohort, now = new Date()) {
+  if (cohort.inviteCodeRevokedAt || !cohort.inviteCodeHash) return 'revoked';
+  if (!cohort.inviteCodeExpiresAt || cohort.inviteCodeExpiresAt <= now) return 'expired';
+  return 'active';
+}
+
+async function enforceCohortJoinRateLimit(redisClient, request, response, user) {
+  if (!redisClient) throw notReady('Cohort join protection is temporarily unavailable');
+  const identifiers = [
+    ['ip', request.ip || request.socket?.remoteAddress || 'unknown', 30],
+    ['account', user.id, 10],
+  ];
+  for (const [kind, identifier, limit] of identifiers) {
+    const key = `outpost:cohort-join:${kind}:${codeDigest(identifier)}`;
+    let count;
+    try {
+      const result = await redisClient.eval(cohortJoinRateLimitScript, {
+        keys: [key], arguments: [String(cohortJoinCodeRateWindowSeconds)],
+      });
+      count = Number(result);
+    } catch {
+      throw notReady('Cohort join protection is temporarily unavailable');
+    }
+    if (!Number.isSafeInteger(count) || count < 1)
+      throw notReady('Cohort join protection is temporarily unavailable');
+    if (count > limit) {
+      response.set('Retry-After', String(cohortJoinCodeRateWindowSeconds));
+      throw new AppError(429, 'rate_limited', 'Too many cohort join attempts. Try again later.');
+    }
+  }
+}
 
 function parse(schema, value, location = 'body') {
   const result = schema.safeParse(value);
@@ -94,7 +131,8 @@ async function cohortOut(prisma, cohort) {
   return {
     id: cohort.id, organization_id: cohort.organizationId, name: cohort.name,
     roadmap_version_id: cohort.roadmapVersionId, roadmap_name: roadmap?.name ?? 'Roadmap',
-    invite_code: cohort.inviteCode, student_count: count,
+    join_code_status: joinCodeStatus(cohort), invite_code_expires_at: cohort.inviteCodeExpiresAt,
+    student_count: count,
   };
 }
 function roundEven(value) {
@@ -109,7 +147,7 @@ function uuidParam(request, name) {
   return parse(uuid, request.params[name], 'path');
 }
 
-export function registerLearningRoutes(app, { prisma, settings: _settings, requireUser }) {
+export function registerLearningRoutes(app, { prisma, settings: _settings, requireUser, redisClient }) {
   registerRoadmapRoutes(app, { prisma, requireUser });
   app.post('/api/v1/organizations', requireUser, async (request, response) => {
     const data = parse(organizationInput, request.body);
@@ -315,16 +353,23 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
   app.post('/api/v1/organizations/:organizationId/cohorts', requireUser, async (request, response) => {
     const organizationId = uuidParam(request, 'organizationId');
     const data = parse(cohortInput, request.body);
+    const inviteCode = randomBytes(32).toString('base64url');
+    const inviteCodeExpiresAt = new Date(Date.now() + cohortJoinCodeDurationMs);
     const cohort = await prisma.$transaction(async (tx) => {
       await lockOrganization(tx, organizationId);
       await learningStaff(tx, request.user, organizationId);
       await tx.$queryRaw`SELECT id FROM roadmap_versions WHERE id = ${data.roadmap_version_id}::uuid FOR UPDATE`;
       const { version } = await requirePublishedRoadmapVersion(tx, organizationId, data.roadmap_version_id);
       return tx.cohort.create({
-        data: { organizationId, roadmapVersionId: version.id, name: data.name, createdBy: request.user.id, inviteCode: randomBytes(24).toString('base64url') },
+        data: {
+          organizationId, roadmapVersionId: version.id, name: data.name, createdBy: request.user.id,
+          inviteCodeHash: codeDigest(inviteCode), inviteCodeExpiresAt, inviteCodeRevokedAt: null,
+        },
       });
     });
-    response.status(201).json(await cohortOut(prisma, cohort));
+    response.set('Cache-Control', 'no-store').status(201).json({
+      ...await cohortOut(prisma, cohort), invite_code: inviteCode,
+    });
   });
 
   app.get('/api/v1/organizations/:organizationId/cohorts', requireUser, async (request, response) => {
@@ -347,14 +392,24 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
   app.post('/api/v1/cohorts/join', requireUser, async (request, response) => {
     const data = parse(joinInput, request.body);
     student(request.user);
-    const cohort = await prisma.cohort.findFirst({ where: { inviteCode: data.invite_code.trim(), status: 'active' } });
+    await enforceCohortJoinRateLimit(redisClient, request, response, request.user);
+    const digest = codeDigest(data.invite_code.trim());
+    const cohort = await prisma.cohort.findFirst({ where: {
+      inviteCodeHash: digest, status: 'active', inviteCodeRevokedAt: null,
+      inviteCodeExpiresAt: { gt: new Date() },
+    } });
     if (!cohort) throw notFound('Cohort invite not found');
     const initialScope = await requireCohortScope(prisma, cohort.id);
     const organization = initialScope.organization;
     await prisma.$transaction(async (tx) => {
       await lockOrganization(tx, organization.id);
+      await tx.$queryRaw`SELECT id FROM cohorts WHERE id = ${cohort.id}::uuid FOR UPDATE`;
       const currentScope = await requireCohortScope(tx, cohort.id);
       if (currentScope.organization.id !== organization.id) throw notFound('Cohort invite not found');
+      const currentCohort = currentScope.cohort;
+      if (currentCohort.inviteCodeHash !== digest || currentCohort.inviteCodeRevokedAt ||
+          !currentCohort.inviteCodeExpiresAt || currentCohort.inviteCodeExpiresAt <= new Date())
+        throw notFound('Cohort invite not found');
       const existing = await tx.organizationMembership.findFirst({
         where: { organizationId: organization.id, userId: request.user.id },
       });
@@ -363,12 +418,149 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
       await tx.organizationMembership.createMany({
         data: [{ organizationId: organization.id, userId: request.user.id, role: 'student' }], skipDuplicates: true,
       });
-      await tx.cohortEnrollment.createMany({
-        data: [{ cohortId: cohort.id, userId: request.user.id }], skipDuplicates: true,
+      const enrollment = await tx.cohortEnrollment.findUnique({
+        where: { cohortId_userId: { cohortId: cohort.id, userId: request.user.id } },
       });
+      if (!enrollment) {
+        await tx.cohortEnrollment.create({ data: { cohortId: cohort.id, userId: request.user.id } });
+      } else if (enrollment.status === 'inactive') {
+        if (enrollment.endReason !== 'student_withdrew')
+          throw conflict('Enrollment requires staff reinstatement');
+        await tx.cohortEnrollment.update({
+          where: { id: enrollment.id },
+          data: { status: 'active', joinedAt: new Date(), endedAt: null, endedBy: null, endReason: null },
+        });
+      }
       await requireCohortAccess(tx, request.user, cohort.id, { allowStudent: true });
     });
     response.json({ cohort_id: cohort.id, cohort_name: cohort.name, organization_name: organization.name });
+  });
+
+  app.post('/api/v1/cohorts/:cohortId/join-code/rotate', requireUser, async (request, response) => {
+    const cohortId = uuidParam(request, 'cohortId');
+    const initial = await requireCohortAccess(prisma, request.user, cohortId, { staffRoles: LEARNING_RESOURCE_ROLES });
+    const inviteCode = randomBytes(32).toString('base64url');
+    const inviteCodeExpiresAt = new Date(Date.now() + cohortJoinCodeDurationMs);
+    const cohort = await prisma.$transaction(async (tx) => {
+      await lockOrganization(tx, initial.organization.id);
+      await tx.$queryRaw`SELECT id FROM cohorts WHERE id = ${cohortId}::uuid FOR UPDATE`;
+      const current = await requireCohortAccess(tx, request.user, cohortId, { staffRoles: LEARNING_RESOURCE_ROLES });
+      if (current.organization.id !== initial.organization.id) throw notFound('Cohort not found');
+      return tx.cohort.update({ where: { id: cohortId }, data: {
+        inviteCodeHash: codeDigest(inviteCode), inviteCodeExpiresAt, inviteCodeRevokedAt: null,
+      } });
+    });
+    response.set('Cache-Control', 'no-store').json({
+      ...await cohortOut(prisma, cohort), invite_code: inviteCode,
+    });
+  });
+
+  app.delete('/api/v1/cohorts/:cohortId/join-code', requireUser, async (request, response) => {
+    const cohortId = uuidParam(request, 'cohortId');
+    const initial = await requireCohortAccess(prisma, request.user, cohortId, { staffRoles: LEARNING_RESOURCE_ROLES });
+    await prisma.$transaction(async (tx) => {
+      await lockOrganization(tx, initial.organization.id);
+      await tx.$queryRaw`SELECT id FROM cohorts WHERE id = ${cohortId}::uuid FOR UPDATE`;
+      const current = await requireCohortAccess(tx, request.user, cohortId, { staffRoles: LEARNING_RESOURCE_ROLES });
+      if (current.organization.id !== initial.organization.id) throw notFound('Cohort not found');
+      if (current.cohort.inviteCodeHash || !current.cohort.inviteCodeRevokedAt) {
+        await tx.cohort.update({ where: { id: cohortId }, data: {
+          inviteCodeHash: null, inviteCodeExpiresAt: null, inviteCodeRevokedAt: new Date(),
+        } });
+      }
+    });
+    response.status(204).end();
+  });
+
+  app.get('/api/v1/cohorts/:cohortId/enrollments', requireUser, async (request, response) => {
+    const cohortId = uuidParam(request, 'cohortId');
+    const { cohort } = await requireCohortAccess(prisma, request.user, cohortId, {
+      staffRoles: LEARNING_RESOURCE_ROLES,
+    });
+    const enrollments = sorted(await prisma.cohortEnrollment.findMany({ where: { cohortId } }), 'joinedAt');
+    const userIds = enrollments.map((row) => row.userId);
+    const memberships = userIds.length ? await prisma.organizationMembership.findMany({ where: {
+      organizationId: cohort.organizationId, userId: { in: userIds }, role: 'student',
+    } }) : [];
+    const allowedUsers = new Set(memberships.map((row) => row.userId));
+    const users = allowedUsers.size ? await prisma.user.findMany({ where: {
+      id: { in: [...allowedUsers] }, accountType: 'student', status: 'active',
+    } }) : [];
+    const usersById = new Map(users.map((user) => [user.id, user]));
+    response.set('Cache-Control', 'no-store').json(enrollments.flatMap((enrollment) => {
+      const user = usersById.get(enrollment.userId);
+      if (!user) return [];
+      return [{
+        id: enrollment.id, user_id: user.id, display_name: user.displayName,
+        status: enrollment.status, joined_at: enrollment.joinedAt,
+        ended_at: enrollment.endedAt, end_reason: enrollment.endReason,
+      }];
+    }));
+  });
+
+  app.delete('/api/v1/cohorts/:cohortId/enrollments/me', requireUser, async (request, response) => {
+    student(request.user);
+    const cohortId = uuidParam(request, 'cohortId');
+    const initial = await requireCohortScope(prisma, cohortId);
+    await requireOrganizationRole(prisma, request.user, initial.organization.id, ['student']);
+    await prisma.$transaction(async (tx) => {
+      await lockOrganization(tx, initial.organization.id);
+      await tx.$queryRaw`SELECT id FROM cohorts WHERE id = ${cohortId}::uuid FOR UPDATE`;
+      const current = await requireCohortScope(tx, cohortId);
+      await requireOrganizationRole(tx, request.user, current.organization.id, ['student']);
+      const enrollment = await tx.cohortEnrollment.findUnique({
+        where: { cohortId_userId: { cohortId, userId: request.user.id } },
+      });
+      if (!enrollment) throw notFound('Cohort enrollment not found');
+      if (enrollment.status === 'inactive') {
+        if (enrollment.endReason !== 'student_withdrew')
+          throw conflict('Enrollment was ended by staff and cannot be withdrawn by the student');
+        return;
+      }
+      await tx.cohortEnrollment.update({ where: { id: enrollment.id }, data: {
+        status: 'inactive', endedAt: new Date(), endedBy: request.user.id, endReason: 'student_withdrew',
+      } });
+    });
+    response.status(204).end();
+  });
+
+  app.delete('/api/v1/cohorts/:cohortId/enrollments/:enrollmentId', requireUser, async (request, response) => {
+    const cohortId = uuidParam(request, 'cohortId');
+    const enrollmentId = uuidParam(request, 'enrollmentId');
+    const initial = await requireCohortAccess(prisma, request.user, cohortId, { staffRoles: LEARNING_RESOURCE_ROLES });
+    await prisma.$transaction(async (tx) => {
+      await lockOrganization(tx, initial.organization.id);
+      await tx.$queryRaw`SELECT id FROM cohorts WHERE id = ${cohortId}::uuid FOR UPDATE`;
+      const current = await requireCohortAccess(tx, request.user, cohortId, { staffRoles: LEARNING_RESOURCE_ROLES });
+      if (current.organization.id !== initial.organization.id) throw notFound('Cohort not found');
+      const enrollment = await tx.cohortEnrollment.findFirst({ where: { id: enrollmentId, cohortId } });
+      if (!enrollment) throw notFound('Cohort enrollment not found');
+      if (enrollment.status !== 'inactive') {
+        await tx.cohortEnrollment.update({ where: { id: enrollment.id }, data: {
+          status: 'inactive', endedAt: new Date(), endedBy: request.user.id, endReason: 'staff_removed',
+        } });
+      }
+    });
+    response.status(204).end();
+  });
+
+  app.post('/api/v1/cohorts/:cohortId/enrollments/:enrollmentId/reactivate', requireUser, async (request, response) => {
+    const cohortId = uuidParam(request, 'cohortId');
+    const enrollmentId = uuidParam(request, 'enrollmentId');
+    const initial = await requireCohortAccess(prisma, request.user, cohortId, { staffRoles: LEARNING_RESOURCE_ROLES });
+    const enrollment = await prisma.$transaction(async (tx) => {
+      await lockOrganization(tx, initial.organization.id);
+      await tx.$queryRaw`SELECT id FROM cohorts WHERE id = ${cohortId}::uuid FOR UPDATE`;
+      const current = await requireCohortAccess(tx, request.user, cohortId, { staffRoles: LEARNING_RESOURCE_ROLES });
+      if (current.organization.id !== initial.organization.id) throw notFound('Cohort not found');
+      const existing = await tx.cohortEnrollment.findFirst({ where: { id: enrollmentId, cohortId } });
+      if (!existing) throw notFound('Cohort enrollment not found');
+      if (existing.status === 'active') return existing;
+      return tx.cohortEnrollment.update({ where: { id: existing.id }, data: {
+        status: 'active', joinedAt: new Date(), endedAt: null, endedBy: null, endReason: null,
+      } });
+    });
+    response.set('Cache-Control', 'no-store').json({ id: enrollment.id, status: enrollment.status });
   });
 
   app.get('/api/v1/progress/me', requireUser, async (request, response) => {

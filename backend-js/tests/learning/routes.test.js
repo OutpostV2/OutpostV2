@@ -27,7 +27,7 @@ function fixture() {
     req.user = { id: req.get('X-Test-User') || '22222222-2222-4222-8222-222222222222', account_type: req.get('X-Test-Role') || 'student', display_name: 'Learner' };
     next();
   };
-  registerLearningRoutes(app, { prisma, settings: {}, requireUser });
+  registerLearningRoutes(app, { prisma, settings: {}, requireUser, redisClient: { eval: async () => 1 } });
   app.use(errorHandler);
   return { app, calls };
 }
@@ -53,7 +53,7 @@ describe('live learning route guardrails', () => {
   });
 });
 
-function workflowFixture() {
+function workflowFixture({ redisClient } = {}) {
   let sequence = 1;
   const makeId = () => '00000000-0000-4000-8000-' + String(sequence++).padStart(12, '0');
   const tables = Object.fromEntries(
@@ -64,10 +64,12 @@ function workflowFixture() {
     { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', displayName: 'Coordinator', primaryEmail: 'owner@example.edu', emailVerifiedAt: new Date(), accountType: 'coordinator', status: 'active' },
     { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', displayName: 'Learner', primaryEmail: 'student@example.edu', accountType: 'student', status: 'active' },
   );
-  const matches = (row, where = {}) => Object.entries(where).every(([key, value]) =>
-    value && typeof value === 'object' && 'in' in value
-      ? value.in.includes(row[key])
-      : row[key] === value);
+  const matches = (row, where = {}) => Object.entries(where).every(([key, value]) => {
+    if (key === 'cohortId_userId') return row.cohortId === value.cohortId && row.userId === value.userId;
+    if (value && typeof value === 'object' && 'in' in value) return value.in.includes(row[key]);
+    if (value && typeof value === 'object' && 'gt' in value) return row[key] > value.gt;
+    return row[key] === value;
+  });
   const model = (name) => ({
     create: async ({ data }) => {
       const row = { id: makeId(), createdAt: new Date('2026-09-25T00:00:00Z'), status: 'active', ...data };
@@ -104,6 +106,14 @@ function workflowFixture() {
   const prisma = Object.fromEntries(Object.keys(tables).map((name) => [name, model(name)]));
   prisma.$transaction = async (fn) => fn(prisma);
   prisma.$queryRaw = async () => [{ id: 'locked' }];
+  const rateCounts = new Map();
+  const limiter = redisClient ?? {
+    async eval(_script, { keys }) {
+      const count = (rateCounts.get(keys[0]) ?? 0) + 1;
+      rateCounts.set(keys[0], count);
+      return count;
+    },
+  };
   const app = express();
   app.use(express.json());
   const requireUser = (req, _res, next) => {
@@ -114,14 +124,14 @@ function workflowFixture() {
     };
     next();
   };
-  registerLearningRoutes(app, { prisma, settings: {}, requireUser });
+  registerLearningRoutes(app, { prisma, settings: {}, requireUser, redisClient: limiter });
   app.use(errorHandler);
   return { app, tables };
 }
 
 describe('live learning workflow', () => {
   it('creates an owned roadmap and cohort, joins a student, and reports completion', async () => {
-    const { app } = workflowFixture();
+    const { app, tables } = workflowFixture();
     const coordinator = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
     const student = { 'X-Test-Role': 'student', 'X-Test-User': 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' };
     const org = await request(app).post('/api/v1/organizations').set(coordinator).send({ name: 'Campus' });
@@ -142,7 +152,15 @@ describe('live learning workflow', () => {
       .send({ name: '2026 cohort', roadmap_version_id: roadmap.body.version_id });
     expect(cohort.status).toBe(201);
     expect(cohort.body.invite_code.length).toBeGreaterThanOrEqual(20);
-    expect((await request(app).get('/api/v1/organizations/' + org.body.id + '/cohorts').set(coordinator)).body).toHaveLength(1);
+    expect(cohort.body.invite_code).toHaveLength(43);
+    const storedCohort = tables.cohort[0];
+    expect(storedCohort.inviteCodeHash).not.toBe(cohort.body.invite_code);
+    expect(storedCohort.inviteCode).toBeUndefined();
+    expect(storedCohort.inviteCodeExpiresAt).toBeInstanceOf(Date);
+    const listedCohorts = await request(app).get('/api/v1/organizations/' + org.body.id + '/cohorts').set(coordinator);
+    expect(listedCohorts.body).toHaveLength(1);
+    expect(listedCohorts.body[0]).toMatchObject({ join_code_status: 'active' });
+    expect(listedCohorts.body[0]).not.toHaveProperty('invite_code');
     expect((await request(app).post('/api/v1/cohorts/join').set(coordinator).send({ invite_code: cohort.body.invite_code })).status).toBe(403);
     const joined = await request(app).post('/api/v1/cohorts/join').set(student).send({ invite_code: cohort.body.invite_code });
     expect(joined.status).toBe(200);
@@ -182,6 +200,123 @@ describe('live learning workflow', () => {
     expect((await request(app).post('/api/v1/cohorts/join').set(learner)
       .send({ invite_code: cohort.body.invite_code })).status).toBe(403);
     expect((await request(app).get(`/api/v1/cohorts/${cohort.body.id}/progress`).set(owner)).body.students).toEqual([]);
+  });
+
+  it('rotates and revokes a one-time code and uses one response for invalid codes', async () => {
+    const { app, tables } = workflowFixture();
+    const owner = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
+    const student = { 'X-Test-Role': 'student', 'X-Test-User': 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' };
+    const organization = await request(app).post('/api/v1/organizations').set(owner).send({ name: 'Campus' });
+    const roadmap = await request(app).post(`/api/v1/organizations/${organization.body.id}/roadmaps`).set(owner)
+      .send({ name: 'Plan', topics: [{ title: 'Topic' }] });
+    await request(app).post(`/api/v1/organizations/${organization.body.id}/roadmaps/${roadmap.body.id}/versions/${roadmap.body.version_id}/publish`).set(owner);
+    const cohort = await request(app).post(`/api/v1/organizations/${organization.body.id}/cohorts`).set(owner)
+      .send({ name: 'Cohort', roadmap_version_id: roadmap.body.version_id });
+    tables.cohort[0].inviteCodeExpiresAt = new Date(Date.now() - 1);
+    const expired = await request(app).post('/api/v1/cohorts/join').set(student)
+      .send({ invite_code: cohort.body.invite_code });
+    expect(expired.status).toBe(404);
+    expect(expired.body.error.message).toBe('Cohort invite not found');
+    expect((await request(app).get(`/api/v1/organizations/${organization.body.id}/cohorts`).set(owner))
+      .body[0].join_code_status).toBe('expired');
+    const rotated = await request(app).post(`/api/v1/cohorts/${cohort.body.id}/join-code/rotate`).set(owner);
+    expect(rotated.status).toBe(200);
+    expect(rotated.body.invite_code).toHaveLength(43);
+    expect(rotated.body.invite_code).not.toBe(cohort.body.invite_code);
+    expect((await request(app).post('/api/v1/cohorts/join').set(student)
+      .send({ invite_code: cohort.body.invite_code })).status).toBe(404);
+    expect((await request(app).post('/api/v1/cohorts/join').set(student)
+      .send({ invite_code: rotated.body.invite_code })).status).toBe(200);
+    const invalid = await request(app).post('/api/v1/cohorts/join').set(student)
+      .send({ invite_code: 'x'.repeat(43) });
+    expect(invalid.status).toBe(404);
+    expect(invalid.body.error).toMatchObject({ code: 'not_found', message: 'Cohort invite not found' });
+    expect((await request(app).delete(`/api/v1/cohorts/${cohort.body.id}/join-code`).set(owner)).status).toBe(204);
+    expect((await request(app).post('/api/v1/cohorts/join').set(student)
+      .send({ invite_code: rotated.body.invite_code })).status).toBe(404);
+    const list = await request(app).get(`/api/v1/organizations/${organization.body.id}/cohorts`).set(owner);
+    expect(list.body[0]).toMatchObject({ join_code_status: 'revoked', invite_code_expires_at: null });
+  });
+
+  it('rate limits join attempts per IP and account and fails closed when Valkey is unavailable', async () => {
+    const calls = [];
+    const limited = workflowFixture({ redisClient: { async eval(_script, options) {
+      calls.push({ key: options.keys[0], window: options.arguments[0] });
+      const [key] = options.keys;
+      return key.includes(':ip:') ? 31 : 1;
+    } } });
+    const student = { 'X-Test-Role': 'student', 'X-Test-User': 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' };
+    const limitedResult = await request(limited.app).post('/api/v1/cohorts/join').set(student)
+      .send({ invite_code: 'secret-code-'.padEnd(43, 'x') });
+    expect(limitedResult.status).toBe(429);
+    expect(limitedResult.headers['retry-after']).toBe('900');
+    expect(calls).toHaveLength(1);
+    expect(calls[0].key).toMatch(/^outpost:cohort-join:ip:[0-9a-f]{64}$/);
+    expect(calls[0].key).not.toContain(student['X-Test-User']);
+    expect(calls[0].key).not.toContain('secret-code');
+    expect(calls[0].window).toBe('900');
+
+    const accountLimitedCalls = [];
+    const accountLimited = workflowFixture({ redisClient: { async eval(_script, { keys }) {
+      accountLimitedCalls.push(keys[0]);
+      return keys[0].includes(':account:') ? 11 : 1;
+    } } });
+    const accountLimitedResult = await request(accountLimited.app).post('/api/v1/cohorts/join').set(student)
+      .send({ invite_code: 'another-secret-'.padEnd(43, 'y') });
+    expect(accountLimitedResult.status).toBe(429);
+    expect(accountLimitedCalls).toHaveLength(2);
+    expect(accountLimitedCalls[1]).not.toContain(student['X-Test-User']);
+
+    const unavailable = workflowFixture({ redisClient: { async eval() { throw new Error('Valkey unavailable'); } } });
+    const unavailableResult = await request(unavailable.app).post('/api/v1/cohorts/join').set(student)
+      .send({ invite_code: 'x'.repeat(43) });
+    expect(unavailableResult.status).toBe(503);
+    expect(unavailableResult.body.error.code).toBe('not_ready');
+  });
+
+  it('preserves progress after withdrawal and rejoin, while staff removal requires reinstatement', async () => {
+    const { app, tables } = workflowFixture();
+    const owner = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
+    const student = { 'X-Test-Role': 'student', 'X-Test-User': 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' };
+    const organization = await request(app).post('/api/v1/organizations').set(owner).send({ name: 'Campus' });
+    const roadmap = await request(app).post(`/api/v1/organizations/${organization.body.id}/roadmaps`).set(owner)
+      .send({ name: 'Plan', topics: [{ title: 'Topic' }] });
+    await request(app).post(`/api/v1/organizations/${organization.body.id}/roadmaps/${roadmap.body.id}/versions/${roadmap.body.version_id}/publish`).set(owner);
+    const cohort = await request(app).post(`/api/v1/organizations/${organization.body.id}/cohorts`).set(owner)
+      .send({ name: 'Cohort', roadmap_version_id: roadmap.body.version_id });
+    const code = cohort.body.invite_code;
+    await request(app).post('/api/v1/cohorts/join').set(student).send({ invite_code: code });
+    const topicId = roadmap.body.topics[0].id;
+    await request(app).put(`/api/v1/progress/topics/${topicId}`).set(student).send({ completed: true });
+    expect((await request(app).delete(`/api/v1/cohorts/${cohort.body.id}/enrollments/me`).set(student)).status).toBe(204);
+    expect((await request(app).get('/api/v1/progress/me').set(student)).body).toEqual([]);
+    expect((await request(app).post('/api/v1/cohorts/join').set(student).send({ invite_code: code })).status).toBe(200);
+    expect((await request(app).get('/api/v1/progress/me').set(student)).body[0].completed).toBe(1);
+    const enrollmentId = tables.cohortEnrollment[0].id;
+    expect((await request(app).delete(`/api/v1/cohorts/${cohort.body.id}/enrollments/${enrollmentId}`).set(owner)).status).toBe(204);
+    expect((await request(app).post('/api/v1/cohorts/join').set(student).send({ invite_code: code })).status).toBe(409);
+    expect((await request(app).get(`/api/v1/cohorts/${cohort.body.id}/enrollments`).set(owner)).body).toMatchObject([
+      { id: enrollmentId, status: 'inactive', end_reason: 'staff_removed' },
+    ]);
+    expect((await request(app).post(`/api/v1/cohorts/${cohort.body.id}/enrollments/${enrollmentId}/reactivate`).set(owner)).status).toBe(200);
+    expect((await request(app).get('/api/v1/progress/me').set(student)).body[0].completed).toBe(1);
+    expect(tables.topicProgress).toHaveLength(1);
+  });
+
+  it('rejects cross-tenant join-code and roster access', async () => {
+    const { app } = workflowFixture();
+    const owner = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
+    const other = { 'X-Test-Role': 'coordinator', 'X-Test-User': 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' };
+    const organization = await request(app).post('/api/v1/organizations').set(owner).send({ name: 'Campus' });
+    const otherOrganization = await request(app).post('/api/v1/organizations').set(other).send({ name: 'Other Campus' });
+    const roadmap = await request(app).post(`/api/v1/organizations/${organization.body.id}/roadmaps`).set(owner)
+      .send({ name: 'Plan', topics: [{ title: 'Topic' }] });
+    await request(app).post(`/api/v1/organizations/${organization.body.id}/roadmaps/${roadmap.body.id}/versions/${roadmap.body.version_id}/publish`).set(owner);
+    const cohort = await request(app).post(`/api/v1/organizations/${organization.body.id}/cohorts`).set(owner)
+      .send({ name: 'Cohort', roadmap_version_id: roadmap.body.version_id });
+    expect((await request(app).post(`/api/v1/cohorts/${cohort.body.id}/join-code/rotate`).set(other)).status).toBe(403);
+    expect((await request(app).get(`/api/v1/cohorts/${cohort.body.id}/enrollments`).set(other)).status).toBe(403);
+    expect((await request(app).get(`/api/v1/organizations/${otherOrganization.body.id}/cohorts`).set(other)).body).toEqual([]);
   });
 });
 

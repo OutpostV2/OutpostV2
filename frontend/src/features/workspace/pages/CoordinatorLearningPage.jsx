@@ -9,16 +9,25 @@ import {
   createCohort,
   createOrganization,
   createRoadmap,
+  getCohortEnrollments,
   listCohorts,
   listOrganizations,
   listRoadmaps,
   publishRoadmapVersion,
+  reactivateCohortEnrollment,
+  removeCohortEnrollment,
+  revokeCohortJoinCode,
+  rotateCohortJoinCode,
 } from '../learningApi'
 export default function CoordinatorLearningPage() {
   const [organizations, setOrganizations] = useState([])
   const [organizationId, setOrganizationId] = useState('')
   const [roadmaps, setRoadmaps] = useState([])
   const [cohorts, setCohorts] = useState([])
+  const [oneTimeCodes, setOneTimeCodes] = useState({})
+  const [rosters, setRosters] = useState({})
+  const [rosterOpen, setRosterOpen] = useState({})
+  const [rosterLoading, setRosterLoading] = useState('')
   const [organizationName, setOrganizationName] = useState('')
   const [roadmapName, setRoadmapName] = useState('')
   const [roadmapDescription, setRoadmapDescription] = useState('')
@@ -179,12 +188,141 @@ export default function CoordinatorLearningPage() {
         cohortName.trim(),
         versionId,
       )
-      setCohorts((items) => [...items, created])
+      const { invite_code: inviteCode, ...cohortMetadata } = created
+      setCohorts((items) => [...items, cohortMetadata])
+      if (inviteCode) {
+        setOneTimeCodes((codes) => ({
+          ...codes,
+          [created.id]: inviteCode,
+        }))
+      }
       setCohortName('')
       setMessage('Cohort created. Share its join code with a student.')
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : 'Cohort could not be created.',
+      )
+    } finally {
+      setBusy('')
+    }
+  }
+  async function rotateCode(cohort) {
+    setBusy(`rotate:${cohort.id}`)
+    setError('')
+    setMessage('')
+    try {
+      const rotated = await rotateCohortJoinCode(cohort.id)
+      const { invite_code: inviteCode, ...cohortMetadata } = rotated
+      setCohorts((items) =>
+        items.map((item) =>
+          item.id === cohort.id ? { ...item, ...cohortMetadata } : item,
+        ),
+      )
+      setOneTimeCodes((codes) => ({
+        ...codes,
+        [cohort.id]: inviteCode,
+      }))
+      setMessage(
+        `A new join code for ${cohort.name} is shown once. The previous code no longer works.`,
+      )
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'The join code could not be rotated.',
+      )
+    } finally {
+      setBusy('')
+    }
+  }
+  async function revokeCode(cohort) {
+    setBusy(`revoke:${cohort.id}`)
+    setError('')
+    setMessage('')
+    try {
+      await revokeCohortJoinCode(cohort.id)
+      setCohorts((items) =>
+        items.map((item) =>
+          item.id === cohort.id
+            ? {
+                ...item,
+                join_code_status: 'revoked',
+                invite_code_expires_at: null,
+              }
+            : item,
+        ),
+      )
+      setOneTimeCodes((codes) => {
+        const next = { ...codes }
+        delete next[cohort.id]
+        return next
+      })
+      setMessage(`The join code for ${cohort.name} has been revoked.`)
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'The join code could not be revoked.',
+      )
+    } finally {
+      setBusy('')
+    }
+  }
+  async function toggleRoster(cohort) {
+    if (rosterOpen[cohort.id]) {
+      setRosterOpen((open) => ({ ...open, [cohort.id]: false }))
+      return
+    }
+    if (!Object.hasOwn(rosters, cohort.id)) {
+      setRosterLoading(cohort.id)
+      setError('')
+      try {
+        const enrollments = await getCohortEnrollments(cohort.id)
+        setRosters((current) => ({ ...current, [cohort.id]: enrollments }))
+      } catch (cause) {
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : 'The cohort roster could not be loaded.',
+        )
+        setRosterLoading('')
+        return
+      } finally {
+        setRosterLoading('')
+      }
+    }
+    setRosterOpen((open) => ({ ...open, [cohort.id]: true }))
+  }
+  async function changeEnrollment(cohort, enrollment, reactivate) {
+    setBusy(`${reactivate ? 'reinstate' : 'remove'}:${enrollment.id}`)
+    setError('')
+    setMessage('')
+    try {
+      if (reactivate) await reactivateCohortEnrollment(cohort.id, enrollment.id)
+      else await removeCohortEnrollment(cohort.id, enrollment.id)
+      const updated = await getCohortEnrollments(cohort.id)
+      setRosters((current) => ({ ...current, [cohort.id]: updated }))
+      setCohorts((current) =>
+        current.map((item) =>
+          item.id === cohort.id
+            ? {
+                ...item,
+                student_count: updated.filter((row) => row.status === 'active')
+                  .length,
+              }
+            : item,
+        ),
+      )
+      setMessage(
+        reactivate
+          ? `${enrollment.display_name} was reinstated.`
+          : `${enrollment.display_name} was removed from the cohort.`,
+      )
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'Enrollment could not be updated.',
       )
     } finally {
       setBusy('')
@@ -408,8 +546,128 @@ export default function CoordinatorLearningPage() {
                     </span>
                   </div>
                   <div className="learning-invite">
-                    <span>Student join code</span>
-                    <code>{cohort.invite_code}</code>
+                    <span>
+                      Student join code · {cohort.join_code_status || 'unknown'}
+                    </span>
+                    {cohort.invite_code_expires_at && (
+                      <small>
+                        Expires{' '}
+                        {new Date(
+                          cohort.invite_code_expires_at,
+                        ).toLocaleDateString()}
+                      </small>
+                    )}
+                    {oneTimeCodes[cohort.id] ? (
+                      <>
+                        <code>{oneTimeCodes[cohort.id]}</code>
+                        <small>
+                          Copy this code now. It will not be shown again.
+                        </small>
+                      </>
+                    ) : (
+                      <small>
+                        {cohort.join_code_status === 'active'
+                          ? 'The code was shown when it was created or rotated.'
+                          : 'No usable join code is available.'}
+                      </small>
+                    )}
+                    <div className="learning-actions">
+                      <button
+                        type="button"
+                        className="workspace-button workspace-button-outline"
+                        disabled={busy !== ''}
+                        onClick={() => void rotateCode(cohort)}
+                      >
+                        {busy === `rotate:${cohort.id}`
+                          ? 'Rotating…'
+                          : 'Rotate join code'}
+                      </button>
+                      <button
+                        type="button"
+                        className="workspace-button workspace-button-outline"
+                        disabled={
+                          busy !== '' || cohort.join_code_status === 'revoked'
+                        }
+                        onClick={() => void revokeCode(cohort)}
+                      >
+                        {busy === `revoke:${cohort.id}`
+                          ? 'Revoking…'
+                          : 'Revoke join code'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="learning-roster-controls">
+                    <button
+                      type="button"
+                      className="workspace-button workspace-button-outline"
+                      disabled={rosterLoading === cohort.id || busy !== ''}
+                      onClick={() => void toggleRoster(cohort)}
+                    >
+                      {rosterLoading === cohort.id
+                        ? 'Loading roster…'
+                        : rosterOpen[cohort.id]
+                          ? 'Hide roster'
+                          : 'Show roster'}
+                    </button>
+                    {rosterOpen[cohort.id] && (
+                      <div
+                        className="learning-roster"
+                        aria-label={`${cohort.name} roster`}
+                      >
+                        {rosters[cohort.id]?.length ? (
+                          rosters[cohort.id].map((enrollment) => (
+                            <div
+                              className="learning-roster-item"
+                              key={enrollment.id}
+                            >
+                              <div>
+                                <strong>{enrollment.display_name}</strong>
+                                <span>
+                                  {enrollment.status === 'active'
+                                    ? 'Active'
+                                    : `Inactive · ${enrollment.end_reason || 'ended'}`}
+                                </span>
+                              </div>
+                              {enrollment.status === 'active' ? (
+                                <button
+                                  type="button"
+                                  className="workspace-button workspace-button-outline"
+                                  disabled={busy !== ''}
+                                  onClick={() =>
+                                    void changeEnrollment(
+                                      cohort,
+                                      enrollment,
+                                      false,
+                                    )
+                                  }
+                                  aria-label={`Remove ${enrollment.display_name}`}
+                                >
+                                  Remove
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="workspace-button workspace-button-outline"
+                                  disabled={busy !== ''}
+                                  onClick={() =>
+                                    void changeEnrollment(
+                                      cohort,
+                                      enrollment,
+                                      true,
+                                    )
+                                  }
+                                  aria-label={`Reinstate ${enrollment.display_name}`}
+                                >
+                                  Reinstate
+                                </button>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <p>No student enrollments yet.</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <Link
                     className="workspace-text-link"

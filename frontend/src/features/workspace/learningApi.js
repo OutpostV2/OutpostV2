@@ -137,6 +137,39 @@ export function joinCohort(inviteCode) {
     body: JSON.stringify({ invite_code: inviteCode }),
   })
 }
+export function rotateCohortJoinCode(cohortId) {
+  return apiRequest(
+    `/cohorts/${encodeURIComponent(cohortId)}/join-code/rotate`,
+    {
+      method: 'POST',
+    },
+  )
+}
+export function revokeCohortJoinCode(cohortId) {
+  return apiRequest(`/cohorts/${encodeURIComponent(cohortId)}/join-code`, {
+    method: 'DELETE',
+  })
+}
+export function getCohortEnrollments(cohortId) {
+  return apiRequest(`/cohorts/${encodeURIComponent(cohortId)}/enrollments`)
+}
+export function removeCohortEnrollment(cohortId, enrollmentId) {
+  return apiRequest(
+    `/cohorts/${encodeURIComponent(cohortId)}/enrollments/${encodeURIComponent(enrollmentId)}`,
+    { method: 'DELETE' },
+  )
+}
+export function reactivateCohortEnrollment(cohortId, enrollmentId) {
+  return apiRequest(
+    `/cohorts/${encodeURIComponent(cohortId)}/enrollments/${encodeURIComponent(enrollmentId)}/reactivate`,
+    { method: 'POST' },
+  )
+}
+export function withdrawFromCohort(cohortId) {
+  return apiRequest(`/cohorts/${encodeURIComponent(cohortId)}/enrollments/me`, {
+    method: 'DELETE',
+  })
+}
 export function getMyLearning() {
   return apiRequest('/progress/me')
 }

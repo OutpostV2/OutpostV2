@@ -1378,6 +1378,50 @@
   flex-wrap: wrap;
   margin-top: 16px;
 }
+.learning-actions,
+.learning-assignment-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.learning-assignment-actions {
+  margin-top: 14px;
+}
+.learning-assignment-actions small {
+  color: var(--workspace-muted);
+}
+.learning-roster-controls {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+}
+.learning-roster {
+  display: grid;
+  width: 100%;
+  gap: 8px;
+  border-top: 1px solid var(--workspace-line);
+  padding-top: 10px;
+}
+.learning-roster-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--workspace-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff;
+}
+.learning-roster-item strong,
+.learning-roster-item span {
+  display: block;
+}
+.learning-roster-item span {
+  margin-top: 3px;
+  color: var(--workspace-muted);
+  font-size: 0.8rem;
+}
 .learning-inline-form .form-field {
   flex: 1 1 280px;
   max-width: 470px;
@@ -1624,5 +1668,21 @@
   }
   .roadmap-actions .workspace-button {
     width: 100%;
+  }
+}
+@media (max-width: 560px) {
+  .learning-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .learning-actions .workspace-button,
+  .learning-roster-controls > .workspace-button {
+    width: 100%;
+  }
+  .learning-roster-item {
+    align-items: flex-start;
+  }
+  .learning-roster-item .workspace-button {
+    flex: none;
   }
 }

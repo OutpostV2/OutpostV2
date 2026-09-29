@@ -19,6 +19,12 @@ vi.mock('../learningApi', () => ({
   publishRoadmapVersion: vi.fn(),
   listCohorts: vi.fn(),
   createCohort: vi.fn(),
+  rotateCohortJoinCode: vi.fn(),
+  revokeCohortJoinCode: vi.fn(),
+  getCohortEnrollments: vi.fn(),
+  removeCohortEnrollment: vi.fn(),
+  reactivateCohortEnrollment: vi.fn(),
+  withdrawFromCohort: vi.fn(),
   joinCohort: vi.fn(),
   getMyLearning: vi.fn(),
   setTopicProgress: vi.fn(),
@@ -219,4 +225,132 @@ it('shows a useful error when a student enters an invalid join code', async () =
     'Join code was not found.',
   )
   expect(screen.getByRole('button', { name: 'Join cohort' })).toBeEnabled()
+})
+
+it('lets coordinators rotate and revoke codes and manage cohort enrollment', async () => {
+  const organization = { id: 'org-1', name: 'Campus', role: 'owner' }
+  const cohort = {
+    id: 'cohort-1',
+    organization_id: organization.id,
+    name: '2026 cohort',
+    roadmap_version_id: 'version-1',
+    roadmap_name: 'Career readiness',
+    join_code_status: 'active',
+    invite_code_expires_at: '2026-10-06T00:00:00Z',
+    student_count: 1,
+  }
+  vi.mocked(learningApi.listOrganizations).mockResolvedValue([organization])
+  vi.mocked(learningApi.listRoadmaps).mockResolvedValue([
+    {
+      id: 'roadmap-1',
+      version_id: 'version-1',
+      name: 'Career readiness',
+      status: 'published',
+      topics: [],
+    },
+  ])
+  vi.mocked(learningApi.listCohorts).mockResolvedValue([cohort])
+  vi.mocked(learningApi.getCohortEnrollments)
+    .mockResolvedValueOnce([
+      {
+        id: 'enrollment-1',
+        user_id: 'student-1',
+        display_name: 'Mira',
+        status: 'active',
+      },
+    ])
+    .mockResolvedValueOnce([
+      {
+        id: 'enrollment-1',
+        user_id: 'student-1',
+        display_name: 'Mira',
+        status: 'inactive',
+        end_reason: 'staff_removed',
+      },
+    ])
+    .mockResolvedValueOnce([
+      {
+        id: 'enrollment-1',
+        user_id: 'student-1',
+        display_name: 'Mira',
+        status: 'active',
+      },
+    ])
+  vi.mocked(learningApi.rotateCohortJoinCode).mockResolvedValue({
+    ...cohort,
+    invite_code: 'new-one-time-code',
+  })
+  vi.mocked(learningApi.revokeCohortJoinCode).mockResolvedValue()
+  vi.mocked(learningApi.removeCohortEnrollment).mockResolvedValue()
+  vi.mocked(learningApi.reactivateCohortEnrollment).mockResolvedValue({
+    id: 'enrollment-1',
+    status: 'active',
+  })
+  render(
+    <MemoryRouter>
+      <CoordinatorLearningPage />
+    </MemoryRouter>,
+  )
+  expect(
+    await screen.findByText(/Student join code · active/),
+  ).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Rotate join code' }))
+  expect(await screen.findByText('new-one-time-code')).toBeInTheDocument()
+  expect(learningApi.rotateCohortJoinCode).toHaveBeenCalledWith('cohort-1')
+  fireEvent.click(screen.getByRole('button', { name: 'Show roster' }))
+  expect(await screen.findByText('Mira')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Remove Mira' }))
+  await waitFor(() =>
+    expect(learningApi.removeCohortEnrollment).toHaveBeenCalledWith(
+      'cohort-1',
+      'enrollment-1',
+    ),
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Reinstate Mira' }))
+  await waitFor(() =>
+    expect(learningApi.reactivateCohortEnrollment).toHaveBeenCalledWith(
+      'cohort-1',
+      'enrollment-1',
+    ),
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Revoke join code' }))
+  await waitFor(() =>
+    expect(learningApi.revokeCohortJoinCode).toHaveBeenCalledWith('cohort-1'),
+  )
+  expect(screen.queryByText('new-one-time-code')).not.toBeInTheDocument()
+  expect(screen.getByText(/Student join code · revoked/)).toBeInTheDocument()
+})
+
+it('lets a student withdraw from an assigned cohort without losing the join workflow', async () => {
+  const assignment = {
+    cohort_id: 'cohort-1',
+    cohort_name: '2026 cohort',
+    organization_name: 'Campus',
+    roadmap_name: 'Career readiness',
+    completed: 0,
+    total: 0,
+    percent: 0,
+    topics: [],
+  }
+  vi.mocked(learningApi.getMyLearning)
+    .mockResolvedValueOnce([assignment])
+    .mockResolvedValueOnce([])
+  vi.mocked(learningApi.withdrawFromCohort).mockResolvedValue()
+  render(
+    <MemoryRouter>
+      <StudentLearningPage />
+    </MemoryRouter>,
+  )
+  fireEvent.click(await screen.findByRole('button', { name: 'Leave cohort' }))
+  await waitFor(() =>
+    expect(learningApi.withdrawFromCohort).toHaveBeenCalledWith('cohort-1'),
+  )
+  expect(
+    await screen.findByText(
+      'You left 2026 cohort. Your saved progress is retained.',
+    ),
+  ).toBeInTheDocument()
+  expect(
+    screen.getByRole('heading', { name: 'Join a cohort' }),
+  ).toBeInTheDocument()
 })
