@@ -2373,13 +2373,13 @@ Outpost-New/
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 16 — M2 Student Live Workspace. Phase 15 cohort and join-code governance is verified and committed.
+Phase 16 — M2 Student Live Workspace. The pinned student progress API contract is implemented and verified; the student dashboard remains fixture-driven.
 
 CURRENT TASK:
-Implement the first bounded Phase 16 step from `docs/superpowers/plans/2026-09-29-phase16-student-progress-contract.md`: enrich `GET /api/v1/progress/me` with each active assignment's pinned roadmap version ID/number and ordered phase → week → topic tree, preserving current flat fields. Keep authorization and per-user progress intact. Do not add an activity-event model or change the frontend in this task.
+Wire the live /api/v1/progress/me contract into /app/student. Replace review-scenario dashboard metrics with authenticated assignments; show each cohort and exact pinned roadmap version, ordered phase → week → topic progress, personal completion, and the next incomplete topic. Persist completion with the existing topic-progress API. Keep sample roadmap/activity clearly labeled as illustrative and separate from live assignment data. Cover loading, empty, error/retry, multiple-assignment, and refresh-persistence behavior; verify responsive layout. Do not infer activity history or begin Phase 17.
 
 TASK GOAL:
-Make assigned learning the primary student dashboard. Show the enrolled cohort/version, roadmap tree, personal completion, next step, and available activity. Verify authorized reads, independent user state, refresh persistence, and loading/empty/error/mobile states.
+Make assigned learning the primary student dashboard. Show the enrolled cohort/version, roadmap tree, personal completion, current progress, next step, and activity where real events exist. Verify authorized reads, independent user state, refresh persistence, and loading/empty/error/mobile states.
 
 Repository:
 Outpost
@@ -2387,50 +2387,55 @@ Outpost
 Project root:
 D:\Shared Workspace\Projects\Outpost-New
 
+Active checkout:
+C:\Users\priya\.codex\worktrees\phase16-progress-contract\Outpost-New
+
 Branch:
-main
+codex/phase16-progress-contract
 
 LAST VERIFIED PROJECT COMMIT:
-8385e7e32cd7d26276576fc3a1c0107393d1b348
+418fd60c27d86f6b64028852d17f55442a705ddd
 
 CHECKPOINT FILE STATE:
-Commit A contains the reviewed, statically verified Phase 16 implementation plan. Commit B updates only Layer 4; its own commit hash is not recorded here.
+Commit A 418fd60c27d86f6b64028852d17f55442a705ddd contains the verified progress API implementation and PostgreSQL integration coverage. Commit B updates only Layer 4; its own hash is not recorded here.
 
 Working tree at last verification:
-Clean immediately after Commit A and before this Layer 4 edit. Verify again after Commit B.
+Clean after Commit A and before this Layer 4 edit. Verify after Commit B.
 
 Last verified baseline:
-- At Phase 15 project commit `01040c2aea288d26e843e7995edc407f5663214e`, backend `npm test` passed 42 tests with 7 database tests skipped; `npm run test:db` passed all 7 PostgreSQL tests. Prisma validation/generation and migration status passed; frontend tests (30), lint, build, targeted formatting, and `git diff --check` passed.
-- This Phase 16 task only inspected the existing flow and produced a plan. Its structure, referenced paths, Phase 16 alignment, and staged whitespace check were verified; no application or database tests were run.
+- Before implementation at base c32022e6a152a2b635747666d4cb182870403661, backend npm test passed 42 tests with 7 skipped; npm run test:db passed all 7 PostgreSQL tests after generating Prisma Client from the checked-in schema.
+- After implementation: focused cohort-governance.test.js passed 1/1; backend npm test passed 42 with 7 skipped; npm run test:db passed 7/7; git diff --check passed. No schema or migration change was needed.
 
 COMPLETED WITHIN CURRENT PHASE:
-Inspected student role routing, dashboard, assigned learning, roadmap/activity pages, and progress API. The current `/app/student` dashboard and activity page consume the illustrative review scenario; the live `/api/v1/progress/me` read already scopes active cohort enrollments and per-user topic completion, including archived pinned versions, but returns only flat topics and omits version metadata. No learning activity-event model exists, so this task preserves that boundary and does not invent event history. The first implementation task is planned and selected below; Phase 16 product code has not changed.
+GET /api/v1/progress/me now returns each authorized active assignment's pinned roadmap version ID/number and ordered phase → week → topic hierarchy, with per-requesting-user completion and timestamps. Existing flat topics and summary fields remain. PostgreSQL coverage verifies coordinator denial, independent student progress, withdrawal behavior, and continued access to the cohort's archived pinned version. No activity-event model or frontend change was made.
 
 FILES RELEVANT TO CURRENT TASK:
-docs/OUTPOST-MASTER-BUILD-PROMPT.md
-docs/superpowers/plans/2026-09-29-phase16-student-progress-contract.md
-backend-js/src/modules/learning/routes.js
-backend-js/tests/db/cohort-governance.test.js
-backend-js/prisma/schema.prisma
-backend-js/src/core/authorization.js
+frontend/src/features/workspace/pages/StudentDashboardPage.jsx
+frontend/src/features/workspace/pages/StudentLearningPage.jsx
+frontend/src/features/workspace/components/WorkspaceShell.jsx
+frontend/src/features/workspace/learningApi.js
+frontend/src/features/workspace/pages/LiveLearning.test.jsx
+frontend/src/features/workspace/WorkspaceShell.test.jsx
+frontend/src/app/workspace.css
+frontend/src/features/workspace/pages/StudentActivityPage.jsx
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
-Commit A adds `docs/superpowers/plans/2026-09-29-phase16-student-progress-contract.md`. Commit B changes only this file's Layer 4.
+Commit A changes only backend-js/src/modules/learning/routes.js and backend-js/tests/db/cohort-governance.test.js. Commit B changes only this Layer 4 checkpoint.
 
 ENVIRONMENT:
-Windows / PowerShell. No services were started and no project tests were rerun for this plan-only task. No push was requested.
+Windows / PowerShell. Implementation is in the managed worktree at the active checkout above. Node.js v26.7.0 and PostgreSQL-backed tests were available. The temporary copied backend-js/.env was removed after verification; no environment values were recorded. No push or merge was performed.
 
 CURRENT REQUEST:
-Complete the active Phase 16 inspection/definition checkpoint and select its first bounded implementation task.
+Continue Phase 16 with the live student overview task described above. Preserve the explicitly illustrative review scenario and verify the student-facing flow end to end.
 
 LAST COMMAND:
-`git rev-parse HEAD; git show --stat --oneline HEAD; git status --short --branch`.
+npm --prefix backend-js run test:db via the plan completion check.
 
 CURRENT OUTPUT / ERROR:
-Commit A `8385e7e32cd7d26276576fc3a1c0107393d1b348` contains the Phase 16 student progress contract plan. The worktree was clean immediately after Commit A; no verification error remains for this documentation-only task.
+Task 1 completed. PostgreSQL suite: 7 tests passed; no verification error remains for the API contract task.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-The planned response adds `roadmap_version_id`, `roadmap_version_number`, and ordered `phases[].weeks[].topics[]` to `/api/v1/progress/me`, while retaining existing flat fields. See the plan for the exact contract and verification steps.
+The endpoint now exposes roadmap_version_id, roadmap_version_number, and phases[].weeks[].topics[]; nested topics contain order_index, completed, and completed_at. The live learning API client already provides getMyLearning() and setTopicProgress().
 
 ---
 # SESSION OPERATING RULE
