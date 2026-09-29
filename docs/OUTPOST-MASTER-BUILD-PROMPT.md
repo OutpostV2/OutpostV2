@@ -2376,7 +2376,7 @@ CURRENT PHASE:
 Phase 16 — M2 Student Live Workspace. Phase 15 cohort and join-code governance is verified and committed.
 
 CURRENT TASK:
-Next selected task: inspect the student dashboard, assigned-learning/roadmap/activity pages, role routing, and live progress API; define the first bounded Phase 16 implementation step to replace student fixture metrics with authorized cohort/version data. Keep the review scenario explicitly illustrative. Do not start Phase 16 implementation during this checkpoint.
+Implement the first bounded Phase 16 step from `docs/superpowers/plans/2026-09-29-phase16-student-progress-contract.md`: enrich `GET /api/v1/progress/me` with each active assignment's pinned roadmap version ID/number and ordered phase → week → topic tree, preserving current flat fields. Keep authorization and per-user progress intact. Do not add an activity-event model or change the frontend in this task.
 
 TASK GOAL:
 Make assigned learning the primary student dashboard. Show the enrolled cohort/version, roadmap tree, personal completion, next step, and available activity. Verify authorized reads, independent user state, refresh persistence, and loading/empty/error/mobile states.
@@ -2391,56 +2391,46 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-01040c2aea288d26e843e7995edc407f5663214e
+8385e7e32cd7d26276576fc3a1c0107393d1b348
 
 CHECKPOINT FILE STATE:
-Commit A contains the verified Phase 15 implementation. Commit B updates only Layer 4; its own commit hash is not recorded here.
+Commit A contains the reviewed, statically verified Phase 16 implementation plan. Commit B updates only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean immediately after Commit A and before this Layer 4 edit. Verify again after Commit B.
 
 Last verified baseline:
-- Backend `npm test`: 42 passed, 7 PostgreSQL tests skipped because that command does not load the database environment. `npm run test:db`: all 7 PostgreSQL tests passed, including cohort governance and migration preservation.
-- Prisma `npm run db:validate` and `npm run db:generate` passed. `npx prisma migrate status` reports the database schema is up to date with 4 migrations. The Phase 15 migration was applied without resetting the database; test data cleanup left 0 cohorts and 0 enrollments.
-- Frontend `npm test`: 30 passed. `npm run lint`, `npm run build`, and targeted Prettier checks passed. `git diff --check` passed.
-- One overlapping verification run timed out the existing Argon2 compatibility test at its 5-second limit. The isolated password test passed 2/2 in 2.19 seconds, and the standalone full backend suite passed. No password code or test was changed.
-- No Playwright package or browser walkthrough is configured for the frontend; the new coordinator and student flows are covered by component tests and PostgreSQL-backed API tests.
+- At Phase 15 project commit `01040c2aea288d26e843e7995edc407f5663214e`, backend `npm test` passed 42 tests with 7 database tests skipped; `npm run test:db` passed all 7 PostgreSQL tests. Prisma validation/generation and migration status passed; frontend tests (30), lint, build, targeted formatting, and `git diff --check` passed.
+- This Phase 16 task only inspected the existing flow and produced a plan. Its structure, referenced paths, Phase 16 alignment, and staged whitespace check were verified; no application or database tests were run.
 
 COMPLETED WITHIN CURRENT PHASE:
-No Phase 16 implementation yet. Phase 15 is complete in Commit A.
+Inspected student role routing, dashboard, assigned learning, roadmap/activity pages, and progress API. The current `/app/student` dashboard and activity page consume the illustrative review scenario; the live `/api/v1/progress/me` read already scopes active cohort enrollments and per-user topic completion, including archived pinned versions, but returns only flat topics and omits version metadata. No learning activity-event model exists, so this task preserves that boundary and does not invent event history. The first implementation task is planned and selected below; Phase 16 product code has not changed.
 
 FILES RELEVANT TO CURRENT TASK:
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
-docs/decisions/ADR-007-cohort-join-and-enrollment-governance.md
-frontend/src/app/App.jsx
-frontend/src/features/workspace/pages/StudentDashboardPage.jsx
-frontend/src/features/workspace/pages/StudentLearningPage.jsx
-frontend/src/features/workspace/pages/StudentRoadmapPage.jsx
-frontend/src/features/workspace/pages/StudentActivityPage.jsx
-frontend/src/features/workspace/learningApi.js
-backend-js/prisma/schema.prisma
+docs/superpowers/plans/2026-09-29-phase16-student-progress-contract.md
 backend-js/src/modules/learning/routes.js
-backend-js/src/core/authorization.js
-frontend/src/features/review/ReviewPage.jsx
 backend-js/tests/db/cohort-governance.test.js
+backend-js/prisma/schema.prisma
+backend-js/src/core/authorization.js
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
-Commit A changed 16 Phase 15 files: cohort schema/migration/routes, backend and PostgreSQL tests, coordinator/student UI and API client, styles, ADR-007/index, and the implementation plan. Commit B changes only this file's Layer 4.
+Commit A adds `docs/superpowers/plans/2026-09-29-phase16-student-progress-contract.md`. Commit B changes only this file's Layer 4.
 
 ENVIRONMENT:
-Windows / PowerShell. PostgreSQL database `outpost` at `127.0.0.1:5433` is reachable and up to date. The real Valkey service was not independently probed; the application wires its configured Redis-compatible client to the join limiter. No temporary API/Vite server was started and no push was requested.
+Windows / PowerShell. No services were started and no project tests were rerun for this plan-only task. No push was requested.
 
 CURRENT REQUEST:
-Complete Phase 15. Stop after updating this checkpoint and selecting Phase 16.
+Complete the active Phase 16 inspection/definition checkpoint and select its first bounded implementation task.
 
 LAST COMMAND:
-`rg --files | rg -i 'playwright|e2e'; npm ls @playwright/test playwright --depth=0`.
+`git rev-parse HEAD; git show --stat --oneline HEAD; git status --short --branch`.
 
 CURRENT OUTPUT / ERROR:
-Commit A `01040c2aea288d26e843e7995edc407f5663214e` contains the 16 intended Phase 15 files. The frontend has no Playwright dependency or browser-test files; the component and PostgreSQL flow checks passed. No Phase 15 verification failure remains.
+Commit A `8385e7e32cd7d26276576fc3a1c0107393d1b348` contains the Phase 16 student progress contract plan. The worktree was clean immediately after Commit A; no verification error remains for this documentation-only task.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Phase 16 begins by inspecting the student dashboard and live learning API before defining the first implementation task.
+The planned response adds `roadmap_version_id`, `roadmap_version_number`, and ordered `phases[].weeks[].topics[]` to `/api/v1/progress/me`, while retaining existing flat fields. See the plan for the exact contract and verification steps.
 
 ---
 # SESSION OPERATING RULE
