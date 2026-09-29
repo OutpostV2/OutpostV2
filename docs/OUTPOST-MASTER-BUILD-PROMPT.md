@@ -2373,13 +2373,13 @@ Outpost-New/
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 15 — M1 Cohort and Join-Code Governance. Phase 14 roadmap drafts and immutable versions are verified and committed.
+Phase 16 — M2 Student Live Workspace. Phase 15 cohort and join-code governance is verified and committed.
 
 CURRENT TASK:
-Next selected task: inspect the current cohort, enrollment, join-code, and version-pinning behavior; define the join-code lifecycle and enrollment/withdrawal policy under the existing tenant model before implementing Phase 15 changes.
+Next selected task: inspect the student dashboard, assigned-learning/roadmap/activity pages, role routing, and live progress API; define the first bounded Phase 16 implementation step to replace student fixture metrics with authorized cohort/version data. Keep the review scenario explicitly illustrative. Do not start Phase 16 implementation during this checkpoint.
 
 TASK GOAL:
-Specify expiry, rotation, revocation, misuse/rate controls, and withdrawal behavior without changing pinned cohort versions or prior progress. Then implement the first bounded, verified Phase 15 task under the Layer 1 loop.
+Make assigned learning the primary student dashboard. Show the enrolled cohort/version, roadmap tree, personal completion, next step, and available activity. Verify authorized reads, independent user state, refresh persistence, and loading/empty/error/mobile states.
 
 Repository:
 Outpost
@@ -2391,54 +2391,56 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-90d79e768ed1ea8c0e733fff9cdab85dbbf908b6
+01040c2aea288d26e843e7995edc407f5663214e
 
 CHECKPOINT FILE STATE:
-Commit A contains the Phase 14 migration, API lifecycle, frontend management, tests, ADR-005 update, and implementation plan. This separate checkpoint edits only Layer 4; its own commit hash is not recorded here.
+Commit A contains the verified Phase 15 implementation. Commit B updates only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean immediately after Commit A and before this Layer 4 edit. Verify again after Commit B.
 
 Last verified baseline:
-- Backend `npm test`: 38 passed, 5 PostgreSQL files skipped by that command. A concurrent, heavily loaded run timed out one unrelated Argon2 password test; the isolated full rerun passed. `npm run test:db`: all 5 PostgreSQL-backed files passed.
-- Frontend `npm test`: 28 passed. `npm run lint`, `npm run format:check`, and `npm run build` passed.
-- `npm run db:validate` and `npx prisma migrate status` passed; three migrations are applied and PostgreSQL is up to date. The Phase 14 migration was applied without resetting the database. A shadow-schema migration test preserved a pre-existing published version-1 ID, cohort assignment, publication time, and topic progress. Current local roadmap-version/cohort counts returned to zero after integration tests.
-- PostgreSQL tests cover draft replacement, incomplete-draft rejection, concurrent publication and version allocation, direct mutation denial, new topic identities, role/tenant/parent denials, archival assignment rules, and pinned archived-cohort progress.
-- Changed backend files passed `node --check`; staged `git diff --check` passed. A separate manual browser walkthrough and clean-clone installation were not verified.
+- Backend `npm test`: 42 passed, 7 PostgreSQL tests skipped because that command does not load the database environment. `npm run test:db`: all 7 PostgreSQL tests passed, including cohort governance and migration preservation.
+- Prisma `npm run db:validate` and `npm run db:generate` passed. `npx prisma migrate status` reports the database schema is up to date with 4 migrations. The Phase 15 migration was applied without resetting the database; test data cleanup left 0 cohorts and 0 enrollments.
+- Frontend `npm test`: 30 passed. `npm run lint`, `npm run build`, and targeted Prettier checks passed. `git diff --check` passed.
+- One overlapping verification run timed out the existing Argon2 compatibility test at its 5-second limit. The isolated password test passed 2/2 in 2.19 seconds, and the standalone full backend suite passed. No password code or test was changed.
+- No Playwright package or browser walkthrough is configured for the frontend; the new coordinator and student flows are covered by component tests and PostgreSQL-backed API tests.
 
 COMPLETED WITHIN CURRENT PHASE:
-No Phase 15 implementation. Phase 14 is complete: roadmap creation now starts with an editable draft; authorized staff can review, publish, copy, archive, and inspect complete ordered versions. Published and archived content is guarded in PostgreSQL. Existing cohorts retain their exact assigned version and progress after archival.
+No Phase 16 implementation yet. Phase 15 is complete in Commit A.
 
 FILES RELEVANT TO CURRENT TASK:
 docs/OUTPOST-MASTER-BUILD-PROMPT.md
-docs/decisions/ADR-005-roadmap-versioning.md
-backend-js/prisma/schema.prisma
-backend-js/prisma/migrations/
-backend-js/src/modules/learning/routes.js
-backend-js/src/modules/learning/roadmapRoutes.js
-backend-js/src/core/authorization.js
-backend-js/tests/learning/routes.test.js
-backend-js/tests/db/roadmap-lifecycle.test.js
-frontend/src/features/workspace/pages/CoordinatorLearningPage.jsx
+docs/decisions/ADR-007-cohort-join-and-enrollment-governance.md
+frontend/src/app/App.jsx
+frontend/src/features/workspace/pages/StudentDashboardPage.jsx
 frontend/src/features/workspace/pages/StudentLearningPage.jsx
+frontend/src/features/workspace/pages/StudentRoadmapPage.jsx
+frontend/src/features/workspace/pages/StudentActivityPage.jsx
+frontend/src/features/workspace/learningApi.js
+backend-js/prisma/schema.prisma
+backend-js/src/modules/learning/routes.js
+backend-js/src/core/authorization.js
+frontend/src/features/review/ReviewPage.jsx
+backend-js/tests/db/cohort-governance.test.js
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
-Commit A changed 19 Phase 14 files: the lifecycle migration and roadmap routes; cohort authorization and route wiring; PostgreSQL and frontend tests; the roadmap management UI, API client, styles; ADR-005; and the implementation plan. Commit B changes only this file's Layer 4.
+Commit A changed 16 Phase 15 files: cohort schema/migration/routes, backend and PostgreSQL tests, coordinator/student UI and API client, styles, ADR-007/index, and the implementation plan. Commit B changes only this file's Layer 4.
 
 ENVIRONMENT:
-Windows / PowerShell. Docker Compose PostgreSQL, Valkey, MinIO, and Mailpit were healthy during verification and remain running. Port 8000 was occupied by an unrelated local Python app and was left untouched. No temporary Outpost API or Vite listener was started. No push was requested.
+Windows / PowerShell. PostgreSQL database `outpost` at `127.0.0.1:5433` is reachable and up to date. The real Valkey service was not independently probed; the application wires its configured Redis-compatible client to the join limiter. No temporary API/Vite server was started and no push was requested.
 
 CURRENT REQUEST:
-Complete the next phase; Phase 14 was completed.
+Complete Phase 15. Stop after updating this checkpoint and selecting Phase 16.
 
 LAST COMMAND:
-`git rev-parse HEAD`, `git show --stat --oneline --summary HEAD`, and `git status --short --branch` after Commit A.
+`rg --files | rg -i 'playwright|e2e'; npm ls @playwright/test playwright --depth=0`.
 
 CURRENT OUTPUT / ERROR:
-Commit A `90d79e768ed1ea8c0e733fff9cdab85dbbf908b6` contains the 19 intended Phase 14 files. The working tree was clean immediately afterward. No Phase 14 verification failure remains.
+Commit A `01040c2aea288d26e843e7995edc407f5663214e` contains the 16 intended Phase 15 files. The frontend has no Playwright dependency or browser-test files; the component and PostgreSQL flow checks passed. No Phase 15 verification failure remains.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Phase 15 begins with a concrete join-code and enrollment policy; existing cohorts must remain pinned to their selected published version, including when that version is later archived.
+Phase 16 begins by inspecting the student dashboard and live learning API before defining the first implementation task.
 
 ---
 # SESSION OPERATING RULE
