@@ -61,7 +61,7 @@ export async function requireCohortScope(prisma, cohortId) {
   const roadmap = version
     ? await prisma.roadmap.findUnique({ where: { id: version.roadmapId } })
     : null;
-  if (!organization || organization.status !== 'active' || !version || version.status !== 'published' ||
+  if (!organization || organization.status !== 'active' || !version || !['published', 'archived'].includes(version.status) ||
       !roadmap || roadmap.organizationId !== organization.id) {
     throw notFound('Cohort not found');
   }
@@ -102,7 +102,7 @@ export async function requireAssignedTopicAccess(prisma, user, topicId) {
   const organization = roadmap
     ? await prisma.organization.findUnique({ where: { id: roadmap.organizationId } })
     : null;
-  if (!topic || !week || !phase || !version || version.status !== 'published' || !roadmap || !organization ||
+  if (!topic || !week || !phase || !version || !['published', 'archived'].includes(version.status) || !roadmap || !organization ||
       organization.status !== 'active') {
     throw notFound('Assigned topic not found');
   }

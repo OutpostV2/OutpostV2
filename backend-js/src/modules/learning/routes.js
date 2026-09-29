@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { z } from 'zod';
+import { registerRoadmapRoutes } from './roadmapRoutes.js';
 import { AppError, conflict, forbidden, notFound } from '../../core/errors.js';
 import {
   hasAccountRoleCompatibility,
@@ -15,15 +16,6 @@ import {
 const uuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
 const cleanName = z.string().min(2).max(200).transform((value) => value.trim()).refine((value) => value.length >= 2);
 const organizationInput = z.strictObject({ name: cleanName });
-const topicInput = z.strictObject({
-  title: cleanName,
-  description: z.string().max(1000).default(''),
-});
-const roadmapInput = z.strictObject({
-  name: cleanName,
-  description: z.string().max(2000).default(''),
-  topics: z.array(topicInput).min(1).max(24),
-});
 const cohortInput = z.strictObject({ name: cleanName, roadmap_version_id: uuid });
 const joinInput = z.strictObject({ invite_code: z.string().min(20).max(64) });
 const progressInput = z.strictObject({ completed: z.boolean() });
@@ -95,13 +87,6 @@ async function topics(prisma, versionId) {
       return { id: topic.id, title: topic.title, description: topic.description, week: week.orderIndex };
     });
 }
-async function roadmapOut(prisma, roadmap, version) {
-  return {
-    id: roadmap.id, organization_id: roadmap.organizationId, name: roadmap.name,
-    description: roadmap.description, version_id: version.id, version_number: version.versionNumber,
-    topics: await topics(prisma, version.id),
-  };
-}
 async function cohortOut(prisma, cohort) {
   const version = await prisma.roadmapVersion.findUnique({ where: { id: cohort.roadmapVersionId } });
   const roadmap = version ? await prisma.roadmap.findUnique({ where: { id: version.roadmapId } }) : null;
@@ -125,6 +110,7 @@ function uuidParam(request, name) {
 }
 
 export function registerLearningRoutes(app, { prisma, settings: _settings, requireUser }) {
+  registerRoadmapRoutes(app, { prisma, requireUser });
   app.post('/api/v1/organizations', requireUser, async (request, response) => {
     const data = parse(organizationInput, request.body);
     coordinator(request.user);
@@ -326,55 +312,13 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
     response.set('Cache-Control', 'no-store').json(result);
   });
 
-  app.post('/api/v1/organizations/:organizationId/roadmaps', requireUser, async (request, response) => {
-    const organizationId = uuidParam(request, 'organizationId');
-    const data = parse(roadmapInput, request.body);
-    await learningStaff(prisma, request.user, organizationId);
-    const { roadmap, version } = await prisma.$transaction(async (tx) => {
-      await lockOrganization(tx, organizationId);
-      await learningStaff(tx, request.user, organizationId);
-      const roadmap = await tx.roadmap.create({
-        data: { organizationId, name: data.name, description: data.description.trim(), createdBy: request.user.id },
-      });
-      const version = await tx.roadmapVersion.create({
-        data: { roadmapId: roadmap.id, versionNumber: 1, status: 'published', createdBy: request.user.id, publishedAt: new Date() },
-      });
-      const phase = await tx.phase.create({ data: { roadmapVersionId: version.id, title: 'Learning path', orderIndex: 1 } });
-      for (const [index, item] of data.topics.entries()) {
-        const week = await tx.week.create({ data: { phaseId: phase.id, title: 'Week ' + (index + 1), orderIndex: index + 1 } });
-        await tx.topic.create({ data: { weekId: week.id, title: item.title, description: item.description.trim(), orderIndex: 1 } });
-      }
-      return { roadmap, version };
-    });
-    response.status(201).json(await roadmapOut(prisma, roadmap, version));
-  });
-
-  app.get('/api/v1/organizations/:organizationId/roadmaps', requireUser, async (request, response) => {
-    const organizationId = uuidParam(request, 'organizationId');
-    await learningStaff(prisma, request.user, organizationId);
-    const roadmaps = sorted(await prisma.roadmap.findMany({ where: { organizationId } }));
-    const versions = roadmaps.length
-      ? await prisma.roadmapVersion.findMany({ where: { roadmapId: { in: roadmaps.map((roadmap) => roadmap.id) }, status: 'published' } })
-      : [];
-    const byRoadmap = new Map();
-    for (const version of versions) {
-      const values = byRoadmap.get(version.roadmapId) ?? [];
-      values.push(version);
-      byRoadmap.set(version.roadmapId, values);
-    }
-    const output = [];
-    for (const roadmap of roadmaps) {
-      for (const version of byRoadmap.get(roadmap.id) ?? []) output.push(await roadmapOut(prisma, roadmap, version));
-    }
-    response.json(output);
-  });
-
   app.post('/api/v1/organizations/:organizationId/cohorts', requireUser, async (request, response) => {
     const organizationId = uuidParam(request, 'organizationId');
     const data = parse(cohortInput, request.body);
     const cohort = await prisma.$transaction(async (tx) => {
       await lockOrganization(tx, organizationId);
       await learningStaff(tx, request.user, organizationId);
+      await tx.$queryRaw`SELECT id FROM roadmap_versions WHERE id = ${data.roadmap_version_id}::uuid FOR UPDATE`;
       const { version } = await requirePublishedRoadmapVersion(tx, organizationId, data.roadmap_version_id);
       return tx.cohort.create({
         data: { organizationId, roadmapVersionId: version.id, name: data.name, createdBy: request.user.id, inviteCode: randomBytes(24).toString('base64url') },

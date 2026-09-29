@@ -24,7 +24,7 @@ roadmap
               → topics
 ```
 
-Each version has a `version_number`, status, creator, creation time, and optional publication time. Version numbers are unique within a roadmap, stable after allocation, and never silently reused. The exact draft-creation and copy workflow will be chosen during Phase 14, but every version must be independently understandable as a complete snapshot rather than a runtime overlay on another version.
+Each version has a `version_number`, status, creator, creation time, and optional publication time. Version numbers are unique within a roadmap, stable after allocation, and never silently reused. Every version is independently understandable as a complete snapshot rather than a runtime overlay on another version.
 
 The hierarchy uses persisted parent relationships and `order_index` values. Tenant scope derives from the version's parent roadmap. All reads and writes apply ADR-004 policies and verify parent-child relationships; possession of a version, phase, week, or topic identifier is not authorization.
 
@@ -94,9 +94,11 @@ Archival retains storage and history rather than deleting it. Data-retention and
 
 ## Verification and future enforcement
 
-For this documentation task, verify that the record exists, matches Layers 1–2 and ADRs 001–004, defines draft/published/archived behavior, published immutability, exact cohort assignment, topic-progress identity, import review before publication, tenant boundaries, and correct decision indexing without contradictory architecture.
+Phase 14 implements the chosen workflow: roadmap creation writes draft version 1 with starter topics, coordinators can replace the draft's ordered phase/week/topic tree, and a separate review and publish action validates and freezes it. Copying a published or archived version allocates the next stable number under a roadmap row lock and creates independent hierarchy and topic IDs in a new draft. Draft editing, publishing, and archiving lock the version row. Database triggers reject incomplete publication and direct edits or deletion of published/archived versions and their content. The additive migration leaves existing published version-1 rows and cohort/progress references in place. Existing cohorts can still read and write progress on an archived assigned version; new cohorts require a published version. Imports, cohort adoption, and later analytics are outside Phase 14.
 
-When implementation exists, add PostgreSQL-backed migration, API, and integration tests proving:
+The initial documentation decision required this record to match Layers 1–2 and ADRs 001–004, define draft/published/archived behavior, published immutability, exact cohort assignment, topic-progress identity, import review before publication, tenant boundaries, and correct decision indexing without contradictory architecture.
+
+PostgreSQL-backed migration, API, and integration tests should prove:
 
 - drafts and nested structure can be edited only by authorized organization members;
 - publishing validates and atomically freezes a complete version, assigns stable version metadata, and handles concurrent attempts safely;
@@ -107,4 +109,4 @@ When implementation exists, add PostgreSQL-backed migration, API, and integratio
 - imports require preview and human correction before draft commit and never publish automatically;
 - student reads, zero-progress analytics, and topic statistics use the cohort's pinned version and exclude other organizations.
 
-These are future acceptance criteria, not tests claimed to pass in this documentation-only repository. The current task creates only this decision record and its index entry.
+Phase 14 verifies draft edits, publication, concurrent transition, direct content mutation denial, version-copy identity, archival behavior, tenant and role checks, and a pre-migration version-1 fixture. Import and later analytics cases remain acceptance criteria for their respective phases.

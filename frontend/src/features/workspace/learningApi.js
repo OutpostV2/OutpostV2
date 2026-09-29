@@ -80,6 +80,43 @@ export function createRoadmap(organizationId, input) {
     },
   )
 }
+const versionPath = (organizationId, roadmapId) =>
+  `/organizations/${encodeURIComponent(organizationId)}/roadmaps/${encodeURIComponent(roadmapId)}/versions`
+
+export function listRoadmapVersions(organizationId, roadmapId) {
+  return apiRequest(versionPath(organizationId, roadmapId))
+}
+export function saveRoadmapDraft(organizationId, roadmapId, versionId, phases) {
+  return apiRequest(
+    `${versionPath(organizationId, roadmapId)}/${encodeURIComponent(versionId)}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ phases }),
+    },
+  )
+}
+export function copyRoadmapVersion(organizationId, roadmapId, sourceVersionId) {
+  return apiRequest(versionPath(organizationId, roadmapId), {
+    method: 'POST',
+    body: JSON.stringify({ source_version_id: sourceVersionId }),
+  })
+}
+export function publishRoadmapVersion(organizationId, roadmapId, versionId) {
+  return apiRequest(
+    `${versionPath(organizationId, roadmapId)}/${encodeURIComponent(versionId)}/publish`,
+    {
+      method: 'POST',
+    },
+  )
+}
+export function archiveRoadmapVersion(organizationId, roadmapId, versionId) {
+  return apiRequest(
+    `${versionPath(organizationId, roadmapId)}/${encodeURIComponent(versionId)}/archive`,
+    {
+      method: 'POST',
+    },
+  )
+}
 export function listCohorts(organizationId) {
   return apiRequest(
     `/organizations/${encodeURIComponent(organizationId)}/cohorts`,

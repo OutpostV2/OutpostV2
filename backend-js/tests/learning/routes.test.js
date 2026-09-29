@@ -132,8 +132,10 @@ describe('live learning workflow', () => {
       .set(coordinator)
       .send({ name: 'Career readiness', topics: [{ title: 'Set goals' }, { title: 'Build portfolio' }] });
     expect(roadmap.status).toBe(201);
+    expect(roadmap.body.status).toBe('draft');
     expect(roadmap.body.topics.map((topic) => topic.week)).toEqual([1, 2]);
     expect((await request(app).get('/api/v1/organizations/' + org.body.id + '/roadmaps').set(coordinator)).body).toHaveLength(1);
+    expect((await request(app).post(`/api/v1/organizations/${org.body.id}/roadmaps/${roadmap.body.id}/versions/${roadmap.body.version_id}/publish`).set(coordinator)).status).toBe(200);
     const cohort = await request(app)
       .post('/api/v1/organizations/' + org.body.id + '/cohorts')
       .set(coordinator)
@@ -167,6 +169,7 @@ describe('live learning workflow', () => {
     const organization = await request(app).post('/api/v1/organizations').set(owner).send({ name: 'Campus' });
     const roadmap = await request(app).post(`/api/v1/organizations/${organization.body.id}/roadmaps`).set(owner)
       .send({ name: 'Plan', topics: [{ title: 'Topic' }] });
+    await request(app).post(`/api/v1/organizations/${organization.body.id}/roadmaps/${roadmap.body.id}/versions/${roadmap.body.version_id}/publish`).set(owner);
     const cohort = await request(app).post(`/api/v1/organizations/${organization.body.id}/cohorts`).set(owner)
       .send({ name: 'Cohort', roadmap_version_id: roadmap.body.version_id });
     await request(app).post('/api/v1/cohorts/join').set(learner).send({ invite_code: cohort.body.invite_code });
@@ -318,6 +321,7 @@ describe('FastAPI rounding compatibility', () => {
       .post('/api/v1/organizations/' + org.body.id + '/roadmaps')
       .set(coordinator)
       .send({ name: 'Eight topics', topics: Array.from({ length: 8 }, (_, index) => ({ title: 'Topic ' + index })) });
+    await request(app).post(`/api/v1/organizations/${org.body.id}/roadmaps/${roadmap.body.id}/versions/${roadmap.body.version_id}/publish`).set(coordinator);
     const cohort = await request(app)
       .post('/api/v1/organizations/' + org.body.id + '/cohorts')
       .set(coordinator)

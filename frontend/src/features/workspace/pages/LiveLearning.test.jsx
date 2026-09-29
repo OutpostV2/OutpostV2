@@ -16,6 +16,7 @@ vi.mock('../learningApi', () => ({
   createOrganization: vi.fn(),
   listRoadmaps: vi.fn(),
   createRoadmap: vi.fn(),
+  publishRoadmapVersion: vi.fn(),
   listCohorts: vi.fn(),
   createCohort: vi.fn(),
   joinCohort: vi.fn(),
@@ -39,6 +40,7 @@ it('lets a coordinator create an organization, roadmap, and cohort', async () =>
     description: '',
     version_id: 'version-1',
     version_number: 1,
+    status: 'draft',
     topics: [{ id: 'topic-1', title: 'Set goals', description: '', week: 1 }],
   }
   const cohort = {
@@ -52,6 +54,10 @@ it('lets a coordinator create an organization, roadmap, and cohort', async () =>
   }
   vi.mocked(learningApi.createOrganization).mockResolvedValue(org)
   vi.mocked(learningApi.createRoadmap).mockResolvedValue(roadmap)
+  vi.mocked(learningApi.publishRoadmapVersion).mockResolvedValue({
+    ...roadmap,
+    status: 'published',
+  })
   vi.mocked(learningApi.createCohort).mockResolvedValue(cohort)
   render(
     <MemoryRouter>
@@ -72,13 +78,26 @@ it('lets a coordinator create an organization, roadmap, and cohort', async () =>
     screen.getByRole('textbox', { name: /Topics, one per line/i }),
     { target: { value: 'Set goals' } },
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Publish roadmap' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Create roadmap draft' }))
   await waitFor(() =>
     expect(learningApi.createRoadmap).toHaveBeenCalledWith(org.id, {
       name: roadmap.name,
       description: '',
       topics: [{ title: 'Set goals', description: '' }],
     }),
+  )
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Review draft for publication' }),
+  )
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Publish reviewed draft' }),
+  )
+  await waitFor(() =>
+    expect(learningApi.publishRoadmapVersion).toHaveBeenCalledWith(
+      org.id,
+      roadmap.id,
+      roadmap.version_id,
+    ),
   )
   fireEvent.change(await screen.findByLabelText('Cohort name'), {
     target: { value: cohort.name },

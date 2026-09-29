@@ -7,6 +7,7 @@ import { createPrismaClient } from '../../src/db/client.js';
 import { createRequireUser, issueSession } from '../../src/modules/auth/service.js';
 import { registerLearningRoutes } from '../../src/modules/learning/routes.js';
 import { registerReviewRoutes } from '../../src/modules/review/routes.js';
+import { removeTestOrganizations } from './cleanup.js';
 
 describe.skipIf(!(process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL))('PostgreSQL authorization policies', () => {
   test('enforces live roles, enrollment, resource parents, and suspended-user revocation', async () => {
@@ -38,8 +39,7 @@ describe.skipIf(!(process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL))
         organizationId: organization.id, name, createdBy: actor.id,
       } });
       const version = await prisma.roadmapVersion.create({ data: {
-        roadmapId: roadmap.id, versionNumber: 1, status: 'published', createdBy: actor.id,
-        publishedAt: new Date(),
+        roadmapId: roadmap.id, versionNumber: 1, status: 'draft', createdBy: actor.id,
       } });
       const phase = await prisma.phase.create({ data: {
         roadmapVersionId: version.id, title: 'Learning path', orderIndex: 1,
@@ -48,7 +48,10 @@ describe.skipIf(!(process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL))
       const topic = await prisma.topic.create({ data: {
         weekId: week.id, title: `${name} topic`, description: '', orderIndex: 1,
       } });
-      return { roadmap, version, topic };
+      const published = await prisma.roadmapVersion.update({
+        where: { id: version.id }, data: { status: 'published', publishedAt: new Date() },
+      });
+      return { roadmap, version: published, topic };
     };
     const createCohort = async (organization, actor, version, name) => prisma.cohort.create({ data: {
       organizationId: organization.id, roadmapVersionId: version.id, name, createdBy: actor.id,
@@ -169,8 +172,7 @@ describe.skipIf(!(process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL))
       await prisma.user.update({ where: { id: suspended.id }, data: { status: 'suspended' } });
       expect((await request(app).get('/api/v1/test/current-user').set(suspendedSession)).status).toBe(401);
     } finally {
-      await prisma.organization.deleteMany({ where: { id: { in: organizations } } });
-      await prisma.user.deleteMany({ where: { id: { in: users } } });
+      await removeTestOrganizations(prisma, organizations, users);
       await prisma.$disconnect();
     }
   }, 30_000);

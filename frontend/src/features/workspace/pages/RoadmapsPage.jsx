@@ -1,43 +1,194 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { useWorkspace } from '../hooks/useWorkspace'
-import { PageHeading, PreviewNotice } from '../components/WorkspaceUI'
+import { EmptyState, PageHeading } from '../components/WorkspaceUI'
+import { createRoadmap, listOrganizations, listRoadmaps } from '../learningApi'
+
 export default function RoadmapsPage() {
-  const { overview } = useWorkspace()
-  const { student } = overview
+  const [organizations, setOrganizations] = useState([])
+  const [organizationId, setOrganizationId] = useState('')
+  const [versions, setVersions] = useState([])
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [topics, setTopics] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+  useEffect(() => {
+    let active = true
+    listOrganizations()
+      .then((items) => {
+        if (!active) return
+        setOrganizations(items)
+        setOrganizationId(items[0]?.id || '')
+      })
+      .catch((cause) => {
+        if (active) setError(cause.message)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+  useEffect(() => {
+    if (!organizationId) return
+    let active = true
+    listRoadmaps(organizationId)
+      .then((items) => {
+        if (active) setVersions(items)
+      })
+      .catch((cause) => {
+        if (active) setError(cause.message)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [organizationId])
+  async function createDraft(event) {
+    event.preventDefault()
+    const titles = topics
+      .split(/\r?\n/)
+      .map((value) => value.trim())
+      .filter(Boolean)
+    if (titles.length < 1 || titles.length > 24) {
+      setError('Enter 1–24 starter topics, one per line.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    setMessage('')
+    try {
+      const created = await createRoadmap(organizationId, {
+        name: name.trim(),
+        description: description.trim(),
+        topics: titles.map((title) => ({ title, description: '' })),
+      })
+      setVersions((current) => [...current, created])
+      setName('')
+      setDescription('')
+      setTopics('')
+      setMessage('Draft created. Open its versions to review and publish it.')
+    } catch (cause) {
+      setError(cause.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+  const latest = [...versions]
+    .sort((a, b) => b.version_number - a.version_number)
+    .filter(
+      (version, index, rows) =>
+        rows.findIndex((row) => row.id === version.id) === index,
+    )
   return (
     <>
       <PageHeading
         eyebrow="Coordinator / Roadmaps"
         title="Roadmaps"
-        description="A home for structured learning plans and their published versions."
+        description="Create drafts, review the full learning path, and publish stable versions for cohorts."
       />
-      <PreviewNotice>
-        The review roadmap is an example. Roadmap creation and publishing are
-        planned backend capabilities.
-      </PreviewNotice>
-      <article className="workspace-card workspace-entity-card">
-        <div className="workspace-entity-icon">R</div>
-        <div className="workspace-entity-body">
-          <p className="workspace-card-label">Review roadmap</p>
-          <h2>{student.roadmap_title}</h2>
-          <p>
-            {student.phases.length} phases · {student.total} topics
-          </p>
-          <div className="workspace-tag-row">
-            {student.phases.map((phase) => (
-              <span className="workspace-tag" key={phase.title}>
-                {phase.title}
-              </span>
-            ))}
-          </div>
-          <Link
-            className="workspace-text-link"
-            to="/app/coordinator/roadmaps/review/versions"
-          >
-            View version structure →
-          </Link>
-        </div>
-      </article>
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+      {message && (
+        <p className="form-message" role="status">
+          {message}
+        </p>
+      )}
+      {loading && <p role="status">Loading roadmaps…</p>}
+      <section className="workspace-card roadmap-panel">
+        <h2>Create a roadmap draft</h2>
+        {organizations.length ? (
+          <>
+            <label className="form-field">
+              <span>Organization</span>
+              <select
+                value={organizationId}
+                onChange={(event) => setOrganizationId(event.target.value)}
+              >
+                {organizations.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <form className="learning-form" onSubmit={createDraft}>
+              <label className="form-field">
+                <span>Roadmap name</span>
+                <input
+                  required
+                  minLength={2}
+                  maxLength={200}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Career readiness"
+                />
+              </label>
+              <label className="form-field">
+                <span>Description</span>
+                <input
+                  maxLength={2000}
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="What this roadmap covers"
+                />
+              </label>
+              <label className="form-field">
+                <span>Starter topics, one per line</span>
+                <textarea
+                  required
+                  rows={4}
+                  value={topics}
+                  onChange={(event) => setTopics(event.target.value)}
+                  placeholder={'Set goals\nBuild a portfolio'}
+                />
+              </label>
+              <button className="workspace-button" disabled={busy}>
+                {busy ? 'Creating…' : 'Create draft'}
+              </button>
+            </form>
+          </>
+        ) : (
+          <p>Create an organization first to manage roadmaps.</p>
+        )}
+      </section>
+      <section className="roadmap-list" aria-label="Roadmap versions">
+        {latest.map((roadmap) => (
+          <article className="workspace-card roadmap-summary" key={roadmap.id}>
+            <div>
+              <p className="workspace-card-label">
+                {roadmap.status} · latest v{roadmap.version_number}
+              </p>
+              <h2>{roadmap.name}</h2>
+              <p>{roadmap.description || 'No description yet.'}</p>
+              <p>
+                {versions.filter((version) => version.id === roadmap.id).length}{' '}
+                versions · {roadmap.topics.length} topics in latest version
+              </p>
+            </div>
+            <Link
+              className="workspace-text-link"
+              to={`/app/coordinator/roadmaps/${roadmap.id}/versions?organizationId=${organizationId}`}
+            >
+              Manage versions →
+            </Link>
+          </article>
+        ))}
+        {!loading && !latest.length && (
+          <EmptyState
+            title="No roadmaps yet"
+            description="Create a draft to start your first learning path."
+          />
+        )}
+      </section>
     </>
   )
 }
