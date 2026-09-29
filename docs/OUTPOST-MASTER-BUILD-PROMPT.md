@@ -2373,13 +2373,13 @@ Outpost-New/
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 14 — M1 Roadmap Drafts and Immutable Versions. Phase 13 authorization consolidation is verified and committed.
+Phase 15 — M1 Cohort and Join-Code Governance. Phase 14 roadmap drafts and immutable versions are verified and committed.
 
 CURRENT TASK:
-Next selected task: inspect current published version-1 data and ADR-005, then build the non-destructive draft/version storage foundation with PostgreSQL migration tests.
+Next selected task: inspect the current cohort, enrollment, join-code, and version-pinning behavior; define the join-code lifecycle and enrollment/withdrawal policy under the existing tenant model before implementing Phase 15 changes.
 
 TASK GOAL:
-Support editable drafts without changing existing published version-1 records or cohorts pinned to them. Review migration effects before applying them. This is the first bounded Phase 14 task; publication routes and UI follow only after the storage foundation is verified.
+Specify expiry, rotation, revocation, misuse/rate controls, and withdrawal behavior without changing pinned cohort versions or prior progress. Then implement the first bounded, verified Phase 15 task under the Layer 1 loop.
 
 Repository:
 Outpost
@@ -2391,50 +2391,54 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-332a85071e8e9a0caf4ac9d0725de5b04a0581b7
+90d79e768ed1ea8c0e733fff9cdab85dbbf908b6
 
 CHECKPOINT FILE STATE:
-Commit A contains the Phase 13 policy module, live-route enforcement, PostgreSQL tests, test-runner setting, ADR updates, and implementation record. This separate checkpoint edits only Layer 4; its own commit hash is not recorded here.
+Commit A contains the Phase 14 migration, API lifecycle, frontend management, tests, ADR-005 update, and implementation plan. This separate checkpoint edits only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean immediately after Commit A and before this Layer 4 edit. Verify again after Commit B.
 
 Last verified baseline:
-- Backend `npm test`: 38 passed, 3 PostgreSQL files skipped by that command; `npm run test:db`: all 3 PostgreSQL-backed files passed. The new cases cover active roles and memberships, enrollment, guessed and cross-tenant IDs, mismatched organization/version/topic parents, and suspension after a session was issued.
-- `npm run db:validate` passed; `npx prisma migrate status` found two migrations and an up-to-date PostgreSQL database. Phase 13 made no schema or migration change.
-- The live learning and organization smoke scripts passed against the Outpost API on port 8001, including registration, persistence, role/tenant denial, invitations, and ownership transfer. The scripts removed their temporary records; the temporary API listener was stopped. Port 8000 was occupied by an unrelated local Python app and was left untouched.
-- `node --check` for the changed backend source/test files, `git diff --check`, and staged diff check passed. Frontend source was unchanged and frontend checks were not rerun. A separate clean-clone install and manual browser walkthrough were not verified.
+- Backend `npm test`: 38 passed, 5 PostgreSQL files skipped by that command. A concurrent, heavily loaded run timed out one unrelated Argon2 password test; the isolated full rerun passed. `npm run test:db`: all 5 PostgreSQL-backed files passed.
+- Frontend `npm test`: 28 passed. `npm run lint`, `npm run format:check`, and `npm run build` passed.
+- `npm run db:validate` and `npx prisma migrate status` passed; three migrations are applied and PostgreSQL is up to date. The Phase 14 migration was applied without resetting the database. A shadow-schema migration test preserved a pre-existing published version-1 ID, cohort assignment, publication time, and topic progress. Current local roadmap-version/cohort counts returned to zero after integration tests.
+- PostgreSQL tests cover draft replacement, incomplete-draft rejection, concurrent publication and version allocation, direct mutation denial, new topic identities, role/tenant/parent denials, archival assignment rules, and pinned archived-cohort progress.
+- Changed backend files passed `node --check`; staged `git diff --check` passed. A separate manual browser walkthrough and clean-clone installation were not verified.
 
 COMPLETED WITHIN CURRENT PHASE:
-No Phase 14 implementation. Phase 13 is complete: reusable account-type, active-membership, role, cohort, and parent-resource checks now govern live learning and review routes; ADR-006 records the initial role matrix.
+No Phase 15 implementation. Phase 14 is complete: roadmap creation now starts with an editable draft; authorized staff can review, publish, copy, archive, and inspect complete ordered versions. Published and archived content is guarded in PostgreSQL. Existing cohorts retain their exact assigned version and progress after archival.
 
 FILES RELEVANT TO CURRENT TASK:
+docs/OUTPOST-MASTER-BUILD-PROMPT.md
 docs/decisions/ADR-005-roadmap-versioning.md
 backend-js/prisma/schema.prisma
 backend-js/prisma/migrations/
 backend-js/src/modules/learning/routes.js
+backend-js/src/modules/learning/roadmapRoutes.js
 backend-js/src/core/authorization.js
 backend-js/tests/learning/routes.test.js
-backend-js/tests/db/authorization.test.js
-backend-js/tests/db/schema.test.js
+backend-js/tests/db/roadmap-lifecycle.test.js
+frontend/src/features/workspace/pages/CoordinatorLearningPage.jsx
+frontend/src/features/workspace/pages/StudentLearningPage.jsx
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
-Commit A changed `backend-js/package.json`, added `backend-js/src/core/authorization.js` and `backend-js/tests/db/authorization.test.js`, updated the learning/review routes and ADR-004/ADR-006, and added the Phase 13 implementation record. Commit B changes only this file's Layer 4.
+Commit A changed 19 Phase 14 files: the lifecycle migration and roadmap routes; cohort authorization and route wiring; PostgreSQL and frontend tests; the roadmap management UI, API client, styles; ADR-005; and the implementation plan. Commit B changes only this file's Layer 4.
 
 ENVIRONMENT:
-Windows / PowerShell. Docker Desktop was restarted for verification; Compose PostgreSQL, Valkey, MinIO, and Mailpit were healthy and remain running. The temporary Outpost API listener on 8001 was stopped; no Vite listener was started. No push was requested.
+Windows / PowerShell. Docker Compose PostgreSQL, Valkey, MinIO, and Mailpit were healthy during verification and remain running. Port 8000 was occupied by an unrelated local Python app and was left untouched. No temporary Outpost API or Vite listener was started. No push was requested.
 
 CURRENT REQUEST:
-Complete Phase 13; the latest `continue` resumed that request.
+Complete the next phase; Phase 14 was completed.
 
 LAST COMMAND:
-`git show --stat --oneline --summary HEAD` and `git status --short --branch` after Commit A.
+`git rev-parse HEAD`, `git show --stat --oneline --summary HEAD`, and `git status --short --branch` after Commit A.
 
 CURRENT OUTPUT / ERROR:
-Commit A `332a85071e8e9a0caf4ac9d0725de5b04a0581b7` contains the eight intended Phase 13 files. The working tree was clean immediately afterward; no Phase 13 verification failure remains.
+Commit A `90d79e768ed1ea8c0e733fff9cdab85dbbf908b6` contains the 19 intended Phase 14 files. The working tree was clean immediately afterward. No Phase 14 verification failure remains.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Phase 14 begins by comparing the current direct-publication version-1 model with ADR-005 and preserving existing published records through a reviewed Prisma migration.
+Phase 15 begins with a concrete join-code and enrollment policy; existing cohorts must remain pinned to their selected published version, including when that version is later archived.
 
 ---
 # SESSION OPERATING RULE
