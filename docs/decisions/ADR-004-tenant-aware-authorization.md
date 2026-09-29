@@ -1,6 +1,6 @@
 # ADR-004: Centralized tenant-aware authorization
 
-Status: Accepted (formalizes the authorization architecture approved in Layers 1–2).
+Status: Accepted (formalizes the authorization architecture approved in Layers 1–2; initial API role permissions are recorded in ADR-006).
 Date: 2026-09-17.
 Scope: Phase 0 authorization policy and enforcement boundaries only.
 
@@ -8,7 +8,7 @@ Scope: Phase 0 authorization policy and enforcement boundaries only.
 
 Outpost authenticates one canonical user through the methods defined in [ADR-003](ADR-003-authentication-model.md), but identity alone does not grant product access. A user may hold different roles in several organizations, and tenant-owned resources may express their organization directly or through a parent chain defined by [ADR-002](ADR-002-organization-tenant-model.md).
 
-Authorization must remain consistent across API endpoints, application operations, background workers, list queries, and analytics. Scattered inline role checks would be difficult to audit and could allow a valid user to cross the organization boundary by substituting an identifier. This record follows the [master build prompt](../OUTPOST-MASTER-BUILD-PROMPT.md) and [ADR-001](ADR-001-modular-monolith-cloud-independence.md). It does not implement policies, endpoints, schema, or a detailed role-permission matrix.
+Authorization must remain consistent across API endpoints, application operations, background workers, list queries, and analytics. Scattered inline role checks would be difficult to audit and could allow a valid user to cross the organization boundary by substituting an identifier. This record follows the [master build prompt](../OUTPOST-MASTER-BUILD-PROMPT.md) and [ADR-001](ADR-001-modular-monolith-cloud-independence.md). It freezes the initial architecture; [ADR-006](ADR-006-organization-membership-management.md) records the Phase 13 role-permission matrix.
 
 ## Decision
 
@@ -36,7 +36,7 @@ Policies may compose, but no policy may infer authorization merely because anoth
 
 “Resource owner” means the persisted actor relationship for records that carry fields such as `created_by` or `requested_by`; it is distinct from the organization membership role named `owner`. Neither resource ownership nor the organization-owner role permits crossing into another organization.
 
-Roles remain `owner`, `admin`, `coordinator`, `mentor`, and `student`, scoped to one `organization_membership`. Do not put a role on `users` or treat roles as a universal hierarchy. Each operation declares the accepted role set and any additional relationship rules. The detailed permission matrix and membership-state transitions will be specified and tested during the organization and authorization implementation phases.
+Roles remain `owner`, `admin`, `coordinator`, `mentor`, and `student`, scoped to one `organization_membership`. Do not put a role on `users` or treat roles as a universal hierarchy. Each operation declares the accepted role set and any additional relationship rules. The initial live-API permission matrix and account-type compatibility rules are specified and tested in ADR-006; future capabilities require their own persisted relationship and explicit policy.
 
 ### Resource scope and relationship checks
 
@@ -63,7 +63,7 @@ Related authorization-sensitive mutations remain atomic with their domain change
 
 ### Errors, observability, and data exposure
 
-Use structured authorization errors with request IDs and no raw stack traces. Distinguish unauthenticated requests from authenticated requests that lack permission. For resources outside the caller's tenant, responses must not reveal sensitive existence or ownership details; the API must apply a consistent not-found/forbidden disclosure policy during implementation.
+Use structured authorization errors with request IDs and no raw stack traces. Distinguish unauthenticated requests from authenticated requests that lack permission. For resources outside the caller's tenant, responses must not reveal sensitive existence or ownership details; the API applies a consistent not-found/forbidden disclosure policy.
 
 Logs and security events may record safe actor, organization, resource, policy, and outcome identifiers needed for investigation. They must not contain credentials, raw session tokens, OTPs, recovery secrets, or unrestricted tenant data. Authorization denials must not be made to disappear by weakening validation or broadening accepted roles.
 
@@ -82,13 +82,13 @@ Central policies create one auditable vocabulary for authorization and reduce dr
 
 Scoped queries and relationship checks add joins and testing work. This cost is required for tenant correctness and must be measured before any optimization or caching. PostgreSQL constraints strengthen integrity, while application policies retain responsibility for actor authorization.
 
-The record intentionally leaves the detailed role-permission matrix to the implementation phase. It freezes the enforcement model without inventing capabilities that Layer 2 has not approved.
+The record freezes the enforcement model. ADR-006 supplies the initial application role matrix without adding capabilities that Layer 2 has not approved.
 
-## Verification and future enforcement
+## Phase 13 verification and future enforcement
 
-For this documentation task, verify that the record exists, matches Layers 1–2 and ADRs 001–003, defines all five approved reusable policies, scopes roles to memberships, requires resource and parent-child validation, establishes backend and worker enforcement, and is indexed without contradictory architecture.
+Phase 13 adds PostgreSQL-backed API tests in `backend-js/tests/db/authorization.test.js` for allowed and denied roles, account-type and membership-role mismatch, active enrollment, cross-organization selectors, mismatched cohort/version/topic parents, and revoked access for an existing token after account suspension. Authentication is checked against the current PostgreSQL account and session on every request.
 
-When implementation exists, add PostgreSQL-backed API and integration regression tests proving:
+As additional product modules are introduced, add PostgreSQL-backed API and integration regression tests proving:
 
 - every protected operation denies unauthenticated, missing-membership, disallowed-membership-state, and disallowed-role cases;
 - a role in organization A grants no authority in organization B, including when the user belongs to both;
@@ -98,4 +98,4 @@ When implementation exists, add PostgreSQL-backed API and integration regression
 - authorization changes are honored from authoritative state and cannot be bypassed by stale frontend, cache, or job context;
 - frontend guards never substitute for backend denial and error responses do not disclose protected cross-tenant details.
 
-These are future acceptance criteria, not tests claimed to pass in this documentation-only repository. The current task creates only this decision record and its index entry.
+These remaining acceptance criteria apply as import, storage, activity, and worker modules are implemented; Phase 13 does not claim those future paths exist.

@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { AppError, forbidden, notFound } from '../../core/errors.js';
+import { AppError, notFound } from '../../core/errors.js';
+import { requireAccountType } from '../../core/authorization.js';
 
 const progressInput = z.strictObject({ completed: z.boolean() });
 const roadmapTitle = 'Career Readiness Foundations';
@@ -90,12 +91,13 @@ async function overview(prisma, user) {
 
 export function registerReviewRoutes(app, { prisma, settings: _settings, requireUser }) {
   app.get('/api/v1/review/overview', requireUser, async (request, response) => {
+    requireAccountType(request.user, ['student', 'coordinator']);
     response.set('Cache-Control', 'no-store');
     response.json(await overview(prisma, request.user));
   });
 
   app.put('/api/v1/review/progress/:topicKey', requireUser, async (request, response) => {
-    if (request.user.account_type !== 'student') throw forbidden('Student account required');
+    requireAccountType(request.user, ['student']);
     if (!topicKeys.has(request.params.topicKey)) throw notFound('Review topic not found');
     const data = parseInput(request.body);
     if (data.completed) {
@@ -113,7 +115,7 @@ export function registerReviewRoutes(app, { prisma, settings: _settings, require
   });
 
   app.delete('/api/v1/review/progress', requireUser, async (request, response) => {
-    if (request.user.account_type !== 'student') throw forbidden('Student account required');
+    requireAccountType(request.user, ['student']);
     await prisma.reviewTopicProgress.deleteMany({ where: { userId: request.user.id } });
     response.set('Cache-Control', 'no-store').status(204).end();
   });

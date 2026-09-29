@@ -1,6 +1,16 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { AppError, conflict, forbidden, notFound } from '../../core/errors.js';
+import {
+  hasAccountRoleCompatibility,
+  LEARNING_RESOURCE_ROLES,
+  requireAccountType,
+  requireAssignedTopicAccess,
+  requireCohortAccess,
+  requireCohortScope,
+  requireOrganizationRole,
+  requirePublishedRoadmapVersion,
+} from '../../core/authorization.js';
 
 const uuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
 const cleanName = z.string().min(2).max(200).transform((value) => value.trim()).refine((value) => value.length >= 2);
@@ -46,21 +56,16 @@ function parse(schema, value, location = 'body') {
 }
 
 function coordinator(user) {
-  if (user.account_type !== 'coordinator') throw forbidden('Coordinator account required');
+  requireAccountType(user, ['coordinator']);
 }
 function student(user) {
-  if (user.account_type !== 'student') throw forbidden('Student account required');
+  requireAccountType(user, ['student']);
 }
 async function owner(prisma, user, organizationId) {
-  coordinator(user);
-  const [organization, membership] = await Promise.all([
-    prisma.organization.findUnique({ where: { id: organizationId } }),
-    prisma.organizationMembership.findFirst({
-      where: { organizationId, userId: user.id, role: 'owner', status: 'active' },
-    }),
-  ]);
-  if (!organization || organization.status !== 'active' || !membership) throw forbidden('Organization access denied');
-  return organization;
+  return (await requireOrganizationRole(prisma, user, organizationId, ['owner'])).organization;
+}
+async function learningStaff(prisma, user, organizationId) {
+  return requireOrganizationRole(prisma, user, organizationId, LEARNING_RESOURCE_ROLES);
 }
 async function lockOrganization(tx, organizationId) {
   await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
@@ -137,9 +142,9 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
   });
 
   app.get('/api/v1/organizations', requireUser, async (request, response) => {
-    const memberships = await prisma.organizationMembership.findMany({
+    const memberships = (await prisma.organizationMembership.findMany({
       where: { userId: request.user.id, status: 'active' },
-    });
+    })).filter((membership) => hasAccountRoleCompatibility(request.user.account_type, membership.role));
     const organizations = memberships.length
       ? await prisma.organization.findMany({ where: { id: { in: memberships.map((row) => row.organizationId) }, status: 'active' } })
       : [];
@@ -324,8 +329,10 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
   app.post('/api/v1/organizations/:organizationId/roadmaps', requireUser, async (request, response) => {
     const organizationId = uuidParam(request, 'organizationId');
     const data = parse(roadmapInput, request.body);
-    await owner(prisma, request.user, organizationId);
+    await learningStaff(prisma, request.user, organizationId);
     const { roadmap, version } = await prisma.$transaction(async (tx) => {
+      await lockOrganization(tx, organizationId);
+      await learningStaff(tx, request.user, organizationId);
       const roadmap = await tx.roadmap.create({
         data: { organizationId, name: data.name, description: data.description.trim(), createdBy: request.user.id },
       });
@@ -344,7 +351,7 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
 
   app.get('/api/v1/organizations/:organizationId/roadmaps', requireUser, async (request, response) => {
     const organizationId = uuidParam(request, 'organizationId');
-    await owner(prisma, request.user, organizationId);
+    await learningStaff(prisma, request.user, organizationId);
     const roadmaps = sorted(await prisma.roadmap.findMany({ where: { organizationId } }));
     const versions = roadmaps.length
       ? await prisma.roadmapVersion.findMany({ where: { roadmapId: { in: roadmaps.map((roadmap) => roadmap.id) }, status: 'published' } })
@@ -365,22 +372,32 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
   app.post('/api/v1/organizations/:organizationId/cohorts', requireUser, async (request, response) => {
     const organizationId = uuidParam(request, 'organizationId');
     const data = parse(cohortInput, request.body);
-    await owner(prisma, request.user, organizationId);
-    const version = await prisma.roadmapVersion.findUnique({ where: { id: data.roadmap_version_id } });
-    const roadmap = version ? await prisma.roadmap.findUnique({ where: { id: version.roadmapId } }) : null;
-    if (!version || !roadmap || roadmap.organizationId !== organizationId || version.status !== 'published')
-      throw notFound('Published roadmap version not found');
-    const cohort = await prisma.cohort.create({
-      data: { organizationId, roadmapVersionId: version.id, name: data.name, createdBy: request.user.id, inviteCode: randomBytes(24).toString('base64url') },
+    const cohort = await prisma.$transaction(async (tx) => {
+      await lockOrganization(tx, organizationId);
+      await learningStaff(tx, request.user, organizationId);
+      const { version } = await requirePublishedRoadmapVersion(tx, organizationId, data.roadmap_version_id);
+      return tx.cohort.create({
+        data: { organizationId, roadmapVersionId: version.id, name: data.name, createdBy: request.user.id, inviteCode: randomBytes(24).toString('base64url') },
+      });
     });
     response.status(201).json(await cohortOut(prisma, cohort));
   });
 
   app.get('/api/v1/organizations/:organizationId/cohorts', requireUser, async (request, response) => {
     const organizationId = uuidParam(request, 'organizationId');
-    await owner(prisma, request.user, organizationId);
+    await learningStaff(prisma, request.user, organizationId);
     const cohorts = sorted(await prisma.cohort.findMany({ where: { organizationId, status: 'active' } }));
-    response.json(await Promise.all(cohorts.map((cohort) => cohortOut(prisma, cohort))));
+    const output = [];
+    for (const cohort of cohorts) {
+      try {
+        const scope = await requireCohortScope(prisma, cohort.id);
+        if (scope.organization.id !== organizationId) continue;
+        output.push(await cohortOut(prisma, cohort));
+      } catch (error) {
+        if (error.status !== 404) throw error;
+      }
+    }
+    response.json(output);
   });
 
   app.post('/api/v1/cohorts/join', requireUser, async (request, response) => {
@@ -388,10 +405,12 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
     student(request.user);
     const cohort = await prisma.cohort.findFirst({ where: { inviteCode: data.invite_code.trim(), status: 'active' } });
     if (!cohort) throw notFound('Cohort invite not found');
-    const organization = await prisma.organization.findUnique({ where: { id: cohort.organizationId } });
-    if (!organization || organization.status !== 'active') throw notFound('Cohort invite not found');
+    const initialScope = await requireCohortScope(prisma, cohort.id);
+    const organization = initialScope.organization;
     await prisma.$transaction(async (tx) => {
       await lockOrganization(tx, organization.id);
+      const currentScope = await requireCohortScope(tx, cohort.id);
+      if (currentScope.organization.id !== organization.id) throw notFound('Cohort invite not found');
       const existing = await tx.organizationMembership.findFirst({
         where: { organizationId: organization.id, userId: request.user.id },
       });
@@ -403,6 +422,7 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
       await tx.cohortEnrollment.createMany({
         data: [{ cohortId: cohort.id, userId: request.user.id }], skipDuplicates: true,
       });
+      await requireCohortAccess(tx, request.user, cohort.id, { allowStudent: true });
     });
     response.json({ cohort_id: cohort.id, cohort_name: cohort.name, organization_name: organization.name });
   });
@@ -411,20 +431,16 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
     student(request.user);
     response.set('Cache-Control', 'no-store');
     const enrollments = await prisma.cohortEnrollment.findMany({ where: { userId: request.user.id, status: 'active' } });
-    const cohorts = enrollments.length
-      ? await prisma.cohort.findMany({ where: { id: { in: enrollments.map((row) => row.cohortId) }, status: 'active' } })
-      : [];
     const result = [];
-    for (const cohort of sorted(cohorts)) {
-      const organization = await prisma.organization.findUnique({ where: { id: cohort.organizationId } });
-      if (!organization || organization.status !== 'active') continue;
-      const membership = await prisma.organizationMembership.findFirst({
-        where: { organizationId: cohort.organizationId, userId: request.user.id, role: 'student', status: 'active' },
-      });
-      if (!membership) continue;
-      const version = await prisma.roadmapVersion.findUnique({ where: { id: cohort.roadmapVersionId } });
-      const roadmap = version ? await prisma.roadmap.findUnique({ where: { id: version.roadmapId } }) : null;
-      if (!roadmap) continue;
+    for (const enrollment of sorted(enrollments, 'joinedAt')) {
+      let scope;
+      try {
+        scope = await requireCohortAccess(prisma, request.user, enrollment.cohortId, { allowStudent: true });
+      } catch (error) {
+        if (error.status === 403 || error.status === 404) continue;
+        throw error;
+      }
+      const { cohort, organization, version, roadmap } = scope;
       const list = await topics(prisma, version.id);
       const progress = list.length
         ? await prisma.topicProgress.findMany({ where: { userId: request.user.id, topicId: { in: list.map((topic) => topic.id) } } })
@@ -447,43 +463,32 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
     const topicId = uuidParam(request, 'topicId');
     const data = parse(progressInput, request.body);
     student(request.user);
-    const topic = await prisma.topic.findUnique({ where: { id: topicId } });
-    const week = topic ? await prisma.week.findUnique({ where: { id: topic.weekId } }) : null;
-    const phase = week ? await prisma.phase.findUnique({ where: { id: week.phaseId } }) : null;
-    const cohorts = phase ? await prisma.cohort.findMany({ where: { roadmapVersionId: phase.roadmapVersionId, status: 'active' } }) : [];
-    const enrollments = cohorts.length ? await prisma.cohortEnrollment.findMany({
-      where: { cohortId: { in: cohorts.map((cohort) => cohort.id) }, userId: request.user.id, status: 'active' },
-    }) : [];
-    let authorized = false;
-    for (const enrollment of enrollments) {
-      const cohort = cohorts.find((row) => row.id === enrollment.cohortId);
-      const membership = await prisma.organizationMembership.findFirst({
-        where: { organizationId: cohort.organizationId, userId: request.user.id, role: 'student', status: 'active' },
-      });
-      const organization = membership ? await prisma.organization.findUnique({ where: { id: cohort.organizationId } }) : null;
-      if (organization?.status === 'active') { authorized = true; break; }
-    }
-    if (!authorized) throw notFound('Assigned topic not found');
-    if (data.completed) {
-      await prisma.topicProgress.upsert({
-        where: { userId_topicId: { userId: request.user.id, topicId } },
-        create: { userId: request.user.id, topicId, status: 'completed' },
-        update: { status: 'completed', updatedAt: new Date() },
-      });
-    } else {
-      await prisma.topicProgress.deleteMany({ where: { userId: request.user.id, topicId } });
-    }
+    await prisma.$transaction(async (tx) => {
+      const initialScope = await requireAssignedTopicAccess(tx, request.user, topicId);
+      await lockOrganization(tx, initialScope.organization.id);
+      const authorizedScope = await requireAssignedTopicAccess(tx, request.user, topicId);
+      if (authorizedScope.organization.id !== initialScope.organization.id)
+        throw notFound('Assigned topic not found');
+      const { topic } = authorizedScope;
+      if (data.completed) {
+        await tx.topicProgress.upsert({
+          where: { userId_topicId: { userId: request.user.id, topicId: topic.id } },
+          create: { userId: request.user.id, topicId: topic.id, status: 'completed' },
+          update: { status: 'completed', updatedAt: new Date() },
+        });
+      } else {
+        await tx.topicProgress.deleteMany({ where: { userId: request.user.id, topicId: topic.id } });
+      }
+    });
     response.set('Cache-Control', 'no-store').status(204).end();
   });
 
   app.get('/api/v1/cohorts/:cohortId/progress', requireUser, async (request, response) => {
     const cohortId = uuidParam(request, 'cohortId');
-    const cohort = await prisma.cohort.findUnique({ where: { id: cohortId } });
-    if (!cohort || cohort.status !== 'active') throw notFound('Cohort not found');
-    await owner(prisma, request.user, cohort.organizationId);
+    const { cohort, version, roadmap } = await requireCohortAccess(prisma, request.user, cohortId, {
+      staffRoles: LEARNING_RESOURCE_ROLES,
+    });
     response.set('Cache-Control', 'no-store');
-    const version = await prisma.roadmapVersion.findUnique({ where: { id: cohort.roadmapVersionId } });
-    const roadmap = version ? await prisma.roadmap.findUnique({ where: { id: version.roadmapId } }) : null;
     const list = await topics(prisma, cohort.roadmapVersionId);
     const enrollments = await prisma.cohortEnrollment.findMany({ where: { cohortId, status: 'active' } });
     const memberships = enrollments.length ? await prisma.organizationMembership.findMany({
@@ -491,7 +496,9 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
         role: 'student', status: 'active' },
     }) : [];
     const users = memberships.length
-      ? await prisma.user.findMany({ where: { id: { in: memberships.map((row) => row.userId) } } })
+      ? await prisma.user.findMany({ where: {
+          id: { in: memberships.map((row) => row.userId) }, status: 'active', accountType: 'student',
+        } })
       : [];
     users.sort((a, b) => a.displayName < b.displayName ? -1 : a.displayName > b.displayName ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
     const progress = users.length && list.length
