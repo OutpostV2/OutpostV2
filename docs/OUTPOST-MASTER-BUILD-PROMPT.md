@@ -2373,13 +2373,13 @@ Outpost-New/
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 13 — M1 Authorization Consolidation. Phase 12 organization and member administration is verified and committed.
+Phase 14 — M1 Roadmap Drafts and Immutable Versions. Phase 13 authorization consolidation is verified and committed.
 
 CURRENT TASK:
-Next selected task: audit live API authorization and introduce shared account-type, active-membership, role, cohort, and resource-parent policy checks.
+Next selected task: inspect current published version-1 data and ADR-005, then build the non-destructive draft/version storage foundation with PostgreSQL migration tests.
 
 TASK GOAL:
-Enforce those policies in Express on every live read and write, with PostgreSQL-backed tests for guessed IDs, mismatched organization/version/topic parents, suspended users, and wrong-role requests. Frontend guards remain navigation only. Do not begin Phase 14.
+Support editable drafts without changing existing published version-1 records or cohorts pinned to them. Review migration effects before applying them. This is the first bounded Phase 14 task; publication routes and UI follow only after the storage foundation is verified.
 
 Repository:
 Outpost
@@ -2391,54 +2391,50 @@ Branch:
 main
 
 LAST VERIFIED PROJECT COMMIT:
-25b81a5604998ed84faf83ac831cea2578a08c72
+332a85071e8e9a0caf4ac9d0725de5b04a0581b7
 
 CHECKPOINT FILE STATE:
-Commit A contains Phase 12 implementation, migration, tests, ADR, and review guidance. This separate checkpoint edits only Layer 4; its own commit hash is not recorded here.
+Commit A contains the Phase 13 policy module, live-route enforcement, PostgreSQL tests, test-runner setting, ADR updates, and implementation record. This separate checkpoint edits only Layer 4; its own commit hash is not recorded here.
 
 Working tree at last verification:
 Clean immediately after Commit A and before this Layer 4 edit. Verify again after Commit B.
 
 Last verified baseline:
-- Backend `npm test`: 38 passed, 2 database tests skipped by the generic command; `npm run test:db`: 2 PostgreSQL-backed tests passed, including concurrent invitation acceptance.
-- Frontend `npm test`: 26 passed; `npm run format:check`, `npm run lint`, and `npm run build` passed.
-- `npm run db:validate` and `npm run db:generate` passed. `npx prisma migrate deploy` applied the additive invitation migration; `npx prisma migrate status` reported two migrations and an up-to-date database.
-- Root `npm run dev` started the API and Vite. `scripts/smoke-learning.js` passed against the API. `scripts/smoke-organizations.js` passed against port 8000 and through Vite at `http://localhost:5173`, checking one-time invitation, tenant and inactive-member denials, ownership transfer, and cleanup. The app listeners on ports 8000/5173 were closed afterward; Compose services remained running.
-- `node --check scripts/smoke-organizations.js`, `git diff --check`, and staged diff check passed. Separate clean-clone installation, manual browser walkthrough, external identity providers, and production release were not verified.
+- Backend `npm test`: 38 passed, 3 PostgreSQL files skipped by that command; `npm run test:db`: all 3 PostgreSQL-backed files passed. The new cases cover active roles and memberships, enrollment, guessed and cross-tenant IDs, mismatched organization/version/topic parents, and suspension after a session was issued.
+- `npm run db:validate` passed; `npx prisma migrate status` found two migrations and an up-to-date PostgreSQL database. Phase 13 made no schema or migration change.
+- The live learning and organization smoke scripts passed against the Outpost API on port 8001, including registration, persistence, role/tenant denial, invitations, and ownership transfer. The scripts removed their temporary records; the temporary API listener was stopped. Port 8000 was occupied by an unrelated local Python app and was left untouched.
+- `node --check` for the changed backend source/test files, `git diff --check`, and staged diff check passed. Frontend source was unchanged and frontend checks were not rerun. A separate clean-clone install and manual browser walkthrough were not verified.
 
 COMPLETED WITHIN CURRENT PHASE:
-No Phase 13 implementation. Phase 12 added owner-scoped details/member directory, non-owner status and staff-role changes, owner protection and atomic transfer, verified-email single-use staff invitations, active-membership learning checks, the organization UI, ADR-006, and repeatable database/HTTP verification.
+No Phase 14 implementation. Phase 13 is complete: reusable account-type, active-membership, role, cohort, and parent-resource checks now govern live learning and review routes; ADR-006 records the initial role matrix.
 
 FILES RELEVANT TO CURRENT TASK:
-backend-js/src/app.js
-backend-js/src/modules/auth/service.js
-backend-js/src/modules/auth/routes.js
-backend-js/src/modules/learning/routes.js
-backend-js/src/modules/review/routes.js
+docs/decisions/ADR-005-roadmap-versioning.md
 backend-js/prisma/schema.prisma
+backend-js/prisma/migrations/
+backend-js/src/modules/learning/routes.js
+backend-js/src/core/authorization.js
 backend-js/tests/learning/routes.test.js
-backend-js/tests/db/organization-management.test.js
-docs/decisions/ADR-002-organization-tenant-model.md
-docs/decisions/ADR-004-tenant-aware-authorization.md
-docs/decisions/ADR-006-organization-membership-management.md
+backend-js/tests/db/authorization.test.js
+backend-js/tests/db/schema.test.js
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
-Commit A changed the organization API, Prisma schema/migration, tests, smoke script, React organization pages/API/styles, ADR-006, decision index, review guide, and implementation plan. Commit B changes only this file's Layer 4.
+Commit A changed `backend-js/package.json`, added `backend-js/src/core/authorization.js` and `backend-js/tests/db/authorization.test.js`, updated the learning/review routes and ADR-004/ADR-006, and added the Phase 13 implementation record. Commit B changes only this file's Layer 4.
 
 ENVIRONMENT:
-Windows / PowerShell; Node.js v26.7.0, npm 12.0.2. Local Compose PostgreSQL, Valkey, MinIO, and Mailpit were healthy during verification and remain running. API and Vite app listeners were stopped. Git `origin` is configured; no push was requested.
+Windows / PowerShell. Docker Desktop was restarted for verification; Compose PostgreSQL, Valkey, MinIO, and Mailpit were healthy and remain running. The temporary Outpost API listener on 8001 was stopped; no Vite listener was started. No push was requested.
 
 CURRENT REQUEST:
-Complete Phase 12.
+Complete Phase 13; the latest `continue` resumed that request.
 
 LAST COMMAND:
-`git status --short` after verifying Commit A.
+`git show --stat --oneline --summary HEAD` and `git status --short --branch` after Commit A.
 
 CURRENT OUTPUT / ERROR:
-Commit A `25b81a5604998ed84faf83ac831cea2578a08c72` contains the 17 intended Phase 12 files. Working tree was clean immediately afterward; no Phase 12 verification failure remains.
+Commit A `332a85071e8e9a0caf4ac9d0725de5b04a0581b7` contains the eight intended Phase 13 files. The working tree was clean immediately afterward; no Phase 13 verification failure remains.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-Phase 13 starts with a live-route authorization audit. ADR-006 staff memberships do not yet grant resource permissions merely from account type or role labels.
+Phase 14 begins by comparing the current direct-publication version-1 model with ADR-005 and preserving existing published records through a reviewed Prisma migration.
 
 ---
 # SESSION OPERATING RULE
