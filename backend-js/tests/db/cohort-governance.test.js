@@ -26,6 +26,7 @@ describe.skipIf(!(process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL))
       const owner = await createUser('owner', 'coordinator');
       const otherOwner = await createUser('otherowner', 'coordinator');
       const student = await createUser('student', 'student');
+      const secondStudent = await createUser('studenttwo', 'student');
       const organization = await prisma.organization.create({ data: {
         name: `Campus ${suffix}`, slug: `p15-campus-${suffix}`,
       } });
@@ -54,9 +55,25 @@ describe.skipIf(!(process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL))
         name: 'Career readiness', topics: [{ title: 'Prepare portfolio' }],
       });
       expect(roadmap.status).toBe(201);
-      const published = await request(app)
-        .post(`${roadmapPath}/${roadmap.body.id}/versions/${roadmap.body.version_id}/publish`)
-        .set(as(owner));
+      const versionPath = `${roadmapPath}/${roadmap.body.id}/versions/${roadmap.body.version_id}`;
+      const draft = await request(app).put(versionPath).set(as(owner)).send({ phases: [
+        { title: 'Foundations', weeks: [
+          { title: 'Reflect', topics: [
+            { title: 'Name strengths', description: 'List personal strengths.' },
+            { title: 'Set a goal', description: 'Choose a direction.' },
+          ] },
+          { title: 'Explore', topics: [
+            { title: 'Choose a role', description: 'Compare possible roles.' },
+          ] },
+        ] },
+        { title: 'Practice', weeks: [
+          { title: 'Build', topics: [
+            { title: 'Create portfolio', description: 'Show your work.' },
+          ] },
+        ] },
+      ] });
+      expect(draft.status).toBe(200);
+      const published = await request(app).post(`${versionPath}/publish`).set(as(owner));
       expect(published.status).toBe(200);
       const cohort = await request(app).post(`/api/v1/organizations/${organization.id}/cohorts`).set(as(owner)).send({
         name: 'Review cohort', roadmap_version_id: roadmap.body.version_id,
@@ -81,8 +98,36 @@ describe.skipIf(!(process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL))
       expect((await request(app).post('/api/v1/cohorts/join').set(as(student))
         .send({ invite_code: initialCode })).status).toBe(200);
       expect(await prisma.cohortEnrollment.count({ where: { cohortId: cohort.body.id, userId: student.id } })).toBe(1);
-      const topicId = roadmap.body.topics[0].id;
+      const topicId = draft.body.topics[0].id;
       expect((await request(app).put(`/api/v1/progress/topics/${topicId}`).set(as(student)).send({ completed: true })).status).toBe(204);
+      expect((await request(app).get('/api/v1/progress/me').set(as(owner))).status).toBe(403);
+      const secondJoined = await request(app).post('/api/v1/cohorts/join').set(as(secondStudent))
+        .send({ invite_code: initialCode });
+      expect(secondJoined.status).toBe(200);
+      const studentProgress = (await request(app).get('/api/v1/progress/me').set(as(student))).body[0];
+      expect(studentProgress).toMatchObject({
+        cohort_id: cohort.body.id, cohort_name: 'Review cohort', organization_name: `Campus ${suffix}`,
+        roadmap_name: 'Career readiness', roadmap_version_id: roadmap.body.version_id, roadmap_version_number: 1,
+        completed: 1, total: 4, percent: 25,
+      });
+      expect(studentProgress.phases.map(({ title, order_index }) => ({ title, order_index }))).toEqual([
+        { title: 'Foundations', order_index: 1 }, { title: 'Practice', order_index: 2 },
+      ]);
+      expect(studentProgress.phases[0].weeks.map(({ title, order_index }) => ({ title, order_index }))).toEqual([
+        { title: 'Reflect', order_index: 1 }, { title: 'Explore', order_index: 2 },
+      ]);
+      expect(studentProgress.phases[0].weeks[0].topics.map(({ title, order_index, completed }) => ({ title, order_index, completed }))).toEqual([
+        { title: 'Name strengths', order_index: 1, completed: true },
+        { title: 'Set a goal', order_index: 2, completed: false },
+      ]);
+      expect(studentProgress.phases[0].weeks[0].topics[0]).toMatchObject({
+        id: topicId, description: 'List personal strengths.', completed_at: expect.any(String),
+      });
+      expect(studentProgress.topics).toHaveLength(4);
+      expect(studentProgress.topics[0]).toMatchObject({ id: topicId, week: 1, completed: true });
+      const secondStudentProgress = (await request(app).get('/api/v1/progress/me').set(as(secondStudent))).body[0];
+      expect(secondStudentProgress).toMatchObject({ completed: 0, total: 4, percent: 0 });
+      expect(secondStudentProgress.phases[0].weeks[0].topics[0]).toMatchObject({ completed: false, completed_at: null });
 
       expect((await request(app).delete(`/api/v1/cohorts/${cohort.body.id}/enrollments/me`).set(as(student))).status).toBe(204);
       expect((await prisma.cohortEnrollment.findUnique({ where: {
@@ -95,8 +140,9 @@ describe.skipIf(!(process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL))
 
       const rosterPath = `/api/v1/cohorts/${cohort.body.id}/enrollments`;
       const roster = await request(app).get(rosterPath).set(as(owner));
-      expect(roster.body[0]).toMatchObject({ display_name: 'student', status: 'active' });
-      expect(roster.body[0]).not.toHaveProperty('primary_email');
+      const studentRosterEntry = roster.body.find((entry) => entry.user_id === student.id);
+      expect(studentRosterEntry).toMatchObject({ display_name: 'student', status: 'active' });
+      expect(studentRosterEntry).not.toHaveProperty('primary_email');
       expect((await request(app).post(`/api/v1/cohorts/${cohort.body.id}/join-code/rotate`).set(as(otherOwner))).status).toBe(403);
       expect((await request(app).get(rosterPath).set(as(otherOwner))).status).toBe(403);
 
@@ -136,7 +182,7 @@ describe.skipIf(!(process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL))
       expect((await request(app).post(`${roadmapPath}/${roadmap.body.id}/versions/${roadmap.body.version_id}/archive`)
         .set(as(owner))).status).toBe(200);
       expect((await request(app).get('/api/v1/progress/me').set(as(student))).body[0])
-        .toMatchObject({ cohort_id: cohort.body.id, completed: 1, total: 1 });
+        .toMatchObject({ cohort_id: cohort.body.id, roadmap_version_id: roadmap.body.version_id, roadmap_version_number: 1, completed: 1, total: 4 });
       stored = await prisma.cohort.findUnique({ where: { id: cohort.body.id } });
       expect(stored.roadmapVersionId).toBe(roadmap.body.version_id);
     } finally {

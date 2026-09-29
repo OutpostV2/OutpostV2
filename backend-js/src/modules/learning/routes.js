@@ -105,25 +105,36 @@ function sorted(rows, dateField = 'createdAt') {
     return first || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   });
 }
-async function topics(prisma, versionId) {
+async function roadmapTree(prisma, versionId) {
   const phases = await prisma.phase.findMany({ where: { roadmapVersionId: versionId } });
   if (!phases.length) return [];
   const weeks = await prisma.week.findMany({ where: { phaseId: { in: phases.map((phase) => phase.id) } } });
-  if (!weeks.length) return [];
-  const topicRows = await prisma.topic.findMany({ where: { weekId: { in: weeks.map((week) => week.id) } } });
-  const phaseById = new Map(phases.map((phase) => [phase.id, phase]));
-  const weekById = new Map(weeks.map((week) => [week.id, week]));
-  return topicRows
-    .sort((a, b) => {
-      const wa = weekById.get(a.weekId), wb = weekById.get(b.weekId);
-      const pa = phaseById.get(wa.phaseId), pb = phaseById.get(wb.phaseId);
-      return pa.orderIndex - pb.orderIndex || wa.orderIndex - wb.orderIndex || a.orderIndex - b.orderIndex;
-    })
-    .map((topic) => {
-      const week = weekById.get(topic.weekId);
-      return { id: topic.id, title: topic.title, description: topic.description, week: week.orderIndex };
-    });
+  const topicRows = weeks.length
+    ? await prisma.topic.findMany({ where: { weekId: { in: weeks.map((week) => week.id) } } })
+    : [];
+  const weeksByPhase = new Map(phases.map((phase) => [phase.id, []]));
+  const topicsByWeek = new Map(weeks.map((week) => [week.id, []]));
+  for (const week of weeks) weeksByPhase.get(week.phaseId).push(week);
+  for (const topic of topicRows) topicsByWeek.get(topic.weekId).push(topic);
+  return phases.sort((a, b) => a.orderIndex - b.orderIndex).map((phase) => ({
+    id: phase.id, title: phase.title, order_index: phase.orderIndex,
+    weeks: weeksByPhase.get(phase.id).sort((a, b) => a.orderIndex - b.orderIndex).map((week) => ({
+      id: week.id, title: week.title, order_index: week.orderIndex,
+      topics: topicsByWeek.get(week.id).sort((a, b) => a.orderIndex - b.orderIndex).map((topic) => ({
+        id: topic.id, title: topic.title, description: topic.description, order_index: topic.orderIndex,
+      })),
+    })),
+  }));
 }
+function flattenRoadmapTree(phases) {
+  return phases.flatMap((phase) => phase.weeks.flatMap((week) => week.topics.map((topic) => ({
+    id: topic.id, title: topic.title, description: topic.description, week: week.order_index,
+  }))));
+}
+async function topics(prisma, versionId) {
+  return flattenRoadmapTree(await roadmapTree(prisma, versionId));
+}
+
 async function cohortOut(prisma, cohort) {
   const version = await prisma.roadmapVersion.findUnique({ where: { id: cohort.roadmapVersionId } });
   const roadmap = version ? await prisma.roadmap.findUnique({ where: { id: version.roadmapId } }) : null;
@@ -577,19 +588,27 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
         throw error;
       }
       const { cohort, organization, version, roadmap } = scope;
-      const list = await topics(prisma, version.id);
+      const phases = await roadmapTree(prisma, version.id);
+      const list = flattenRoadmapTree(phases);
       const progress = list.length
         ? await prisma.topicProgress.findMany({ where: { userId: request.user.id, topicId: { in: list.map((topic) => topic.id) } } })
         : [];
       const byTopic = new Map(progress.map((row) => [row.topicId, row]));
-      const topicOutput = list.map((topic) => ({
+      const addProgress = (topic) => ({
         ...topic, completed: byTopic.has(topic.id),
         completed_at: byTopic.get(topic.id)?.updatedAt ?? null,
+      });
+      const topicOutput = list.map(addProgress);
+      const phaseOutput = phases.map((phase) => ({
+        ...phase, weeks: phase.weeks.map((week) => ({
+          ...week, topics: week.topics.map(addProgress),
+        })),
       }));
       result.push({
         cohort_id: cohort.id, cohort_name: cohort.name, organization_name: organization.name,
-        roadmap_name: roadmap.name, completed: progress.length, total: list.length,
-        percent: percent(progress.length, list.length), topics: topicOutput,
+        roadmap_name: roadmap.name, roadmap_version_id: version.id, roadmap_version_number: version.versionNumber,
+        completed: progress.length, total: list.length, percent: percent(progress.length, list.length),
+        topics: topicOutput, phases: phaseOutput,
       });
     }
     response.json(result);
