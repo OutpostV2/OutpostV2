@@ -1,6 +1,6 @@
 # PDF activity plans and frontend refinement
 
-Status: Proposed written design, awaiting user review before implementation.
+Status: Approved for implementation by the user's “implement it” instruction.
 Date: 2026-10-08.
 
 ## Intended outcome and scope
