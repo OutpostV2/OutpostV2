@@ -34,4 +34,10 @@ describe('core API contract', () => {
     expect(response.body.error).toMatchObject({ code: 'not_found' });
     expect(response.body.error.request_id).toBe(response.headers['x-request-id']);
   });
+
+  it('registers activity plans behind authentication', async () => {
+    const response = await request(createApp({ prisma }))
+      .get('/api/v1/organizations/00000000-0000-4000-8000-000000000001/activity-plans');
+    expect(response.status).toBe(401);
+  });
 });

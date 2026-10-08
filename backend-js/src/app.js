@@ -8,10 +8,11 @@ import { registerReviewRoutes } from './modules/review/routes.js';
 import { registerLearningRoutes } from './modules/learning/routes.js';
 import { registerGoogleRoutes } from './modules/auth/google.js';
 import { registerPhoneRoutes } from './modules/auth/phone.js';
+import { registerActivityPlanRoutes } from './modules/activity-plans/routes.js';
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export function createApp({ prisma, settings = {}, emailProvider, redisClient, smsProvider } = {}) {
+export function createApp({ prisma, settings = {}, emailProvider, redisClient, smsProvider, objectStorage } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.locals.prisma = prisma;
@@ -56,6 +57,7 @@ export function createApp({ prisma, settings = {}, emailProvider, redisClient, s
   registerPhoneRoutes(app, { prisma, settings, redisClient, smsProvider });
   registerReviewRoutes(app, { prisma, settings, requireUser });
   registerLearningRoutes(app, { prisma, settings, requireUser, redisClient });
+  registerActivityPlanRoutes(app, { prisma, requireUser, storage: objectStorage });
 
   app.use((_request, _response, next) => next(notFound()));
   app.use(errorHandler);

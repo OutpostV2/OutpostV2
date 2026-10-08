@@ -37,7 +37,18 @@ export function loadSettings(environment = process.env) {
     emailSmtpStarttls: environment.OUTPOST_EMAIL_SMTP_STARTTLS === 'true',
     emailSmtpUsername: environment.OUTPOST_EMAIL_SMTP_USERNAME,
     emailSmtpPassword: environment.OUTPOST_EMAIL_SMTP_PASSWORD,
+    objectStorage: environment.OUTPOST_OBJECT_ACCESS_KEY && environment.OUTPOST_OBJECT_SECRET_KEY
+      ? {
+        endpoint: environment.OUTPOST_OBJECT_ENDPOINT || 'http://127.0.0.1:9000',
+        bucket: environment.OUTPOST_OBJECT_BUCKET || 'outpost-activity-plans',
+        accessKey: environment.OUTPOST_OBJECT_ACCESS_KEY,
+        secretKey: environment.OUTPOST_OBJECT_SECRET_KEY,
+      }
+      : null,
   };
+  if (Boolean(environment.OUTPOST_OBJECT_ACCESS_KEY) !== Boolean(environment.OUTPOST_OBJECT_SECRET_KEY)) {
+    throw new Error('Both object storage credentials are required');
+  }
   if (settings.env !== 'development' && settings.env !== 'test') {
     if (settings.smsProvider === 'development' || settings.emailProvider === 'development') {
       throw new Error('Development outbound providers cannot run outside development/test');
