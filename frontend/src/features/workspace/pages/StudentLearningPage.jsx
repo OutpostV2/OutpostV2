@@ -102,6 +102,16 @@ export default function StudentLearningPage() {
       {error && (
         <p className="form-error" role="alert">
           {error}
+          <button
+            className="workspace-button"
+            type="button"
+            onClick={() => {
+              setError('')
+              void reload().catch((cause) => setError(cause.message))
+            }}
+          >
+            Try again
+          </button>
         </p>
       )}
       {message && (
@@ -133,7 +143,7 @@ export default function StudentLearningPage() {
         </form>
       </section>
       {loading && <p role="status">Loading your learning…</p>}
-      {!loading && learning.length === 0 && (
+      {!loading && !error && learning.length === 0 && (
         <EmptyState
           title="No assigned roadmap yet"
           description="Once you enter a cohort join code, its roadmap will appear here."
@@ -151,6 +161,7 @@ export default function StudentLearningPage() {
                   {assignment.organization_name} / {assignment.cohort_name}
                 </p>
                 <h2>{assignment.roadmap_name}</h2>
+                <p>Version {assignment.roadmap_version_number}</p>
                 <p>
                   {assignment.completed} of {assignment.total} topics completed
                 </p>
@@ -176,34 +187,53 @@ export default function StudentLearningPage() {
                 Your completed topics remain saved if you join again.
               </small>
             </div>
-            <div className="learning-topic-list">
-              {assignment.topics.map((topic) => (
-                <div className="learning-topic" key={topic.id}>
-                  <div>
-                    <small>Week {topic.week}</small>
-                    <h3>{topic.title}</h3>
-                    {topic.description && <p>{topic.description}</p>}
-                  </div>
-                  <button
-                    type="button"
-                    className={
-                      topic.completed
-                        ? 'learning-topic-done'
-                        : 'workspace-button'
-                    }
-                    disabled={busy !== ''}
-                    onClick={() => void changeTopic(topic.id, !topic.completed)}
-                    aria-pressed={topic.completed}
-                  >
-                    {busy === topic.id
-                      ? 'Saving…'
-                      : topic.completed
-                        ? 'Completed ✓'
-                        : 'Mark complete'}
-                  </button>
-                </div>
-              ))}
-            </div>
+            {(
+              assignment.phases || [
+                {
+                  id: 'flat',
+                  title: '',
+                  weeks: [{ id: 'flat', title: '', topics: assignment.topics }],
+                },
+              ]
+            ).map((phase) => (
+              <section className="learning-phase" key={phase.id}>
+                {phase.title && <h3>{phase.title}</h3>}
+                {phase.weeks.map((week) => (
+                  <section className="learning-week" key={week.id}>
+                    {week.title && <h4>{week.title}</h4>}
+                    <div className="learning-topic-list">
+                      {week.topics.map((topic) => (
+                        <div className="learning-topic" key={topic.id}>
+                          <div>
+                            <h3>{topic.title}</h3>
+                            {topic.description && <p>{topic.description}</p>}
+                          </div>
+                          <button
+                            type="button"
+                            className={
+                              topic.completed
+                                ? 'learning-topic-done'
+                                : 'workspace-button'
+                            }
+                            disabled={busy !== ''}
+                            onClick={() =>
+                              void changeTopic(topic.id, !topic.completed)
+                            }
+                            aria-pressed={topic.completed}
+                          >
+                            {busy === topic.id
+                              ? 'Saving…'
+                              : topic.completed
+                                ? 'Completed ✓'
+                                : 'Mark complete'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </section>
+            ))}
           </section>
         ))}
       </div>

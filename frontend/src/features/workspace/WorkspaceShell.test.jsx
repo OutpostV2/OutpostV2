@@ -9,6 +9,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import * as authApi from '../auth/authApi'
 import * as reviewApi from '../review/reviewApi'
+import * as learningApi from './learningApi'
 import WorkspaceShell from './components/WorkspaceShell'
 import StudentRoadmapPage from './pages/StudentRoadmapPage'
 vi.mock('../auth/authApi', () => ({
@@ -21,6 +22,12 @@ vi.mock('../review/reviewApi', () => ({
   getReviewOverview: vi.fn(),
   updateReviewProgress: vi.fn(),
   resetReviewProgress: vi.fn(),
+}))
+vi.mock('./learningApi', () => ({
+  getMyLearning: vi.fn(),
+  setTopicProgress: vi.fn(),
+  joinCohort: vi.fn(),
+  withdrawFromCohort: vi.fn(),
 }))
 const topic = {
   key: 'goals',
@@ -86,7 +93,7 @@ it('requires a signed-in account before loading workspace data', async () => {
   ).toBeInTheDocument()
   expect(reviewApi.getReviewOverview).not.toHaveBeenCalled()
 })
-it('optimistically updates topic progress and restores it when saving fails', async () => {
+it('loads assigned learning without sample data and preserves completion when saving fails', async () => {
   vi.mocked(authApi.restoreSession).mockResolvedValue({
     id: 'user-1',
     display_name: 'Mira Student',
@@ -95,21 +102,34 @@ it('optimistically updates topic progress and restores it when saving fails', as
     email_verified_at: null,
     account_type: 'student',
   })
+  learningApi.getMyLearning.mockResolvedValue([
+    {
+      cohort_id: 'c1',
+      cohort_name: 'Class',
+      organization_name: 'Campus',
+      roadmap_name: 'Live roadmap',
+      roadmap_version_number: 1,
+      completed: 0,
+      total: 1,
+      percent: 0,
+      topics: [{ id: 't1', title: 'Live topic', completed: false }],
+    },
+  ])
   let rejectSave = () => undefined
-  vi.mocked(reviewApi.updateReviewProgress).mockReturnValue(
+  vi.mocked(learningApi.setTopicProgress).mockReturnValue(
     new Promise((_, reject) => {
       rejectSave = reject
     }),
   )
   renderRoadmap()
   fireEvent.click(await screen.findByRole('button', { name: 'Mark complete' }))
-  expect(screen.getByText('1 of 1')).toBeInTheDocument()
-  expect(reviewApi.updateReviewProgress).toHaveBeenCalledWith('goals', true)
+  expect(learningApi.setTopicProgress).toHaveBeenCalledWith('t1', true)
+  expect(reviewApi.getReviewOverview).not.toHaveBeenCalled()
   rejectSave(new Error('Save failed'))
   await waitFor(() =>
     expect(screen.getByRole('alert')).toHaveTextContent('Save failed'),
   )
-  expect(screen.getByText('0 of 1')).toBeInTheDocument()
+  expect(screen.getByText('0 of 1 topics completed')).toBeInTheDocument()
 })
 it.each([
   ['student', '/app/coordinator', 'Student workspace'],

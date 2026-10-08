@@ -17,8 +17,8 @@ import { WorkspaceContext } from '../hooks/useWorkspace'
 const studentLinks = [
   { to: '/app/student', label: 'Overview', end: true },
   { to: '/app/student/learning', label: 'My assigned learning' },
-  { to: '/app/student/roadmap', label: 'Sample roadmap' },
-  { to: '/app/student/activity', label: 'Sample activity' },
+  { to: '/app/student/roadmap', label: 'Assigned roadmap' },
+  { to: '/app/student/activity', label: 'Activity' },
   { to: '/app/student/deadlines', label: 'Deadlines' },
 ]
 const coordinatorLinks = [
@@ -74,7 +74,10 @@ export default function WorkspaceShell() {
         const restored = await restoreSession()
         if (!active) return
         if (restored) {
-          const data = await getReviewOverview()
+          const data =
+            restored.account_type === 'coordinator'
+              ? await getReviewOverview()
+              : null
           if (active) {
             setUser(restored)
             setOverview(data)
@@ -194,7 +197,7 @@ export default function WorkspaceShell() {
       </main>
     )
   }
-  if (!overview)
+  if (coordinatorView && !overview)
     return (
       <main className="workspace-gate">
         <div className="workspace-gate-card">

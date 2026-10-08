@@ -1,135 +1,105 @@
 import { Link } from 'react-router'
 import { useWorkspace } from '../hooks/useWorkspace'
+import { useLiveResource } from '../hooks/useLiveResource'
+import { getMyLearning } from '../learningApi'
+import LiveResourceState from '../components/LiveResourceState'
 import {
+  EmptyState,
   MetricCard,
   PageHeading,
   ProgressBar,
-  SectionHeading,
 } from '../components/WorkspaceUI'
 export default function StudentDashboardPage() {
-  const { user, overview } = useWorkspace()
-  const { student } = overview
-  const remaining = student.total - student.completed
+  const { user } = useWorkspace()
+  const resource = useLiveResource(getMyLearning)
+  const learning = resource.data || []
+  const topics = new Map(
+    learning.flatMap((item) => item.topics).map((topic) => [topic.id, topic]),
+  )
+  const completed = [...topics.values()].filter(
+    (topic) => topic.completed,
+  ).length
+  const next = [...topics.values()].find((topic) => !topic.completed)
   return (
     <>
       <PageHeading
-        eyebrow="Student / Review scenario"
-        title={`Good to see you, ${user.display_name.split(' ')[0]}.`}
-        description="Sample roadmap progress for the college review. Open assigned learning for your real cohort roadmap."
+        eyebrow="Student / Assigned learning"
+        title={'Good to see you, ' + user.display_name.split(' ')[0] + '.'}
+        description="Your enrolled cohorts and personal progress on their exact assigned roadmap versions."
         action={
           <Link className="workspace-button" to="/app/student/learning">
             Open assigned learning →
           </Link>
         }
       />
-      <div className="workspace-metric-grid">
-        <MetricCard
-          label="Your progress"
-          value={`${student.percent}%`}
-          detail="Across this learning path"
-          tone="green"
-        />
-        <MetricCard
-          label="Topics completed"
-          value={student.completed}
-          detail={`Of ${student.total} topics`}
-        />
-        <MetricCard
-          label="Still to explore"
-          value={remaining}
-          detail="One step at a time"
-        />
-      </div>
-      <div className="workspace-two-column">
-        <section className="workspace-card workspace-feature-card">
-          <p className="workspace-card-label">What’s next</p>
-          <h2>{student.next_topic?.title || 'You completed the roadmap'}</h2>
-          <p>
-            {student.next_topic?.description ||
-              'Excellent work. You have finished every topic in this review scenario.'}
-          </p>
-          <div className="workspace-card-footer">
-            <span>
-              {student.next_topic
-                ? `Week ${student.next_topic.week}`
-                : 'All topics done'}
-            </span>
-            <Link className="workspace-text-link" to="/app/student/roadmap">
-              View topic →
-            </Link>
+      <LiveResourceState {...resource} />
+      {resource.data && (
+        <>
+          <div className="workspace-metric-grid">
+            <MetricCard
+              label="Enrolled cohorts"
+              value={learning.length}
+              detail="Active assignments"
+              tone="green"
+            />
+            <MetricCard
+              label="Topics completed"
+              value={completed}
+              detail={'Of ' + topics.size + ' distinct assigned topics'}
+            />
+            <MetricCard
+              label="Still to explore"
+              value={topics.size - completed}
+              detail="Your unfinished topics"
+            />
           </div>
-        </section>
-        <section className="workspace-card">
-          <SectionHeading
-            title="Learning path"
-            description={student.roadmap_title}
-            to="/app/student/roadmap"
-            linkLabel="View full roadmap"
-          />
-          <div className="workspace-progress-total">
-            <strong>{student.percent}%</strong>
-            <span>complete</span>
-          </div>
-          <ProgressBar value={student.percent} label="Roadmap completion" />
-          <p className="workspace-muted">
-            {student.completed} of {student.total} topics completed
-          </p>
-        </section>
-      </div>
-      <section className="workspace-section">
-        <SectionHeading
-          title="Your phases"
-          description="Follow the plan at a pace that works for you."
-          to="/app/student/roadmap"
-          linkLabel="Explore roadmap"
-        />
-        <div className="workspace-phase-grid">
-          {student.phases.map((phase, index) => {
-            const completed = phase.topics.filter(
-              (topic) => topic.status === 'completed',
-            ).length
-            return (
-              <article
-                className="workspace-card workspace-phase-card"
-                key={phase.title}
-              >
-                <span className="workspace-phase-number">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <h3>{phase.title}</h3>
-                <p>{phase.description}</p>
-                <span className="workspace-muted">
-                  {completed} / {phase.topics.length} complete
-                </span>
+          {!learning.length && (
+            <EmptyState
+              title="No assigned roadmap yet"
+              description="Enter your coordinator's cohort code to begin."
+              actionTo="/app/student/learning"
+              actionLabel="Join a cohort"
+            />
+          )}
+          {!!learning.length && (
+            <section className="workspace-card workspace-feature-card">
+              <p className="workspace-card-label">Next step</p>
+              <h2>{next?.title || 'All assigned topics completed'}</h2>
+              <p>
+                {next?.description ||
+                  'Open your roadmap to review your saved progress.'}
+              </p>
+              <Link className="workspace-text-link" to="/app/student/roadmap">
+                View assigned roadmap →
+              </Link>
+            </section>
+          )}
+          <div className="learning-assignments">
+            {learning.map((item) => (
+              <section className="workspace-card" key={item.cohort_id}>
+                <p className="workspace-eyebrow">
+                  {item.organization_name} / {item.cohort_name}
+                </p>
+                <h2>{item.roadmap_name}</h2>
+                <p>
+                  Version {item.roadmap_version_number} · {item.completed} of{' '}
+                  {item.total} topics complete
+                </p>
                 <ProgressBar
-                  value={
-                    phase.topics.length
-                      ? Math.round((completed * 100) / phase.topics.length)
-                      : 0
-                  }
-                  label={`${phase.title} completion`}
+                  value={item.percent}
+                  label={item.cohort_name + ' completion'}
                 />
-              </article>
-            )
-          })}
-        </div>
-      </section>
-      <div className="workspace-two-column workspace-bottom-links">
-        <Link
-          className="workspace-card workspace-link-card"
-          to="/app/student/activity"
-        >
-          <span>Recent activity</span>
-          <strong>See the steps you’ve completed →</strong>
-        </Link>
-        <Link
-          className="workspace-card workspace-link-card"
-          to="/app/student/deadlines"
-        >
-          <span>Deadlines</span>
-          <strong>Plan what comes next →</strong>
-        </Link>
-      </div>
+                <Link className="workspace-text-link" to="/app/student/roadmap">
+                  Continue learning →
+                </Link>
+              </section>
+            ))}
+          </div>
+          <Link className="workspace-text-link" to="/review">
+            Open the separately labeled illustrative review →
+          </Link>
+        </>
+      )}
     </>
   )
 }
