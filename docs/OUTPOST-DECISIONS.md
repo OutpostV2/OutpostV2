@@ -14,3 +14,4 @@ Routine task history belongs in Git and Layer 4, not here.
 - [ADR-005: Roadmap versioning and publication](decisions/ADR-005-roadmap-versioning.md) — Accepted. Defines immutable curriculum snapshots, cohort pinning, archival, and progress identity.
 - [ADR-006: Organization membership management and staff invitations](decisions/ADR-006-organization-membership-management.md) — Accepted. Defines owner controls, verified-email invitations, deactivation, and atomic ownership transfer.
 - [ADR-007: Cohort join-code and enrollment governance](decisions/ADR-007-cohort-join-and-enrollment-governance.md) — Accepted. Defines join-code lifecycle and rate limits, enrollment withdrawal/removal, and progress-preserving rejoin rules.
+- [ADR-008: Activity history and cohort deadlines](decisions/ADR-008-activity-and-cohort-deadlines.md) — Accepted. Defines transactional progress history, current access scope, pinned cohort scheduling and timezone/overdue policy.

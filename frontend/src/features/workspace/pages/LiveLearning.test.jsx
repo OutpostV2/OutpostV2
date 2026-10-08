@@ -29,6 +29,10 @@ vi.mock('../learningApi', () => ({
   getMyLearning: vi.fn(),
   setTopicProgress: vi.fn(),
   getCohortProgress: vi.fn(),
+  getCohortDeadlines: vi.fn(),
+  getCohortActivity: vi.fn(),
+  setWeekDeadline: vi.fn(),
+  removeWeekDeadline: vi.fn(),
 }))
 afterEach(cleanup)
 beforeEach(() => {
@@ -36,6 +40,11 @@ beforeEach(() => {
   vi.mocked(learningApi.listOrganizations).mockResolvedValue([])
   vi.mocked(learningApi.listRoadmaps).mockResolvedValue([])
   vi.mocked(learningApi.listCohorts).mockResolvedValue([])
+  vi.mocked(learningApi.getCohortDeadlines).mockResolvedValue({ weeks: [] })
+  vi.mocked(learningApi.getCohortActivity).mockResolvedValue({
+    events: [],
+    next_cursor: null,
+  })
 })
 it('lets a coordinator create an organization, roadmap, and cohort', async () => {
   const org = { id: 'org-1', name: 'Campus', role: 'owner' }

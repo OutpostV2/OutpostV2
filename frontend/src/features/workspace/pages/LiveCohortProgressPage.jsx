@@ -8,6 +8,7 @@ import {
   PageHeading,
   ProgressBar,
 } from '../components/WorkspaceUI'
+import CohortSchedule from '../components/CohortSchedule'
 import { getCohortProgress } from '../learningApi'
 export default function LiveCohortProgressPage() {
   const { cohortId } = useParams()
@@ -113,6 +114,7 @@ export default function LiveCohortProgressPage() {
           </section>
         </>
       )}
+      {report && <CohortSchedule key={cohortId} cohortId={cohortId} />}
     </>
   )
 }

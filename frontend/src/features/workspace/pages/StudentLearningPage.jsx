@@ -107,7 +107,10 @@ export default function StudentLearningPage() {
             type="button"
             onClick={() => {
               setError('')
-              void reload().catch((cause) => setError(cause.message))
+              setLoading(true)
+              void reload()
+                .catch((cause) => setError(cause.message))
+                .finally(() => setLoading(false))
             }}
           >
             Try again

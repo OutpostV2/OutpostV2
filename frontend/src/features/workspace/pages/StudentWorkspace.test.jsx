@@ -51,6 +51,24 @@ function show(Page) {
 }
 afterEach(cleanup)
 beforeEach(() => vi.resetAllMocks())
+it('keeps a slow learning retry in a loading state rather than showing empty learning', async () => {
+  let resolveRead
+  api.getMyLearning
+    .mockRejectedValueOnce(new Error('Disconnected'))
+    .mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveRead = resolve
+        }),
+    )
+  show(StudentLearningPage)
+  await screen.findByRole('alert')
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+  expect(screen.getByRole('status')).toHaveTextContent(/Loading/)
+  expect(screen.queryByText('No assigned roadmap yet')).not.toBeInTheDocument()
+  resolveRead([assignment])
+  await screen.findByText('Getting started')
+})
 it('makes live cohort progress and the pinned version the student dashboard', async () => {
   api.getMyLearning.mockResolvedValue([assignment])
   show(StudentDashboardPage)

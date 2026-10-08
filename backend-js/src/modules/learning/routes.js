@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { registerRoadmapRoutes } from './roadmapRoutes.js';
+import { registerActivityRoutes } from './activityRoutes.js';
 import { AppError, conflict, forbidden, notFound, notReady } from '../../core/errors.js';
 import {
   hasAccountRoleCompatibility,
@@ -624,7 +625,9 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
       const authorizedScope = await requireAssignedTopicAccess(tx, request.user, topicId);
       if (authorizedScope.organization.id !== initialScope.organization.id)
         throw notFound('Assigned topic not found');
-      const { topic } = authorizedScope;
+      const { topic, organization } = authorizedScope;
+      const previous = await tx.topicProgress.findFirst({ where: { userId: request.user.id, topicId: topic.id } });
+      if (Boolean(previous?.status === 'completed') === data.completed) return;
       if (data.completed) {
         await tx.topicProgress.upsert({
           where: { userId_topicId: { userId: request.user.id, topicId: topic.id } },
@@ -634,6 +637,12 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
       } else {
         await tx.topicProgress.deleteMany({ where: { userId: request.user.id, topicId: topic.id } });
       }
+      await tx.activityEvent.create({ data: {
+        organizationId: organization.id, userId: request.user.id, topicId: topic.id,
+        eventType: data.completed ? 'topic_completed' : 'topic_reopened',
+        oldStatus: data.completed ? 'not_started' : 'completed',
+        newStatus: data.completed ? 'completed' : 'not_started',
+      } });
     });
     response.set('Cache-Control', 'no-store').status(204).end();
   });
@@ -687,4 +696,5 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
       metrics: { eligible_students: users.length, topics: list.length, completed_topic_assignments: completed, possible_topic_assignments: possible },
     });
   });
+  registerActivityRoutes(app, { prisma, requireUser });
 }

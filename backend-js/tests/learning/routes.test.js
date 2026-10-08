@@ -57,7 +57,7 @@ function workflowFixture({ redisClient } = {}) {
   let sequence = 1;
   const makeId = () => '00000000-0000-4000-8000-' + String(sequence++).padStart(12, '0');
   const tables = Object.fromEntries(
-    ['organization', 'organizationMembership', 'organizationInvitation', 'roadmap', 'roadmapVersion', 'phase', 'week', 'topic', 'cohort', 'cohortEnrollment', 'topicProgress', 'user']
+    ['organization', 'organizationMembership', 'organizationInvitation', 'roadmap', 'roadmapVersion', 'phase', 'week', 'topic', 'cohort', 'cohortEnrollment', 'topicProgress', 'activityEvent', 'user']
       .map((name) => [name, []]),
   );
   tables.user.push(

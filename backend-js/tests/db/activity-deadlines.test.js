@@ -1,0 +1,80 @@
+import { randomUUID } from 'node:crypto';
+import express from 'express';
+import request from 'supertest';
+import { describe, expect, test } from 'vitest';
+import { createPrismaClient } from '../../src/db/client.js';
+import { registerLearningRoutes } from '../../src/modules/learning/routes.js';
+import { errorHandler } from '../../src/core/errors.js';
+import { removeTestOrganizations } from './cleanup.js';
+
+describe.skipIf(!(process.env.OUTPOST_DATABASE_URL || process.env.DATABASE_URL))('activity and cohort deadlines in PostgreSQL', () => {
+  test('records atomic transitions, isolates pinned schedules, validates instants and hides withdrawn history', async () => {
+    const prisma = createPrismaClient(); const users = []; const orgs = []; const actors = new Map();
+    const makeUser = async (accountType) => { const row = await prisma.user.create({data:{displayName:'Phase18 fixture',accountType}}); users.push(row.id); actors.set(row.id,{id:row.id,account_type:accountType}); return row; };
+    try {
+      const owner=await makeUser('coordinator'), stranger=await makeUser('coordinator'), student=await makeUser('student');
+      const org=await prisma.organization.create({data:{name:'Schedule campus',slug:'schedule-'+randomUUID()}});orgs.push(org.id);
+      await prisma.organizationMembership.create({data:{organizationId:org.id,userId:owner.id,role:'owner'}});
+      const app=express();app.use(express.json());registerLearningRoutes(app,{prisma,settings:{},redisClient:{eval:async()=>1},requireUser:(req,res,next)=>{req.user=actors.get(req.get('X-Actor'));next();}});app.use(errorHandler);
+      const as=(user)=>({'X-Actor':user.id});
+      const roadmap=await request(app).post('/api/v1/organizations/'+org.id+'/roadmaps').set(as(owner)).send({name:'Original plan',topics:[{title:'Lab topic'}]});
+      await request(app).post('/api/v1/organizations/'+org.id+'/roadmaps/'+roadmap.body.id+'/versions/'+roadmap.body.version_id+'/publish').set(as(owner));
+      const cohort=await request(app).post('/api/v1/organizations/'+org.id+'/cohorts').set(as(owner)).send({name:'Lab group',roadmap_version_id:roadmap.body.version_id});
+      await request(app).post('/api/v1/cohorts/join').set(as(student)).send({invite_code:cohort.body.invite_code});
+      const learning=await request(app).get('/api/v1/progress/me').set(as(student));const week=learning.body[0].phases[0].weeks[0], topic=week.topics[0];
+      const schedule='/api/v1/cohorts/'+cohort.body.id+'/weeks/'+week.id+'/deadline';
+      const due={due_at:'2026-03-08T01:30:00-05:00',time_zone:'America/New_York'};
+      expect((await request(app).put(schedule).set(as(owner)).send(due)).status).toBe(200);
+      expect((await request(app).put(schedule).set(as(owner)).send(due)).status).toBe(200);
+      expect(await prisma.deadlineChange.count({where:{cohortId:cohort.body.id}})).toBe(1);
+      const versionPath='/api/v1/organizations/'+org.id+'/roadmaps/'+roadmap.body.id+'/versions';
+      const newer=await request(app).post(versionPath).set(as(owner)).send({source_version_id:roadmap.body.version_id});
+      await request(app).post(versionPath+'/'+newer.body.version_id+'/publish').set(as(owner));
+      await request(app).post(versionPath+'/'+roadmap.body.version_id+'/archive').set(as(owner));
+      const otherWeek=await prisma.week.findFirst({where:{phase:{roadmapVersionId:newer.body.version_id}}});
+      expect((await request(app).put(schedule.replace(week.id,otherWeek.id)).set(as(owner)).send(due)).status).toBe(404);
+      await expect(prisma.cohortWeekDeadline.create({data:{cohortId:cohort.body.id,weekId:otherWeek.id,dueAt:new Date(due.due_at),timeZone:due.time_zone,updatedBy:owner.id}})).rejects.toThrow();
+      const otherCohort=await request(app).post('/api/v1/organizations/'+org.id+'/cohorts').set(as(owner)).send({name:'Other lab',roadmap_version_id:newer.body.version_id});
+      expect((await request(app).get('/api/v1/cohorts/'+otherCohort.body.id+'/deadlines').set(as(owner))).body.weeks[0].deadline).toBeNull();
+      expect((await request(app).put(schedule).set(as(student)).send(due)).status).toBe(403);
+      expect((await request(app).put(schedule).set(as(stranger)).send(due)).status).toBe(403);
+      expect((await request(app).put(schedule).set(as(owner)).send({...due,due_at:'2026-03-08T01:30:00'})).status).toBe(422);
+      expect((await request(app).put(schedule).set(as(owner)).send({...due,time_zone:'Fake/Zone'})).status).toBe(422);
+      expect((await request(app).put(schedule.replace(week.id,randomUUID())).set(as(owner)).send(due)).status).toBe(404);
+      const deadlines=await request(app).get('/api/v1/progress/me/deadlines').set(as(student));
+      expect(deadlines.body[0].weeks[0]).toMatchObject({status:'overdue',deadline:{due_at:'2026-03-08T06:30:00.000Z',time_zone:'America/New_York'}});
+      const progress='/api/v1/progress/topics/'+topic.id;
+      // Reopening an untouched topic is a no-op, not invented history.
+      expect((await request(app).put(progress).set(as(student)).send({completed:false})).status).toBe(204);
+      const concurrent=await Promise.all([1,2].map(()=>request(app).put(progress).set(as(student)).send({completed:true})));
+      expect(concurrent.map((row)=>row.status)).toEqual([204,204]);
+      const history=await request(app).get('/api/v1/progress/me/activity?limit=1').set(as(student));
+      expect(history.body.events).toHaveLength(1);expect(history.body.events[0]).toMatchObject({event_type:'topic_completed',old_status:'not_started',new_status:'completed',topic_title:'Lab topic'});
+      await expect(prisma.activityEvent.update({where:{id:history.body.events[0].id},data:{eventType:'topic_reopened'}})).rejects.toThrow();
+      expect((await request(app).get('/api/v1/progress/me/activity?limit=1000').set(as(student))).status).toBe(422);
+      expect((await request(app).get('/api/v1/progress/me/activity?cursor='+randomUUID()).set(as(student))).status).toBe(404);
+      expect((await request(app).get('/api/v1/progress/me/deadlines').set(as(student))).body[0].weeks[0].status).toBe('completed');
+      // Force the event insert to fail after the progress mutation; transaction must roll back.
+      const failing={...prisma,$transaction:(fn)=>prisma.$transaction((tx)=>fn({...tx,activityEvent:{create:async()=>{throw new Error('Injected event storage failure');}}}))};
+      const broken=express();broken.use(express.json());registerLearningRoutes(broken,{prisma:failing,settings:{},redisClient:{eval:async()=>1},requireUser:(req,res,next)=>{req.user=actors.get(req.get('X-Actor'));next();}});broken.use(errorHandler);
+      expect((await request(broken).put(progress).set(as(student)).send({completed:false})).status).toBe(500);
+      expect(await prisma.topicProgress.count({where:{userId:student.id,topicId:topic.id}})).toBe(1);
+      expect((await request(app).put(progress).set(as(student)).send({completed:false})).status).toBe(204);
+      const latest=await request(app).get('/api/v1/progress/me/activity?limit=1').set(as(student));expect(latest.body.events[0].event_type).toBe('topic_reopened');expect(latest.body.next_cursor).toBeTruthy();
+      const older=await request(app).get('/api/v1/progress/me/activity?limit=1&cursor='+latest.body.next_cursor).set(as(student));expect(older.body.events[0].event_type).toBe('topic_completed');
+      expect((await request(app).get('/api/v1/cohorts/'+cohort.body.id+'/activity').set(as(stranger))).status).toBe(403);
+      expect((await request(app).get('/api/v1/cohorts/'+cohort.body.id+'/activity').set(as(owner))).body.events).toHaveLength(2);
+      await prisma.user.update({where:{id:student.id},data:{status:'suspended'}});
+      expect((await request(app).get('/api/v1/cohorts/'+cohort.body.id+'/activity').set(as(owner))).body.events).toEqual([]);
+      await prisma.user.update({where:{id:student.id},data:{status:'active'}});
+      expect((await request(app).delete(schedule).set(as(owner))).status).toBe(204);
+      expect((await request(app).delete(schedule).set(as(owner))).status).toBe(204);
+      expect((await request(app).get('/api/v1/progress/me/deadlines').set(as(student))).body[0].weeks[0].status).toBe('unscheduled');
+      expect(await prisma.deadlineChange.count({where:{cohortId:cohort.body.id}})).toBe(2);
+      await request(app).delete('/api/v1/cohorts/'+cohort.body.id+'/enrollments/me').set(as(student));
+      expect((await request(app).get('/api/v1/progress/me/activity').set(as(student))).body.events).toEqual([]);
+      expect((await request(app).get('/api/v1/progress/me/deadlines').set(as(student))).body).toEqual([]);
+      expect(await prisma.activityEvent.count({where:{userId:student.id}})).toBe(2);
+    } finally { await removeTestOrganizations(prisma,orgs,users);await prisma.$disconnect(); }
+  },30000);
+});

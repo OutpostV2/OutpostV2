@@ -1,4 +1,34 @@
 import { apiRequest } from '../../shared/api/client'
+export function getMyActivity(cursor) {
+  return apiRequest(
+    '/progress/me/activity' +
+      (cursor ? '?cursor=' + encodeURIComponent(cursor) : ''),
+  )
+}
+export function getCohortActivity(cohortId, cursor) {
+  return apiRequest(
+    `/cohorts/${encodeURIComponent(cohortId)}/activity` +
+      (cursor ? '?cursor=' + encodeURIComponent(cursor) : ''),
+  )
+}
+export function getMyDeadlines() {
+  return apiRequest('/progress/me/deadlines')
+}
+export function getCohortDeadlines(cohortId) {
+  return apiRequest(`/cohorts/${encodeURIComponent(cohortId)}/deadlines`)
+}
+export function setWeekDeadline(cohortId, weekId, changes) {
+  return apiRequest(
+    `/cohorts/${encodeURIComponent(cohortId)}/weeks/${encodeURIComponent(weekId)}/deadline`,
+    { method: 'PUT', body: JSON.stringify(changes) },
+  )
+}
+export function removeWeekDeadline(cohortId, weekId) {
+  return apiRequest(
+    `/cohorts/${encodeURIComponent(cohortId)}/weeks/${encodeURIComponent(weekId)}/deadline`,
+    { method: 'DELETE' },
+  )
+}
 export function listOrganizations() {
   return apiRequest('/organizations')
 }

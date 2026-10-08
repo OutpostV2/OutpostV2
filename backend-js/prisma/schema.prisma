@@ -57,6 +57,8 @@ model CohortEnrollment {
 }
 
 model Cohort {
+  deadlines CohortWeekDeadline[]
+  deadlineChanges DeadlineChange[]
   id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   organizationId    String               @db.Uuid @map("organization_id")
   roadmapVersionId String               @db.Uuid @map("roadmap_version_id")
@@ -124,6 +126,7 @@ model OrganizationMembership {
 }
 
 model Organization {
+  activityEvents ActivityEvent[]
   id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                     String                     @db.VarChar(200)
   slug                     String                     @unique @db.VarChar(220)
@@ -301,6 +304,7 @@ model TopicProgress {
 }
 
 model Topic {
+  activityEvents ActivityEvent[]
   id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   weekId        String           @db.Uuid @map("week_id")
   title          String           @db.VarChar(200)
@@ -315,6 +319,9 @@ model Topic {
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model User {
+  activityEvents ActivityEvent[]
+  deadlinesUpdated CohortWeekDeadline[]
+  deadlineChanges DeadlineChange[]
   id                        String                      @id(map: "pk_users") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   displayName              String                      @db.VarChar(200) @map("display_name")
   primaryEmail             String?                     @db.VarChar(320) @map("primary_email")
@@ -345,6 +352,8 @@ model User {
 }
 
 model Week {
+  deadlines CohortWeekDeadline[]
+  deadlineChanges DeadlineChange[]
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   phaseId    String   @db.Uuid @map("phase_id")
   title       String   @db.VarChar(200)
@@ -354,6 +363,59 @@ model Week {
 
   @@index([phaseId], map: "ix_weeks_phase_id")
   @@map("weeks")
+}
+
+model ActivityEvent {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String @db.Uuid @map("organization_id")
+  userId String @db.Uuid @map("user_id")
+  topicId String @db.Uuid @map("topic_id")
+  eventType String @db.VarChar(32) @map("event_type")
+  oldStatus String @db.VarChar(16) @map("old_status")
+  newStatus String @db.VarChar(16) @map("new_status")
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([organizationId, createdAt, id], map: "ix_activity_org_time")
+  @@index([userId, createdAt, id], map: "ix_activity_user_time")
+  @@index([topicId], map: "ix_activity_topic")
+  @@map("activity_events")
+}
+
+model CohortWeekDeadline {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cohortId String @db.Uuid @map("cohort_id")
+  weekId String @db.Uuid @map("week_id")
+  dueAt DateTime @db.Timestamptz(6) @map("due_at")
+  timeZone String @db.VarChar(100) @map("time_zone")
+  updatedBy String @db.Uuid @map("updated_by")
+  updatedAt DateTime @default(now()) @db.Timestamptz(6) @map("updated_at")
+  cohort Cohort @relation(fields: [cohortId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  week Week @relation(fields: [weekId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user User @relation(fields: [updatedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@unique([cohortId, weekId], map: "uq_cohort_week_deadline")
+  @@index([weekId], map: "ix_deadline_week")
+  @@map("cohort_week_deadlines")
+}
+
+model DeadlineChange {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cohortId String @db.Uuid @map("cohort_id")
+  weekId String @db.Uuid @map("week_id")
+  actorId String @db.Uuid @map("actor_id")
+  eventType String @db.VarChar(16) @map("event_type")
+  oldDueAt DateTime? @db.Timestamptz(6) @map("old_due_at")
+  oldTimeZone String? @db.VarChar(100) @map("old_time_zone")
+  dueAt DateTime? @db.Timestamptz(6) @map("due_at")
+  timeZone String? @db.VarChar(100) @map("time_zone")
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  cohort Cohort @relation(fields: [cohortId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  week Week @relation(fields: [weekId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user User @relation(fields: [actorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([cohortId, createdAt, id], map: "ix_deadline_change_cohort_time")
+  @@index([weekId], map: "ix_deadline_change_week")
+  @@map("deadline_changes")
 }
 
 enum AccountType {
