@@ -2373,13 +2373,13 @@ Outpost-New/
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 16 — M2 Student Live Workspace. The pinned student progress API contract is implemented and verified; the student dashboard remains fixture-driven.
+Phase 17 — M2 Coordinator Live Workspace and Analytics. Phase 16 is verified and committed.
 
 CURRENT TASK:
-Wire the live /api/v1/progress/me contract into /app/student. Replace review-scenario dashboard metrics with authenticated assignments; show each cohort and exact pinned roadmap version, ordered phase → week → topic progress, personal completion, and the next incomplete topic. Persist completion with the existing topic-progress API. Keep sample roadmap/activity clearly labeled as illustrative and separate from live assignment data. Cover loading, empty, error/retry, multiple-assignment, and refresh-persistence behavior; verify responsive layout. Do not infer activity history or begin Phase 17.
+Replace coordinator overview, cohort, learner-progress, topic-statistics and support views with authorized tenant/cohort data. Define denominators and pinned-version scope, include zero-progress students, aggregate without N+1 reads, inspect query plans, and verify role/tenant/version/empty states.
 
 TASK GOAL:
-Make assigned learning the primary student dashboard. Show the enrolled cohort/version, roadmap tree, personal completion, current progress, next step, and activity where real events exist. Verify authorized reads, independent user state, refresh persistence, and loading/empty/error/mobile states.
+Complete the current chronological phase with live authorized data and verified end-to-end behavior.
 
 Repository:
 Outpost
@@ -2388,54 +2388,62 @@ Project root:
 D:\Shared Workspace\Projects\Outpost-New
 
 Active checkout:
-C:\Users\priya\.codex\worktrees\phase16-progress-contract\Outpost-New
+C:/Users/priya/.codex/worktrees/phase16-progress-contract/Outpost-New
 
 Branch:
 codex/phase16-progress-contract
 
 LAST VERIFIED PROJECT COMMIT:
-418fd60c27d86f6b64028852d17f55442a705ddd
+2a7488b60f0c24ab75134b1a193a17c296dbc8d2
 
 CHECKPOINT FILE STATE:
-Commit A 418fd60c27d86f6b64028852d17f55442a705ddd contains the verified progress API implementation and PostgreSQL integration coverage. Commit B updates only Layer 4; its own hash is not recorded here.
+Commit A 2a7488b60f0c24ab75134b1a193a17c296dbc8d2 contains verified Phase 16 work. Commit B changes only Layer 4; its own hash is not recorded here.
 
 Working tree at last verification:
-Clean after Commit A and before this Layer 4 edit. Verify after Commit B.
+Inspected after Commit A and before this checkpoint edit. Verify again after Commit B.
 
 Last verified baseline:
-- Before implementation at base c32022e6a152a2b635747666d4cb182870403661, backend npm test passed 42 tests with 7 skipped; npm run test:db passed all 7 PostgreSQL tests after generating Prisma Client from the checked-in schema.
-- After implementation: focused cohort-governance.test.js passed 1/1; backend npm test passed 42 with 7 skipped; npm run test:db passed 7/7; git diff --check passed. No schema or migration change was needed.
+- node backend-js/node_modules/vitest/vitest.mjs run --maxWorkers=1 (backend cwd): 42 passed, 7 database tests skipped; node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run tests/db --maxWorkers=1: all 7 PostgreSQL tests passed.
+- From frontend: node node_modules/vitest/vitest.mjs run: 35/35 passed; node node_modules/eslint/bin/eslint.js . passed; node node_modules/vite/bin/vite.js build passed; targeted Prettier check passed. A baseline worker startup timeout resolved on serial rerun; no failing tests remain.
+- Real Playwright/Edge flow against Node API/PostgreSQL passed: login, assigned pinned roadmap, topic completion, reload, new sign-in persistence, role redirect, no review API reads, mobile menu/navigation and no horizontal overflow. Mobile screenshot inspected. Disposable fixture users/organizations removed after each run.
+- Phase 16 uses distinct topic IDs for dashboard totals across overlapping cohort assignments. Ordered phase/week/topic tree is displayed in assigned learning; activity history remains explicitly unavailable until Phase 18. git diff --check passed.
 
 COMPLETED WITHIN CURRENT PHASE:
-GET /api/v1/progress/me now returns each authorized active assignment's pinned roadmap version ID/number and ordered phase → week → topic hierarchy, with per-requesting-user completion and timestamps. Existing flat topics and summary fields remain. PostgreSQL coverage verifies coordinator denial, independent student progress, withdrawal behavior, and continued access to the cohort's archived pinned version. No activity-event model or frontend change was made.
+Phase 16 acceptance requirements passed as recorded above. No Phase 17 product work has started at this checkpoint.
 
 FILES RELEVANT TO CURRENT TASK:
-frontend/src/features/workspace/pages/StudentDashboardPage.jsx
-frontend/src/features/workspace/pages/StudentLearningPage.jsx
-frontend/src/features/workspace/components/WorkspaceShell.jsx
-frontend/src/features/workspace/learningApi.js
-frontend/src/features/workspace/pages/LiveLearning.test.jsx
-frontend/src/features/workspace/WorkspaceShell.test.jsx
-frontend/src/app/workspace.css
-frontend/src/features/workspace/pages/StudentActivityPage.jsx
+docs/superpowers/plans/2026-10-08-live-workspaces.md
+backend-js/src/modules/learning/
+backend-js/prisma/schema.prisma
+backend-js/tests/db/
+frontend/src/features/workspace/
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
-Commit A changes only backend-js/src/modules/learning/routes.js and backend-js/tests/db/cohort-governance.test.js. Commit B changes only this Layer 4 checkpoint.
+docs/superpowers/plans/2026-10-08-live-workspaces.md
+frontend/src/features/workspace/WorkspaceShell.test.jsx
+frontend/src/features/workspace/components/LiveResourceState.jsx
+frontend/src/features/workspace/components/WorkspaceShell.jsx
+frontend/src/features/workspace/hooks/useLiveResource.js
+frontend/src/features/workspace/pages/StudentActivityPage.jsx
+frontend/src/features/workspace/pages/StudentDashboardPage.jsx
+frontend/src/features/workspace/pages/StudentLearningPage.jsx
+frontend/src/features/workspace/pages/StudentRoadmapPage.jsx
+frontend/src/features/workspace/pages/StudentWorkspace.test.jsx
 
 ENVIRONMENT:
-Windows / PowerShell. Implementation is in the managed worktree at the active checkout above. Node.js v26.7.0 and PostgreSQL-backed tests were available. The temporary copied backend-js/.env was removed after verification; no environment values were recorded. No push or merge was performed.
+Windows / PowerShell; existing managed worktree; Node v26.7.0; PostgreSQL and Valkey started through the existing Compose configuration. Local environment files remain ignored. Existing data preserved. No push requested.
 
 CURRENT REQUEST:
-Continue Phase 16 with the live student overview task described above. Preserve the explicitly illustrative review scenario and verify the student-facing flow end to end.
+Complete Phases 16, 17 and 18 sequentially, verify and commit each, and continue automatically until Phase 18 is complete. Select Phase 19 without executing it.
 
 LAST COMMAND:
-npm --prefix backend-js run test:db via the plan completion check.
+Phase verification commands recorded above, followed by git show --stat and git status.
 
 CURRENT OUTPUT / ERROR:
-Task 1 completed. PostgreSQL suite: 7 tests passed; no verification error remains for the API contract task.
+Phase 16 verified; no outstanding verification error at Commit A.
 
 OPTIONAL CURRENT FILE/SNIPPET:
-The endpoint now exposes roadmap_version_id, roadmap_version_number, and phases[].weeks[].topics[]; nested topics contain order_index, completed, and completed_at. The live learning API client already provides getMyLearning() and setTopicProgress().
+See the phase plan and applicable decision records for contracts, definitions and tests.
 
 ---
 # SESSION OPERATING RULE
