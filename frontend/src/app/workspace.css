@@ -1686,3 +1686,25 @@
     flex: none;
   }
 }
+
+.report-selectors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.report-selectors label {
+  display: grid;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: min(100%, 14rem);
+}
+.report-selectors select {
+  width: 100%;
+  padding: 0.7rem;
+  border: 1px solid var(--border, #d4ded7);
+  border-radius: 0.5rem;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}

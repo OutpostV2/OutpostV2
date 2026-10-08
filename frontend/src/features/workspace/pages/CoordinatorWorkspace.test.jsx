@@ -1,0 +1,108 @@
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import * as api from '../learningApi'
+import CoordinatorDashboardPage from './CoordinatorDashboardPage'
+import StudentProgressPage from './StudentProgressPage'
+import TopicStatisticsPage from './TopicStatisticsPage'
+import AtRiskPage from './AtRiskPage'
+vi.mock('../learningApi', () => ({
+  listOrganizations: vi.fn(),
+  listCohorts: vi.fn(),
+  getCohortProgress: vi.fn(),
+}))
+const report = {
+  cohort_id: 'c1',
+  cohort_name: 'Actual lab',
+  roadmap_name: 'Programming',
+  roadmap_version_number: 3,
+  average_percent: 25,
+  metrics: {
+    eligible_students: 2,
+    topics: 2,
+    completed_topic_assignments: 1,
+    possible_topic_assignments: 4,
+  },
+  students: [
+    {
+      id: 's1',
+      name: 'Mira',
+      completed: 1,
+      total: 2,
+      percent: 50,
+      below_average: false,
+    },
+    {
+      id: 's2',
+      name: 'Arun',
+      completed: 0,
+      total: 2,
+      percent: 0,
+      below_average: true,
+    },
+  ],
+  topics: [
+    { id: 't1', title: 'Functions', completed: 1, total: 2, percent: 50 },
+  ],
+}
+function show(Page) {
+  return render(
+    <MemoryRouter>
+      <Page />
+    </MemoryRouter>,
+  )
+}
+afterEach(cleanup)
+beforeEach(() => {
+  vi.resetAllMocks()
+  api.listOrganizations.mockResolvedValue([
+    { id: 'o1', name: 'Campus', role: 'owner' },
+  ])
+  api.listCohorts.mockResolvedValue([
+    {
+      id: 'c1',
+      name: 'Actual lab',
+      roadmap_name: 'Programming',
+      student_count: 2,
+    },
+  ])
+  api.getCohortProgress.mockResolvedValue(report)
+})
+it('renders selected live cohort metrics and pinned version without sample context', async () => {
+  show(CoordinatorDashboardPage)
+  expect(
+    await screen.findByText('1 / 4 completed topic assignments'),
+  ).toBeInTheDocument()
+  expect(screen.getByText(/Version 3/)).toBeInTheDocument()
+  expect(screen.queryByText('Illustrative scenario')).not.toBeInTheDocument()
+})
+it.each([
+  [StudentProgressPage, 'Arun'],
+  [TopicStatisticsPage, 'Functions'],
+  [AtRiskPage, 'Arun'],
+])(
+  'reads real report data for coordinator detail pages',
+  async (Page, name) => {
+    show(Page)
+    expect(await screen.findByText(name)).toBeInTheDocument()
+  },
+)
+it('explains empty institutions and retryable report errors', async () => {
+  api.getCohortProgress
+    .mockRejectedValueOnce(new Error('Access denied'))
+    .mockResolvedValueOnce(report)
+  show(CoordinatorDashboardPage)
+  expect(await screen.findByRole('alert')).toHaveTextContent('Access denied')
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+  expect(
+    await screen.findByText('1 / 4 completed topic assignments'),
+  ).toBeInTheDocument()
+})
+it('shows an organization setup action when no active organizations exist', async () => {
+  api.listOrganizations.mockResolvedValue([])
+  show(CoordinatorDashboardPage)
+  expect(
+    await screen.findByText('No active organization yet'),
+  ).toBeInTheDocument()
+  expect(api.getCohortProgress).not.toHaveBeenCalled()
+})

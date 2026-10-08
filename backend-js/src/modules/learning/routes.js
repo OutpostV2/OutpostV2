@@ -656,26 +656,35 @@ export function registerLearningRoutes(app, { prisma, settings: _settings, requi
         } })
       : [];
     users.sort((a, b) => a.displayName < b.displayName ? -1 : a.displayName > b.displayName ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-    const progress = users.length && list.length
-      ? await prisma.topicProgress.findMany({ where: {
+    const where = {
           userId: { in: users.map((user) => user.id) },
           topicId: { in: list.map((topic) => topic.id) },
           status: 'completed',
-        } })
-      : [];
-    const done = new Set(progress.map((row) => row.userId + ':' + row.topicId));
+    };
+    const [byUser, byTopic] = users.length && list.length
+      ? await Promise.all([
+          prisma.topicProgress.groupBy({ by: ['userId'], where, _count: { _all: true } }),
+          prisma.topicProgress.groupBy({ by: ['topicId'], where, _count: { _all: true } }),
+        ]) : [[], []];
+    const userCounts = new Map(byUser.map((row) => [row.userId, row._count._all]));
+    const topicCounts = new Map(byTopic.map((row) => [row.topicId, row._count._all]));
+    const completed = byUser.reduce((sum, row) => sum + row._count._all, 0);
+    const possible = users.length * list.length;
+    const average = percent(completed, possible);
     const students = users.map((user) => {
-      const count = list.reduce((sum, topic) => sum + Number(done.has(user.id + ':' + topic.id)), 0);
-      return { id: user.id, name: user.displayName, completed: count, total: list.length, percent: percent(count, list.length) };
+      const count = userCounts.get(user.id) ?? 0;
+      return { id: user.id, name: user.displayName, completed: count, total: list.length, percent: percent(count, list.length), below_average: possible > 0 && count * users.length < completed };
     });
     const topicStats = list.map((topic) => {
-      const count = users.reduce((sum, user) => sum + Number(done.has(user.id + ':' + topic.id)), 0);
+      const count = topicCounts.get(topic.id) ?? 0;
       return { id: topic.id, title: topic.title, completed: count, total: users.length, percent: percent(count, users.length) };
     });
     response.json({
       cohort_id: cohort.id, cohort_name: cohort.name, roadmap_name: roadmap?.name ?? 'Roadmap',
+      roadmap_version_id: version.id, roadmap_version_number: version.versionNumber,
       students, topics: topicStats,
-      average_percent: students.length ? roundEven(students.reduce((sum, learner) => sum + learner.percent, 0) / students.length) : 0,
+      average_percent: average, time_scope: 'all_time_current_completion',
+      metrics: { eligible_students: users.length, topics: list.length, completed_topic_assignments: completed, possible_topic_assignments: possible },
     });
   });
 }

@@ -18,7 +18,8 @@ export function useLiveResource(loader) {
       })
       .then(
         (data) => {
-          if (active) setResource({ data, loading: false, error: '' })
+          if (active)
+            setResource({ data, loading: false, error: '', loader, revision })
         },
         (cause) => {
           if (active)
@@ -29,6 +30,8 @@ export function useLiveResource(loader) {
                 cause instanceof Error
                   ? cause.message
                   : 'Unable to load your data.',
+              loader,
+              revision,
             })
         },
       )
@@ -37,5 +40,7 @@ export function useLiveResource(loader) {
     }
   }, [loader, revision])
   const retry = useCallback(() => setRevision((value) => value + 1), [])
-  return { ...resource, retry }
+  return resource.loader === loader && resource.revision === revision
+    ? { ...resource, retry }
+    : { data: null, loading: true, error: '', retry }
 }

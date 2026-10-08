@@ -93,6 +93,12 @@ function workflowFixture({ redisClient } = {}) {
       return row;
     },
     count: async ({ where }) => tables[name].filter((row) => matches(row, where)).length,
+    groupBy: async ({ by, where }) => {
+      const counts = new Map();
+      for (const row of tables[name].filter((entry) => matches(entry, where)))
+        counts.set(row[by[0]], (counts.get(row[by[0]]) ?? 0) + 1);
+      return [...counts].map(([key, count]) => ({ [by[0]]: key, _count: { _all: count } }));
+    },
     upsert: async ({ where, create, update }) => {
       const key = where.userId_topicId;
       const existing = tables[name].find((row) => matches(row, key));

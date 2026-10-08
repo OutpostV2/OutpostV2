@@ -8,7 +8,7 @@ Reuse and freshly verify the existing progress-tree API commit. Replace student 
 
 ### Task 2: Phase 17
 
-Replace coordinator dashboard, cohorts, student progress, topic statistics and support pages with authorized organization/cohort reports. Add exact pinned-version metadata and explicitly defined all-time denominators. Use a single bulk SQL aggregation for a cohort report; include eligible active zero-progress students. Reuse organization and cohort selectors. Exclude fixtures, suspended users, inactive memberships/enrollments and inactive tenants/cohorts. Verify tenant/role/version/empty cases with PostgreSQL and UI tests. Inspect EXPLAIN for the aggregation. Remove review-scenario dependency from the workspace shell.
+Replace coordinator dashboard, cohorts, student progress, topic statistics and support pages with authorized organization/cohort reports. Add exact pinned-version metadata and explicitly defined all-time denominators. Use two fixed bulk database aggregations for a cohort report; include eligible active zero-progress students. Reuse organization and cohort selectors. Exclude fixtures, suspended users, inactive memberships/enrollments and inactive tenants/cohorts. Verify tenant/role/version/empty cases with PostgreSQL and UI tests. Inspect EXPLAIN for the aggregation. Remove review-scenario dependency from the workspace shell.
 
 ### Task 3: Phase 18
 
@@ -17,3 +17,4 @@ Add transactional, immutable progress-transition events (completion/reopening on
 ## Verification and handoff
 
 For each phase: targeted RED→GREEN tests, backend suite and PostgreSQL suite as applicable, frontend suite, lint/build, targeted formatting and whitespace check. For Phase 18 inspect/deploy the additive migration without resetting existing data, validate/generate Prisma and check migration status. Run a real browser flow against the Node API/PostgreSQL at the end. Commit only relevant files, then replace only Layer 4 with actual evidence and the next phase. After Phase 18 select Phase 19 but do not execute it. Do not implement course/assignment/submission/grading additions beyond the current Phase 18 specification in this run.
+

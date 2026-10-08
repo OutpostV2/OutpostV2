@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback } from 'react'
+import { useLiveResource } from '../hooks/useLiveResource'
+import LiveResourceState from '../components/LiveResourceState'
 import { Link, useParams } from 'react-router'
 import {
   EmptyState,
@@ -9,31 +11,9 @@ import {
 import { getCohortProgress } from '../learningApi'
 export default function LiveCohortProgressPage() {
   const { cohortId } = useParams()
-  const [report, setReport] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  useEffect(() => {
-    if (!cohortId) return
-    let active = true
-    void getCohortProgress(cohortId)
-      .then((data) => {
-        if (active) setReport(data)
-      })
-      .catch((cause) => {
-        if (active)
-          setError(
-            cause instanceof Error
-              ? cause.message
-              : 'Cohort progress could not be loaded.',
-          )
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-    return () => {
-      active = false
-    }
-  }, [cohortId])
+  const loader = useCallback(() => getCohortProgress(cohortId), [cohortId])
+  const resource = useLiveResource(loader)
+  const report = resource.data
   return (
     <>
       <PageHeading
@@ -50,25 +30,37 @@ export default function LiveCohortProgressPage() {
           </Link>
         }
       />
-      {loading && <p role="status">Loading cohort progress…</p>}
-      {error && (
-        <p className="form-error" role="alert">
-          {error}
-        </p>
-      )}
+      <LiveResourceState {...resource} />
       {report && (
         <>
+          <section className="workspace-card">
+            <p>
+              Version {report.roadmap_version_number} · All-time current
+              completion
+            </p>
+            <p>
+              Eligible students have an active account, student membership and
+              enrollment. Students with zero progress are included.
+            </p>
+            <button className="workspace-button" onClick={resource.retry}>
+              Refresh report
+            </button>
+          </section>
           <div className="workspace-metric-grid">
             <MetricCard
               label="Students"
               value={report.students.length}
-              detail="Joined by code"
+              detail="Active student accounts and memberships"
               tone="green"
             />
             <MetricCard
               label="Average completion"
               value={`${report.average_percent}%`}
-              detail="Across enrolled students"
+              detail={
+                report.metrics
+                  ? `${report.metrics.completed_topic_assignments} / ${report.metrics.possible_topic_assignments} completed topic assignments`
+                  : 'Across eligible students'
+              }
             />
             <MetricCard
               label="Topics"
