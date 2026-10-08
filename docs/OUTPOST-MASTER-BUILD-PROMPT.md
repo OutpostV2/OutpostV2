@@ -2373,10 +2373,10 @@ Outpost-New/
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-Phase 17 — M2 Coordinator Live Workspace and Analytics. Phase 16 is verified and committed.
+Phase 18 — M2 Activity and Deadlines. Phase 17 is verified and committed.
 
 CURRENT TASK:
-Replace coordinator overview, cohort, learner-progress, topic-statistics and support views with authorized tenant/cohort data. Define denominators and pinned-version scope, include zero-progress students, aggregate without N+1 reads, inspect query plans, and verify role/tenant/version/empty states.
+Record transactional auditable progress activity; define and implement cohort-scoped pinned-week deadlines with absolute instants and timezone-aware displays. Connect student/coordinator history and scheduling UI, verify authorization, idempotency, persistence, timezone rules and no review-fixture contamination.
 
 TASK GOAL:
 Complete the current chronological phase with live authorized data and verified end-to-end behavior.
@@ -2394,22 +2394,19 @@ Branch:
 codex/phase16-progress-contract
 
 LAST VERIFIED PROJECT COMMIT:
-2a7488b60f0c24ab75134b1a193a17c296dbc8d2
+2d2baeaeaf12dbed3e53b59e7d23af6f3f3ab729
 
 CHECKPOINT FILE STATE:
-Commit A 2a7488b60f0c24ab75134b1a193a17c296dbc8d2 contains verified Phase 16 work. Commit B changes only Layer 4; its own hash is not recorded here.
+Commit A 2d2baeaeaf12dbed3e53b59e7d23af6f3f3ab729 contains verified Phase 17 work. Commit B changes only Layer 4; its own hash is not recorded here.
 
 Working tree at last verification:
 Inspected after Commit A and before this checkpoint edit. Verify again after Commit B.
 
 Last verified baseline:
-- node backend-js/node_modules/vitest/vitest.mjs run --maxWorkers=1 (backend cwd): 42 passed, 7 database tests skipped; node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run tests/db --maxWorkers=1: all 7 PostgreSQL tests passed.
-- From frontend: node node_modules/vitest/vitest.mjs run: 35/35 passed; node node_modules/eslint/bin/eslint.js . passed; node node_modules/vite/bin/vite.js build passed; targeted Prettier check passed. A baseline worker startup timeout resolved on serial rerun; no failing tests remain.
-- Real Playwright/Edge flow against Node API/PostgreSQL passed: login, assigned pinned roadmap, topic completion, reload, new sign-in persistence, role redirect, no review API reads, mobile menu/navigation and no horizontal overflow. Mobile screenshot inspected. Disposable fixture users/organizations removed after each run.
-- Phase 16 uses distinct topic IDs for dashboard totals across overlapping cohort assignments. Ordered phase/week/topic tree is displayed in assigned learning; activity history remains explicitly unavailable until Phase 18. git diff --check passed.
+Phase 17 verified: backend suite 42 passed (8 database tests skipped without env); PostgreSQL suite 8/8 passed; frontend 41/41 passed; ESLint and production build passed; targeted Prettier and git diff --check passed. Real Edge browser verified coordinator login, zero progress, exact version, report refresh after persisted student completion, real student/topic/support pages, mobile without overflow and no review API dependency. PostgreSQL analytics test covers suspended users, inactive memberships, wrong roles/tenants, empty cohort and archived pinned version, and EXPLAIN ANALYZE on grouped progress. Two fixed groupBy aggregations replace pair-row fetching; no per-student queries.
 
 COMPLETED WITHIN CURRENT PHASE:
-Phase 16 acceptance requirements passed as recorded above. No Phase 17 product work has started at this checkpoint.
+Phase 17 acceptance requirements passed as recorded above. No Phase 18 product work has started at this checkpoint.
 
 FILES RELEVANT TO CURRENT TASK:
 docs/superpowers/plans/2026-10-08-live-workspaces.md
@@ -2419,16 +2416,21 @@ backend-js/tests/db/
 frontend/src/features/workspace/
 
 FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
+backend-js/src/modules/learning/routes.js
+backend-js/tests/db/live-analytics.test.js
+backend-js/tests/learning/routes.test.js
 docs/superpowers/plans/2026-10-08-live-workspaces.md
-frontend/src/features/workspace/WorkspaceShell.test.jsx
-frontend/src/features/workspace/components/LiveResourceState.jsx
+frontend/src/app/workspace.css
+frontend/src/features/workspace/components/CoordinatorReportPage.jsx
 frontend/src/features/workspace/components/WorkspaceShell.jsx
 frontend/src/features/workspace/hooks/useLiveResource.js
-frontend/src/features/workspace/pages/StudentActivityPage.jsx
-frontend/src/features/workspace/pages/StudentDashboardPage.jsx
-frontend/src/features/workspace/pages/StudentLearningPage.jsx
-frontend/src/features/workspace/pages/StudentRoadmapPage.jsx
-frontend/src/features/workspace/pages/StudentWorkspace.test.jsx
+frontend/src/features/workspace/pages/AtRiskPage.jsx
+frontend/src/features/workspace/pages/CohortsPage.jsx
+frontend/src/features/workspace/pages/CoordinatorDashboardPage.jsx
+frontend/src/features/workspace/pages/CoordinatorWorkspace.test.jsx
+frontend/src/features/workspace/pages/LiveCohortProgressPage.jsx
+frontend/src/features/workspace/pages/StudentProgressPage.jsx
+frontend/src/features/workspace/pages/TopicStatisticsPage.jsx
 
 ENVIRONMENT:
 Windows / PowerShell; existing managed worktree; Node v26.7.0; PostgreSQL and Valkey started through the existing Compose configuration. Local environment files remain ignored. Existing data preserved. No push requested.
@@ -2440,7 +2442,7 @@ LAST COMMAND:
 Phase verification commands recorded above, followed by git show --stat and git status.
 
 CURRENT OUTPUT / ERROR:
-Phase 16 verified; no outstanding verification error at Commit A.
+Phase 17 verified; no outstanding verification error at Commit A.
 
 OPTIONAL CURRENT FILE/SNIPPET:
 See the phase plan and applicable decision records for contracts, definitions and tests.
