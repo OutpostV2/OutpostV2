@@ -1,3 +1,5 @@
+import { listPlans } from '../activityPlanApi'
+import useUnsavedChanges from '../hooks/useUnsavedChanges'
 import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { PageHeading } from '../components/WorkspaceUI'
@@ -38,6 +40,7 @@ export default function RoadmapVersionsPage() {
   const [search] = useSearchParams()
   const preferredOrg = search.get('organizationId')
   const [organizationId, setOrganizationId] = useState('')
+  const [sourcePlan, setSourcePlan] = useState(null)
   const [versions, setVersions] = useState([])
   const [activeId, setActiveId] = useState('')
   const [draft, setDraft] = useState([])
@@ -47,6 +50,7 @@ export default function RoadmapVersionsPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  useUnsavedChanges(dirty)
   const active = versions.find((item) => item.version_id === activeId)
 
   useEffect(() => {
@@ -85,6 +89,19 @@ export default function RoadmapVersionsPage() {
     }
   }, [preferredOrg, roadmapId])
 
+  useEffect(() => {
+    if (!organizationId) return
+    let live = true
+    listPlans(organizationId)
+      .then((result) => {
+        if (live)
+          setSourcePlan(result.plans.find((p) => p.roadmap_id === roadmapId))
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [organizationId, roadmapId])
   function selectVersion(version) {
     if (dirty) {
       setError('Save your draft before switching versions.')
@@ -188,6 +205,14 @@ export default function RoadmapVersionsPage() {
       <Link className="workspace-text-link" to="/app/coordinator/roadmaps">
         ← All roadmaps
       </Link>
+      {(search.get('activityPlanId') || sourcePlan) && (
+        <Link
+          className="workspace-text-link"
+          to={`/app/coordinator/activity-plans/${search.get('activityPlanId') || sourcePlan.id}?organizationId=${organizationId || preferredOrg}`}
+        >
+          View source and review decisions
+        </Link>
+      )}
       {loading && <p role="status">Loading version history…</p>}
       {error && (
         <p className="form-error" role="alert">
@@ -206,6 +231,23 @@ export default function RoadmapVersionsPage() {
             aria-label="Version history"
           >
             <h2>Version history</h2>
+            <label className="mobile-version-select">
+              Version
+              <select
+                value={activeId}
+                onChange={(e) =>
+                  selectVersion(
+                    versions.find((v) => v.version_id === e.target.value),
+                  )
+                }
+              >
+                {versions.map((v) => (
+                  <option key={v.version_id} value={v.version_id}>
+                    Version {v.version_number} · {v.status}
+                  </option>
+                ))}
+              </select>
+            </label>
             {versions.map((version) => (
               <button
                 type="button"
@@ -245,138 +287,90 @@ export default function RoadmapVersionsPage() {
                     Edit phase, week, and topic titles below. Save the ordered
                     draft before review.
                   </p>
-                  {draft.map((phase, phaseIndex) => (
-                    <div className="roadmap-phase" key={phaseIndex}>
-                      <div className="roadmap-edit-row">
-                        <label className="form-field">
-                          <span>Phase {phaseIndex + 1}</span>
-                          <input
-                            value={phase.title}
-                            maxLength={200}
-                            onChange={(event) =>
-                              change((next) => {
-                                next[phaseIndex].title = event.target.value
-                              })
+                  <fieldset className="plan-fieldset" disabled={busy}>
+                    {draft.map((phase, phaseIndex) => (
+                      <details open className="roadmap-phase" key={phaseIndex}>
+                        <summary>
+                          {phase.title || 'Untitled phase'} ·{' '}
+                          {phase.weeks.length} weeks
+                        </summary>
+                        <div className="roadmap-edit-row">
+                          <label className="form-field">
+                            <span>Phase {phaseIndex + 1}</span>
+                            <input
+                              value={phase.title}
+                              maxLength={200}
+                              onChange={(event) =>
+                                change((next) => {
+                                  next[phaseIndex].title = event.target.value
+                                })
+                              }
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            aria-label={`Move ${phase.title || 'phase'} up`}
+                            disabled={phaseIndex === 0}
+                            onClick={() =>
+                              change((next) => shift(next, phaseIndex, -1))
                             }
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          disabled={phaseIndex === 0}
-                          onClick={() =>
-                            change((next) => shift(next, phaseIndex, -1))
-                          }
-                        >
-                          ↑
-                        </button>
-                        <button
-                          type="button"
-                          disabled={phaseIndex === draft.length - 1}
-                          onClick={() =>
-                            change((next) => shift(next, phaseIndex, 1))
-                          }
-                        >
-                          ↓
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            change((next) => next.splice(phaseIndex, 1))
-                          }
-                        >
-                          Remove phase
-                        </button>
-                      </div>
-                      {phase.weeks.map((week, weekIndex) => (
-                        <div className="roadmap-week" key={weekIndex}>
-                          <div className="roadmap-edit-row">
-                            <label className="form-field">
-                              <span>Week {weekIndex + 1}</span>
-                              <input
-                                value={week.title}
-                                maxLength={200}
-                                onChange={(event) =>
-                                  change((next) => {
-                                    next[phaseIndex].weeks[weekIndex].title =
-                                      event.target.value
-                                  })
-                                }
-                              />
-                            </label>
-                            <button
-                              type="button"
-                              disabled={weekIndex === 0}
-                              onClick={() =>
-                                change((next) =>
-                                  shift(next[phaseIndex].weeks, weekIndex, -1),
-                                )
-                              }
-                            >
-                              ↑
-                            </button>
-                            <button
-                              type="button"
-                              disabled={weekIndex === phase.weeks.length - 1}
-                              onClick={() =>
-                                change((next) =>
-                                  shift(next[phaseIndex].weeks, weekIndex, 1),
-                                )
-                              }
-                            >
-                              ↓
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                change((next) =>
-                                  next[phaseIndex].weeks.splice(weekIndex, 1),
-                                )
-                              }
-                            >
-                              Remove week
-                            </button>
-                          </div>
-                          {week.topics.map((topic, topicIndex) => (
-                            <div
-                              className="roadmap-edit-row roadmap-topic"
-                              key={topicIndex}
-                            >
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Move ${phase.title || 'phase'} down`}
+                            disabled={phaseIndex === draft.length - 1}
+                            onClick={() =>
+                              change((next) => shift(next, phaseIndex, 1))
+                            }
+                          >
+                            ↓
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              window.confirm(
+                                'Remove this phase and all its topics?',
+                              ) && change((next) => next.splice(phaseIndex, 1))
+                            }
+                          >
+                            Remove phase
+                          </button>
+                        </div>
+                        {phase.weeks.map((week, weekIndex) => (
+                          <details
+                            open
+                            className="roadmap-week"
+                            key={weekIndex}
+                          >
+                            <summary>
+                              {week.title || 'Untitled week'} ·{' '}
+                              {week.topics.length} topics
+                            </summary>
+                            <div className="roadmap-edit-row">
                               <label className="form-field">
-                                <span>Topic {topicIndex + 1}</span>
+                                <span>Week {weekIndex + 1}</span>
                                 <input
-                                  value={topic.title}
+                                  value={week.title}
                                   maxLength={200}
                                   onChange={(event) =>
                                     change((next) => {
-                                      next[phaseIndex].weeks[weekIndex].topics[
-                                        topicIndex
-                                      ].title = event.target.value
-                                    })
-                                  }
-                                />
-                              </label>
-                              <label className="form-field">
-                                <span>Description</span>
-                                <input
-                                  value={topic.description}
-                                  maxLength={1000}
-                                  onChange={(event) =>
-                                    change((next) => {
-                                      next[phaseIndex].weeks[weekIndex].topics[
-                                        topicIndex
-                                      ].description = event.target.value
+                                      next[phaseIndex].weeks[weekIndex].title =
+                                        event.target.value
                                     })
                                   }
                                 />
                               </label>
                               <button
                                 type="button"
-                                disabled={topicIndex === 0}
+                                aria-label={`Move ${week.title || 'week'} up`}
+                                disabled={weekIndex === 0}
                                 onClick={() =>
                                   change((next) =>
                                     shift(
-                                      next[phaseIndex].weeks[weekIndex].topics,
-                                      topicIndex,
+                                      next[phaseIndex].weeks,
+                                      weekIndex,
                                       -1,
                                     ),
                                   )
@@ -386,14 +380,11 @@ export default function RoadmapVersionsPage() {
                               </button>
                               <button
                                 type="button"
-                                disabled={topicIndex === week.topics.length - 1}
+                                aria-label={`Move ${week.title || 'week'} down`}
+                                disabled={weekIndex === phase.weeks.length - 1}
                                 onClick={() =>
                                   change((next) =>
-                                    shift(
-                                      next[phaseIndex].weeks[weekIndex].topics,
-                                      topicIndex,
-                                      1,
-                                    ),
+                                    shift(next[phaseIndex].weeks, weekIndex, 1),
                                   )
                                 }
                               >
@@ -402,50 +393,149 @@ export default function RoadmapVersionsPage() {
                               <button
                                 type="button"
                                 onClick={() =>
+                                  window.confirm(
+                                    'Remove this week and all its topics?',
+                                  ) &&
                                   change((next) =>
-                                    next[phaseIndex].weeks[
-                                      weekIndex
-                                    ].topics.splice(topicIndex, 1),
+                                    next[phaseIndex].weeks.splice(weekIndex, 1),
                                   )
                                 }
                               >
-                                Remove topic
+                                Remove week
                               </button>
                             </div>
-                          ))}
-                          <button
-                            type="button"
-                            disabled={week.topics.length >= 24}
-                            onClick={() =>
-                              change((next) =>
-                                next[phaseIndex].weeks[weekIndex].topics.push({
-                                  title: '',
-                                  description: '',
-                                }),
-                              )
-                            }
-                          >
-                            + Add topic
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        type="button"
-                        disabled={phase.weeks.length >= 52}
-                        onClick={() =>
-                          change((next) =>
-                            next[phaseIndex].weeks.push({
-                              title: '',
-                              topics: [],
-                            }),
-                          )
-                        }
-                      >
-                        + Add week
-                      </button>
-                    </div>
-                  ))}
-                  <div className="roadmap-actions">
+                            {week.topics.map((topic, topicIndex) => (
+                              <div
+                                className="roadmap-edit-row roadmap-topic"
+                                key={topicIndex}
+                              >
+                                <label className="form-field">
+                                  <span>Topic {topicIndex + 1}</span>
+                                  <input
+                                    value={topic.title}
+                                    maxLength={200}
+                                    onChange={(event) =>
+                                      change((next) => {
+                                        next[phaseIndex].weeks[
+                                          weekIndex
+                                        ].topics[topicIndex].title =
+                                          event.target.value
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <label className="form-field">
+                                  <span>Description</span>
+                                  <textarea
+                                    rows={3}
+                                    value={topic.description}
+                                    maxLength={1000}
+                                    onChange={(event) =>
+                                      change((next) => {
+                                        next[phaseIndex].weeks[
+                                          weekIndex
+                                        ].topics[topicIndex].description =
+                                          event.target.value
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <button
+                                  type="button"
+                                  aria-label={`Move ${topic.title || 'topic'} up`}
+                                  disabled={topicIndex === 0}
+                                  onClick={() =>
+                                    change((next) =>
+                                      shift(
+                                        next[phaseIndex].weeks[weekIndex]
+                                          .topics,
+                                        topicIndex,
+                                        -1,
+                                      ),
+                                    )
+                                  }
+                                >
+                                  ↑
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label={`Move ${topic.title || 'topic'} down`}
+                                  disabled={
+                                    topicIndex === week.topics.length - 1
+                                  }
+                                  onClick={() =>
+                                    change((next) =>
+                                      shift(
+                                        next[phaseIndex].weeks[weekIndex]
+                                          .topics,
+                                        topicIndex,
+                                        1,
+                                      ),
+                                    )
+                                  }
+                                >
+                                  ↓
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    window.confirm('Remove this topic?') &&
+                                    change((next) =>
+                                      next[phaseIndex].weeks[
+                                        weekIndex
+                                      ].topics.splice(topicIndex, 1),
+                                    )
+                                  }
+                                >
+                                  Remove topic
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              disabled={week.topics.length >= 24}
+                              onClick={() =>
+                                change((next) =>
+                                  next[phaseIndex].weeks[weekIndex].topics.push(
+                                    {
+                                      title: '',
+                                      description: '',
+                                    },
+                                  ),
+                                )
+                              }
+                            >
+                              + Add topic
+                            </button>
+                          </details>
+                        ))}
+                        <button
+                          type="button"
+                          disabled={phase.weeks.length >= 52}
+                          onClick={() =>
+                            change((next) =>
+                              next[phaseIndex].weeks.push({
+                                title: '',
+                                topics: [],
+                              }),
+                            )
+                          }
+                        >
+                          + Add week
+                        </button>
+                      </details>
+                    ))}
+                  </fieldset>
+                  <div className="roadmap-actions plan-save-bar">
+                    <p role="status">
+                      {busy
+                        ? 'Saving…'
+                        : error && dirty
+                          ? 'Save failed'
+                          : dirty
+                            ? 'Unsaved changes — save before review.'
+                            : 'Saved'}
+                    </p>
                     <button
                       type="button"
                       disabled={draft.length >= 12}
@@ -479,6 +569,26 @@ export default function RoadmapVersionsPage() {
                       aria-label="Publication review"
                     >
                       <h3>Publication review</h3>
+                      <div className="roadmap-readonly">
+                        {draft.map((phase, pi) => (
+                          <section key={pi}>
+                            <h3>{phase.title}</h3>
+                            {phase.weeks.map((week, wi) => (
+                              <section key={wi}>
+                                <h4>{week.title}</h4>
+                                <ol>
+                                  {week.topics.map((topic, ti) => (
+                                    <li key={ti}>
+                                      <strong>{topic.title}</strong>
+                                      <p>{topic.description}</p>
+                                    </li>
+                                  ))}
+                                </ol>
+                              </section>
+                            ))}
+                          </section>
+                        ))}
+                      </div>
                       <p>
                         {draft.length} phases ·{' '}
                         {draft.reduce(
@@ -527,6 +637,14 @@ export default function RoadmapVersionsPage() {
                       </div>
                     ))}
                   </div>
+                  {active.status === 'published' && (
+                    <Link
+                      className="workspace-button"
+                      to="/app/coordinator/cohorts"
+                    >
+                      Assign to cohort
+                    </Link>
+                  )}
                   {active.status === 'published' && (
                     <button
                       type="button"

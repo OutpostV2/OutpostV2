@@ -5,11 +5,14 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import * as api from '../learningApi'
 import RoadmapVersionsPage from './RoadmapVersionsPage'
 
+vi.mock('../activityPlanApi', () => ({
+  listPlans: vi.fn().mockResolvedValue({ plans: [] }),
+}))
 vi.mock('../learningApi', () => ({
   listOrganizations: vi.fn(),
   listRoadmapVersions: vi.fn(),
@@ -93,18 +96,21 @@ it('saves a draft before explicit review and publication, then copies a publishe
     status: 'draft',
   })
   render(
-    <MemoryRouter
-      initialEntries={[
-        '/app/coordinator/roadmaps/roadmap-1/versions?organizationId=org-1',
-      ]}
-    >
-      <Routes>
-        <Route
-          path="/app/coordinator/roadmaps/:roadmapId/versions"
-          element={<RoadmapVersionsPage />}
-        />
-      </Routes>
-    </MemoryRouter>,
+    <RouterProvider
+      router={createMemoryRouter(
+        [
+          {
+            path: '/app/coordinator/roadmaps/:roadmapId/versions',
+            element: <RoadmapVersionsPage />,
+          },
+        ],
+        {
+          initialEntries: [
+            '/app/coordinator/roadmaps/roadmap-1/versions?organizationId=org-1',
+          ],
+        },
+      )}
+    />,
   )
   fireEvent.change(await screen.findByLabelText('Topic 1'), {
     target: { value: 'Build skills' },
@@ -156,4 +162,21 @@ it('saves a draft before explicit review and publication, then copies a publishe
   expect(
     await screen.findByRole('button', { name: /Version 2/ }),
   ).toBeInTheDocument()
+})
+it('shows the complete saved hierarchy in publication review and multiline descriptions', async () => {
+  render(
+    <RouterProvider
+      router={createMemoryRouter(
+        [{ path: '/r/:roadmapId', element: <RoadmapVersionsPage /> }],
+        { initialEntries: ['/r/roadmap-1?organizationId=org-1'] },
+      )}
+    />,
+  )
+  expect((await screen.findByLabelText('Description')).tagName).toBe('TEXTAREA')
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Review for publication' }),
+  )
+  expect(
+    screen.getByRole('region', { name: 'Publication review' }),
+  ).toHaveTextContent('Set goals')
 })

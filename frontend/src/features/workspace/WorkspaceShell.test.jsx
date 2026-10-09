@@ -174,3 +174,28 @@ it.each([
     ).not.toBeInTheDocument()
   },
 )
+it('opens a focus-contained mobile drawer and restores focus with Escape', async () => {
+  vi.stubGlobal('matchMedia', () => ({
+    matches: true,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }))
+  authApi.restoreSession.mockResolvedValue({
+    id: 'u',
+    display_name: 'Mira',
+    account_type: 'student',
+  })
+  learningApi.getMyLearning.mockResolvedValue([])
+  renderRoadmap()
+  const trigger = await screen.findByRole('button', { name: 'Open menu' })
+  expect(document.querySelector('.workspace-sidebar')).toHaveAttribute('inert')
+  trigger.focus()
+  fireEvent.click(trigger)
+  expect(document.querySelector('.workspace-main-area')).toHaveAttribute(
+    'inert',
+  )
+  fireEvent.keyDown(document, { key: 'Escape' })
+  expect(trigger).toHaveFocus()
+  expect(document.querySelector('.workspace-sidebar')).toHaveAttribute('inert')
+  vi.unstubAllGlobals()
+})

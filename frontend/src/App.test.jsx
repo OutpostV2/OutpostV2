@@ -31,14 +31,14 @@ describe('Outpost landing page', () => {
       }),
     ).toBeInTheDocument()
   })
-  it('keeps the student-centered hero panel image-free', () => {
+  it('labels the illustrative roadmap and keeps the hero image-free', () => {
     render(<App />)
     expect(
-      screen.getByRole('complementary', { name: "Outpost's point of view" }),
+      screen.getByRole('complementary', { name: 'Example roadmap' }),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('heading', {
-        name: /same potential/i,
+        name: /^career readiness$/i,
       }),
     ).toBeInTheDocument()
     expect(document.querySelectorAll('img')).toHaveLength(0)
@@ -49,9 +49,16 @@ describe('Outpost landing page', () => {
       'href',
       '#pathway',
     )
+    expect(screen.getAllByRole('link', { name: /get started/i })).toHaveLength(
+      2,
+    )
+    expect(screen.getByRole('link', { name: 'View demo' })).toHaveAttribute(
+      'href',
+      '/review',
+    )
     expect(
-      screen.getAllByRole('link', { name: /explore the pathway/i }),
-    ).toHaveLength(2)
+      screen.getByRole('link', { name: 'Create your account' }),
+    ).toHaveAttribute('href', '/register')
     expect(screen.getByRole('link', { name: /for colleges/i })).toHaveAttribute(
       'href',
       '#for-colleges',

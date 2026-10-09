@@ -9,6 +9,7 @@ import AtRiskPage from './AtRiskPage'
 vi.mock('../learningApi', () => ({
   listOrganizations: vi.fn(),
   listCohorts: vi.fn(),
+  listRoadmaps: vi.fn(),
   getCohortProgress: vi.fn(),
 }))
 const report = {
@@ -58,6 +59,7 @@ beforeEach(() => {
   api.listOrganizations.mockResolvedValue([
     { id: 'o1', name: 'Campus', role: 'owner' },
   ])
+  api.listRoadmaps.mockResolvedValue([])
   api.listCohorts.mockResolvedValue([
     {
       id: 'c1',
@@ -105,4 +107,15 @@ it('shows an organization setup action when no active organizations exist', asyn
     await screen.findByText('No active organization yet'),
   ).toBeInTheDocument()
   expect(api.getCohortProgress).not.toHaveBeenCalled()
+})
+it('offers roadmap preparation as the sole primary empty-state action without published content', async () => {
+  api.listCohorts.mockResolvedValue([])
+  api.listRoadmaps.mockResolvedValue([])
+  show(CoordinatorDashboardPage)
+  expect(
+    await screen.findByRole('link', { name: 'Prepare a roadmap' }),
+  ).toHaveAttribute('href', '/app/coordinator/roadmaps')
+  expect(
+    screen.queryByRole('link', { name: 'Manage live learning' }),
+  ).not.toBeInTheDocument()
 })

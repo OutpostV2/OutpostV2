@@ -1772,3 +1772,271 @@
   justify-content: flex-start;
   margin-top: 1rem;
 }
+/* Shared campus workspace refinements */
+.workspace-layout {
+  grid-template-columns: 232px minmax(0, 1fr);
+}
+.workspace-content {
+  max-width: 1200px;
+  width: 100%;
+  margin-inline: auto;
+  padding: 32px;
+}
+.workspace-topbar {
+  min-height: 64px;
+}
+.workspace-card {
+  border-radius: 12px;
+  box-shadow: none;
+}
+.workspace-page-heading h1 {
+  font-size: 30px;
+  letter-spacing: -0.035em;
+}
+.workspace-layout small,
+.workspace-card-label,
+.workspace-eyebrow,
+.workspace-nav-heading,
+.workspace-org small {
+  font-size: 12px;
+}
+.workspace-layout :is(button, input, select, textarea) {
+  font: inherit;
+}
+.workspace-layout :is(button, select, input:not([type='checkbox'])) {
+  min-height: 44px;
+}
+.workspace-layout :is(button, input, select, textarea) {
+  border-radius: 8px;
+}
+:is(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid #64894a;
+  outline-offset: 3px;
+}
+.workspace-layout textarea {
+  width: 100%;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid #bbcdbf;
+  color: #163a31;
+  background: #fff;
+}
+.workspace-layout button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.roadmap-toolbar,
+.outline-controls,
+.plan-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-block: 16px;
+}
+.roadmap-toolbar {
+  align-items: end;
+}
+.roadmap-toolbar .form-field {
+  flex: 1 1 180px;
+  margin: 0;
+}
+.uploaded-plans {
+  margin-top: 32px;
+}
+.uploaded-plans h2 {
+  font-size: 20px;
+}
+.import-form {
+  max-width: 680px;
+  margin-top: 24px;
+}
+.plan-review-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.plan-review-grid > section {
+  min-width: 0;
+}
+.plan-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.plan-topic,
+.source-item {
+  padding: 16px 0;
+  border-bottom: 1px solid #dce5dc;
+}
+.source-item {
+  scroll-margin: 90px;
+}
+.source-item p,
+.source-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: inherit;
+  font-size: 14px;
+}
+.source-warning {
+  background: #f3f5dc;
+  padding: 12px;
+  border-left: 3px solid #8b9b45;
+}
+.plan-save-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  border: 1px solid #cad7c9;
+  background: #f8fbf3;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 20px;
+  box-shadow: 0 -4px 16px #143f3408;
+}
+.plan-save-bar p {
+  font-size: 14px;
+  margin: 6px 0;
+}
+.plan-save-bar input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+}
+.plan-save-bar .outline-controls {
+  margin-bottom: 0;
+}
+.plan-tabs,
+.mobile-version-select {
+  display: none;
+}
+.roadmap-phase summary,
+.roadmap-week summary {
+  cursor: pointer;
+  padding: 8px 0 16px;
+  font-weight: 650;
+}
+.roadmap-edit-row {
+  align-items: start;
+}
+.roadmap-topic {
+  display: flex;
+  flex-wrap: wrap;
+}
+.roadmap-topic .form-field {
+  flex: 1 1 200px;
+}
+.roadmap-topic .form-field:has(textarea) {
+  flex-basis: 100%;
+}
+.roadmap-readonly p {
+  white-space: pre-wrap;
+}
+.report-selectors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 16px;
+  padding: 16px;
+}
+.report-selectors label {
+  flex: 1 1 220px;
+  max-width: 360px;
+}
+.workspace-view-switch {
+  background: none;
+  padding: 0;
+}
+.workspace-view-switch .is-selected {
+  background: #2b5649;
+  color: #ecf5e9;
+  border-radius: 6px;
+}
+.drawer-close {
+  background: #2b5649;
+  color: white;
+  border: 1px solid #8ba995;
+  margin-bottom: 16px;
+}
+@media (max-width: 1080px) {
+  .workspace-layout {
+    grid-template-columns: 232px minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .workspace-layout {
+    display: block;
+  }
+  .workspace-content {
+    padding: 24px 16px;
+  }
+  .workspace-page-heading h1 {
+    font-size: 26px;
+  }
+  .workspace-sidebar:not(.is-open) {
+    visibility: hidden;
+  }
+  .workspace-sidebar.is-open {
+    visibility: visible;
+    max-width: 85vw;
+  }
+  .plan-review-grid {
+    display: block;
+  }
+  .plan-tabs {
+    display: flex;
+    gap: 8px;
+    margin: 16px 0;
+  }
+  .plan-tabs button {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #aabfac;
+    background: #fff;
+  }
+  .plan-tabs [aria-selected='true'] {
+    background: #173f34;
+    color: #fff;
+  }
+  .show-draft .plan-source,
+  .show-source .plan-draft {
+    display: none;
+  }
+  .plan-save-bar {
+    position: static;
+  }
+  .roadmap-actions.plan-save-bar {
+    position: sticky;
+  }
+  .roadmap-version-list > h2,
+  .roadmap-version-choice {
+    display: none;
+  }
+  .mobile-version-select {
+    display: grid;
+    gap: 8px;
+  }
+  .roadmap-version-list {
+    padding: 16px;
+  }
+  .roadmap-version-layout {
+    display: block;
+  }
+  .roadmap-editor {
+    margin-top: 16px;
+  }
+  .roadmap-edit-row .form-field {
+    flex-basis: 100%;
+  }
+  .roadmap-phase,
+  .roadmap-week {
+    padding: 12px;
+  }
+  .roadmap-toolbar > a,
+  .roadmap-toolbar > button {
+    flex: 1 1 auto;
+  }
+}

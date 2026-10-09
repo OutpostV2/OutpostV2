@@ -28,7 +28,9 @@ export async function apiRequest(path, options = {}) {
       ...options,
       credentials: 'include',
       headers: {
-        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.body && !(options.body instanceof FormData)
+          ? { 'Content-Type': 'application/json' }
+          : {}),
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         ...options.headers,
       },
@@ -49,5 +51,6 @@ export async function apiRequest(path, options = {}) {
     throw new ApiRequestError(message, response.status)
   }
   if (response.status === 204 || response.status === 202) return undefined
+  if (options.responseType === 'blob') return await response.blob()
   return await response.json()
 }

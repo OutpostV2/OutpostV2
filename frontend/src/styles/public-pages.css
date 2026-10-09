@@ -761,3 +761,88 @@
   font-size: 0.75rem;
   line-height: 1.35;
 }
+/* Public pages share the workspace rhythm and restrained palette. */
+.page-container {
+  max-width: 1160px;
+}
+.hero-copy h1 {
+  font-size: 44px;
+  line-height: 1.13;
+}
+.hero-description {
+  font-size: 17px;
+}
+.example-roadmap {
+  padding: 32px;
+}
+.example-roadmap h2 {
+  font-size: 26px;
+}
+.example-roadmap ol {
+  list-style: none;
+  margin: 24px 0;
+  padding: 0;
+}
+.example-roadmap li {
+  display: grid;
+  gap: 6px;
+  padding: 16px 0;
+  border-top: 1px solid #ffffff36;
+}
+.example-roadmap small {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.example-roadmap strong {
+  font-size: 17px;
+}
+.example-roadmap li span {
+  font-size: 14px;
+}
+.auth-layout {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
+}
+.auth-card {
+  width: 100%;
+  border-radius: 12px;
+}
+.auth-card h1 {
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+.auth-story h2 {
+  font-size: 32px;
+  line-height: 1.2;
+}
+.auth-story {
+  min-height: 0;
+  border-radius: 12px;
+}
+@media (max-width: 820px) {
+  .auth-layout {
+    display: flex;
+    flex-direction: column;
+  }
+  .auth-card {
+    order: -1;
+    max-width: 480px;
+    margin-inline: auto;
+  }
+  .auth-story {
+    max-width: 480px;
+    margin-inline: auto;
+    width: 100%;
+  }
+  .hero-copy h1 {
+    font-size: 32px;
+  }
+  .example-roadmap {
+    padding: 24px;
+  }
+  .auth-story h2 {
+    font-size: 24px;
+  }
+}

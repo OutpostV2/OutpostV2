@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import {
   listOrganizations,
   listCohorts,
+  listRoadmaps,
   getCohortProgress,
 } from '../learningApi'
 import { useLiveResource } from '../hooks/useLiveResource'
@@ -34,6 +35,15 @@ export default function CoordinatorReportPage({ view = 'overview' }) {
     [organizationId],
   )
   const cohorts = useLiveResource(loadCohorts)
+  const loadRoadmaps = useCallback(
+    () =>
+      organizationId && !cohorts.loading && !cohorts.data?.length
+        ? listRoadmaps(organizationId)
+        : Promise.resolve([]),
+    [organizationId, cohorts.loading, cohorts.data],
+  )
+  const roadmaps = useLiveResource(loadRoadmaps)
+  const hasPublished = roadmaps.data?.some((r) => r.status === 'published')
   const cohortId = String(
     cohorts.data?.find((cohort) => cohort.id === selectedCohort)?.id ??
       cohorts.data?.[0]?.id ??
@@ -57,9 +67,11 @@ export default function CoordinatorReportPage({ view = 'overview' }) {
         title={titles[view]}
         description="Current saved completion in the selected cohort."
         action={
-          <Link className="workspace-button" to="/app/coordinator/learning">
-            Manage live learning
-          </Link>
+          !!cohorts.data?.length && (
+            <Link className="workspace-button" to="/app/coordinator/learning">
+              Manage live learning
+            </Link>
+          )
         }
       />
       <LiveResourceState {...organizations} />
@@ -111,8 +123,14 @@ export default function CoordinatorReportPage({ view = 'overview' }) {
             <EmptyState
               title="No active cohorts"
               description="Create a cohort with a published roadmap to start reporting."
-              actionLabel="Create a cohort"
-              actionTo="/app/coordinator/learning"
+              actionLabel={
+                hasPublished ? 'Create a cohort' : 'Prepare a roadmap'
+              }
+              actionTo={
+                hasPublished
+                  ? '/app/coordinator/learning'
+                  : '/app/coordinator/roadmaps'
+              }
             />
           )}
           {view === 'cohorts' &&

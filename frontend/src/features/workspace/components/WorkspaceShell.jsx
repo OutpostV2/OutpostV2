@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import {
   Link,
   NavLink,
@@ -31,6 +31,51 @@ export default function WorkspaceShell() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const triggerRef = useRef(null),
+    sidebarRef = useRef(null)
+  const [mobile, setMobile] = useState(
+    () => window.matchMedia?.('(max-width: 760px)').matches ?? false,
+  )
+  useEffect(() => {
+    const media = window.matchMedia?.('(max-width: 760px)')
+    if (!media) return
+    const update = () => setMobile(media.matches)
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+  useEffect(() => {
+    if (!menuOpen || !mobile) return
+    const trigger = triggerRef.current
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const focusables = () =>
+      Array.from(sidebarRef.current?.querySelectorAll('a,button') || [])
+    focusables()[0]?.focus()
+    const key = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setMenuOpen(false)
+      }
+      if (e.key === 'Tab') {
+        const items = focusables(),
+          first = items[0],
+          last = items.at(-1)
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last?.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first?.focus()
+        }
+      }
+    }
+    document.addEventListener('keydown', key)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', key)
+      trigger?.focus()
+    }
+  }, [menuOpen, mobile])
   const location = useLocation()
   const navigate = useNavigate()
   const coordinatorView = user?.account_type === 'coordinator'
@@ -112,11 +157,19 @@ export default function WorkspaceShell() {
       <div className="workspace-layout">
         <aside
           className={'workspace-sidebar' + (menuOpen ? ' is-open' : '')}
+          ref={sidebarRef}
+          id="workspace-navigation"
+          inert={mobile && !menuOpen}
           aria-label="Workspace navigation"
           onClick={(event) => {
             if (event.target.closest('a')) setMenuOpen(false)
           }}
         >
+          {mobile && (
+            <button className="drawer-close" onClick={() => setMenuOpen(false)}>
+              Close navigation
+            </button>
+          )}
           <Link className="workspace-brand" to={home}>
             Outpost<span>.</span>
             <small>Workspace</small>
@@ -165,12 +218,14 @@ export default function WorkspaceShell() {
             onClick={() => setMenuOpen(false)}
           />
         )}
-        <div className="workspace-main-area">
+        <div className="workspace-main-area" inert={mobile && menuOpen}>
           <header className="workspace-topbar">
             <div className="workspace-topbar-left">
               <button
                 className="workspace-menu-button"
                 type="button"
+                ref={triggerRef}
+                aria-controls="workspace-navigation"
                 aria-label="Open menu"
                 aria-expanded={menuOpen}
                 onClick={() => setMenuOpen((open) => !open)}
@@ -179,9 +234,14 @@ export default function WorkspaceShell() {
               </button>
               <span className="workspace-breadcrumb">
                 Workspace <span>/</span>{' '}
-                {coordinatorView
-                  ? 'Coordinator workspace'
-                  : 'Student workspace'}
+                {(coordinatorView ? coordinatorLinks : studentLinks).find(
+                  (item) => item.to === location.pathname,
+                )?.label ||
+                  (location.pathname.includes('activity-plans')
+                    ? 'Activity plan'
+                    : location.pathname.includes('versions')
+                      ? 'Roadmap versions'
+                      : 'Account')}
               </span>
             </div>
             <div className="workspace-topbar-actions">

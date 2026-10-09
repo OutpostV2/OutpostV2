@@ -10,6 +10,9 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import * as api from '../learningApi'
 import RoadmapsPage from './RoadmapsPage'
 
+vi.mock('../activityPlanApi', () => ({
+  listPlans: vi.fn().mockResolvedValue({ plans: [] }),
+}))
 vi.mock('../learningApi', () => ({
   listOrganizations: vi.fn(),
   listRoadmaps: vi.fn(),
@@ -40,6 +43,9 @@ it('creates a draft and links to its version editor', async () => {
       <RoadmapsPage />
     </MemoryRouter>,
   )
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Create manually' }),
+  )
   fireEvent.change(await screen.findByLabelText('Roadmap name'), {
     target: { value: 'Career readiness' },
   })
@@ -60,4 +66,18 @@ it('creates a draft and links to its version editor', async () => {
     'href',
     '/app/coordinator/roadmaps/roadmap-1/versions?organizationId=org-1',
   )
+})
+it('keeps creation behind an explicit action and exposes activity plan import', async () => {
+  render(
+    <MemoryRouter>
+      <RoadmapsPage />
+    </MemoryRouter>,
+  )
+  await screen.findByText('No roadmaps yet')
+  expect(screen.queryByLabelText('Roadmap name')).not.toBeInTheDocument()
+  expect(
+    screen.getByRole('link', { name: 'Import activity plan' }),
+  ).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Create manually' }))
+  expect(screen.getByLabelText('Roadmap name')).toBeInTheDocument()
 })

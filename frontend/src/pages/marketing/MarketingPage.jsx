@@ -111,11 +111,11 @@ function MarketingPage() {
                 every student.
               </p>
               <div className="hero-actions">
-                <a className="button button-primary" href="#pathway">
-                  Explore the pathway <span aria-hidden="true">→</span>
+                <a className="button button-primary" href="/register">
+                  Get started <span aria-hidden="true">→</span>
                 </a>
-                <a className="text-link" href="#for-colleges">
-                  For college teams <span aria-hidden="true">↗</span>
+                <a className="text-link" href="/review">
+                  View demo <span aria-hidden="true">↗</span>
                 </a>
               </div>
               <p className="hero-caption">
@@ -125,20 +125,33 @@ function MarketingPage() {
             </div>
 
             <aside
-              className="manifesto-panel"
-              aria-label="Outpost's point of view"
+              className="manifesto-panel example-roadmap"
+              aria-label="Example roadmap"
             >
-              <p className="eyebrow">The Outpost point of view</p>
-              <h2>
-                Same potential.
-                <br />A brighter tomorrow.
-              </h2>
+              <p className="eyebrow">Illustrative roadmap</p>
+              <h2>Career readiness</h2>
               <p className="manifesto-description">
-                Help every student see how each learning step connects to the
-                next opportunity.
+                A clear outline for the next three weeks.
               </p>
+              <ol>
+                <li>
+                  <small>Week 01</small>
+                  <strong>Find your direction</strong>
+                  <span>Set goals and explore roles</span>
+                </li>
+                <li>
+                  <small>Week 02</small>
+                  <strong>Build your portfolio</strong>
+                  <span>Turn practice into a project</span>
+                </li>
+                <li>
+                  <small>Week 03</small>
+                  <strong>Prepare to connect</strong>
+                  <span>Practice interviews and share your work</span>
+                </li>
+              </ol>
               <p className="manifesto-footer">
-                Learning, practice, and progress — connected.
+                Example content · your team creates the learning path.
               </p>
             </aside>
           </div>
@@ -242,8 +255,8 @@ function MarketingPage() {
               </p>
               <h2 id="closing-title">Make the next step easier to see.</h2>
             </div>
-            <a className="button button-light" href="#pathway">
-              Explore the pathway <span aria-hidden="true">↑</span>
+            <a className="button button-light" href="/register">
+              Create your account <span aria-hidden="true">→</span>
             </a>
           </div>
         </section>
