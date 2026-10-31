@@ -22,23 +22,24 @@ function linesFromItems(items) {
   const positioned = items.filter((item) => typeof item.str === 'string' && item.str.trim())
     .map((item, index) => ({
       text: item.str.trim(), x: Number(item.transform?.[4] ?? 0),
-      y: Number(item.transform?.[5] ?? 0), index,
+      y: Number(item.transform?.[5] ?? 0), width: Number(item.width || 0), index,
     }))
     .sort((a, b) => Math.abs(b.y - a.y) > 2 ? b.y - a.y : a.x - b.x);
   const lines = [];
   for (const item of positioned) {
     const line = lines.at(-1);
     if (line && Math.abs(line.y - item.y) <= 2) {
+      if (item.x - line.lastX > 50) line.ambiguous = true;
       line.text += `${item.x > line.lastX + 2 ? ' ' : ''}${item.text}`;
-      line.lastX = item.x + item.text.length * 5;
+      line.lastX = item.x + item.width;
     } else {
-      lines.push({ text: item.text, y: item.y, lastX: item.x + item.text.length * 5 });
+      lines.push({ text: item.text, y: item.y, lastX: item.x + item.width, ambiguous: false });
     }
   }
-  return lines.map((line) => line.text.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  return lines.map((line) => ({ text: line.text.replace(/\s+/g, ' ').trim(), ambiguous: line.ambiguous })).filter((line) => line.text);
 }
 
-function suggestStructure(pages) {
+function suggestStructure(pages, ambiguousLines) {
   const proposal = { phases: [] };
   const review_items = [];
   const warnings = [];
@@ -49,6 +50,14 @@ function suggestStructure(pages) {
     id: stableId('warning', page, warnings.length, message), message,
     page_number: page, review_item_id: item?.id ?? null,
   });
+  // Repeated edge text remains visible, but never silently becomes an activity
+  // description or an automatically excluded administrative line.
+  const edges = new Map();
+  for (const page of pages) {
+    for (const line of new Set([page.lines[0]?.text, page.lines.at(-1)?.text].filter(Boolean))) {
+      edges.set(line, (edges.get(line) || 0) + 1);
+    }
+  }
 
   for (const page of pages) {
     for (const [index, line] of page.lines.entries()) {
@@ -58,6 +67,15 @@ function suggestStructure(pages) {
         disposition: 'unresolved', topic_id: null, reason: '',
       };
       review_items.push(item);
+      if ((edges.get(line.text) || 0) > 1) {
+        addWarning(page.page_number, item, 'Repeated page header or footer; include or exclude this source text explicitly.');
+        continue;
+      }
+      if (ambiguousLines.has(line.id)) {
+        addWarning(page.page_number, item, 'Possible table or multiple columns: check reading order and classify this row manually.');
+        topic = null;
+        continue;
+      }
       const module = line.text.match(/^(?:module|phase)\s+\d+[\s.:–-]+(.+)$/i);
       const session = line.text.match(/^(?:week|session)\s+\d+[\s.:–-]+(.+)$/i);
       const activity = line.text.match(/^(?:activity|lab|exercise)\s+\d+[\s.:–-]+(.+)$|^\d+[.)]\s+(.+)$/i);
@@ -105,6 +123,12 @@ function suggestStructure(pages) {
       }
     }
   }
+  if (!proposal.phases.length) {
+    proposal.phases.push({ id: stableId('phase', 0, 0, 'Suggested phase'), title: 'Suggested phase', weeks: [
+      { id: stableId('week', 0, 0, 'Suggested week'), title: 'Suggested week', topics: [] },
+    ] });
+    addWarning(pages[0].page_number, review_items[0], 'No explicit structure was recognized; edit the suggested grouping and classify the source text.');
+  }
   return { proposal, review_items, warnings };
 }
 
@@ -128,26 +152,31 @@ export async function extractActivityPlan(bytes) {
       throw new ActivityPlanPdfError('pdf_too_many_pages', 'PDF exceeds the 50-page limit.');
     }
     const pages = [];
+    const ambiguousLines = new Set();
     let characterCount = 0;
     for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
       const page = await document.getPage(pageNumber);
       const content = await page.getTextContent();
       const strings = linesFromItems(content.items);
-      const text = strings.join('\n');
+      const text = strings.map((line) => line.text).join('\n');
       characterCount += text.length;
       if (characterCount > PDF_LIMITS.max_characters) {
         throw new ActivityPlanPdfError('pdf_too_much_text', 'PDF exceeds the 200,000-character limit.');
       }
       pages.push({
         page_number: pageNumber, text,
-        lines: strings.map((line, index) => ({ id: stableId('line', pageNumber, index, line), text: line })),
+        lines: strings.map((line, index) => {
+          const id = stableId('line', pageNumber, index, line.text);
+          if (line.ambiguous) ambiguousLines.add(id);
+          return { id, text: line.text };
+        }),
       });
       page.cleanup();
     }
     if (!characterCount) {
       throw new ActivityPlanPdfError('pdf_no_text', 'This PDF has no selectable text. Upload a text-based PDF.');
     }
-    const suggested = suggestStructure(pages);
+    const suggested = suggestStructure(pages, ambiguousLines);
     for (const page of pages.filter((entry) => !entry.text)) {
       suggested.warnings.push({
         id: stableId('warning', page.page_number, 0, 'No selectable text'),

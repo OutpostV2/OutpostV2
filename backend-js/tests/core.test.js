@@ -40,4 +40,17 @@ describe('core API contract', () => {
       .get('/api/v1/organizations/00000000-0000-4000-8000-000000000001/activity-plans');
     expect(response.status).toBe(401);
   });
+
+  it('accepts bounded Unicode review JSON without increasing other request limits', async () => {
+    // Source and corrected descriptions both appear in a review save. 200,000
+    // selectable characters can exceed one MiB when represented as UTF-8.
+    const body = { source: '中'.repeat(190_000), corrected: '中'.repeat(190_000) };
+    const path = '/api/v1/organizations/00000000-0000-4000-8000-000000000001/activity-plans/00000000-0000-4000-8000-000000000002';
+    const app = createApp({ prisma });
+    expect((await request(app).patch(path).send(body)).status).toBe(401);
+    const oversized = await request(app).patch(path).send({ text: 'x'.repeat(4 * 1024 * 1024) });
+    expect(oversized.status).toBe(413);
+    expect(oversized.body.error.code).toBe('request_too_large');
+    expect((await request(app).post('/api/v1/auth/password/register').send(body)).status).toBe(413);
+  });
 });

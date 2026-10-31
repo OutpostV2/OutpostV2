@@ -26,9 +26,12 @@ describe.skipIf(!process.env.OUTPOST_OBJECT_ACCESS_KEY)('private MinIO activity-
     try {
       await storage.putSource(key, bytes);
       expect(await storage.getSource(key)).toEqual(bytes);
+      const anonymous = await fetch(`${process.env.OUTPOST_OBJECT_ENDPOINT}/${process.env.OUTPOST_OBJECT_BUCKET}/${key}`);
+      expect(anonymous.status).toBe(403);
     } finally {
       await storage.deleteSource(key);
     }
     await expect(storage.getSource(key)).rejects.toThrow();
+    await storage.close();
   });
 });

@@ -61,14 +61,20 @@ function cleanFilename(value) {
     .replace(/[\x00-\x1f\x7f";]/g, '_').slice(0, 255);
   return filename || 'activity-plan.pdf';
 }
+function attachmentName(value) {
+  const safe = cleanFilename(value);
+  const ascii = safe.replace(/[^\x20-\x7e]/g, '_');
+  const encoded = encodeURIComponent(safe).replace(/['()*]/g, (value) => `%${value.charCodeAt(0).toString(16).toUpperCase()}`);
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encoded}`;
+}
 
 function readUpload(request) {
   return new Promise((resolve, reject) => {
     let parser;
     try {
-      parser = Busboy({ headers: request.headers, limits: {
+      parser = Busboy({ headers: request.headers, defParamCharset: 'utf8', limits: {
         files: 1, fields: 1, parts: 3, fileSize: PDF_LIMITS.max_bytes,
-        fieldSize: 200, fieldNameSize: 32,
+        fieldSize: 800, fieldNameSize: 32,
       } });
     } catch {
       reject(new AppError(415, 'unsupported_media_type', 'Use multipart/form-data with one PDF file.'));
@@ -130,6 +136,7 @@ function checkReview(source, input) {
       throw new AppError(422, 'validation_error', 'Explain why excluded source text is irrelevant.');
     }
   }
+  const reviewedById = new Map(input.review_items.map((item) => [item.id, item]));
   const nodeIds = new Set();
   const topicIds = new Set();
   const topicRefs = new Map();
@@ -146,7 +153,13 @@ function checkReview(source, input) {
         topicIds.add(topic.id);
         topicRefs.set(topic.id, new Set(topic.source_refs));
         count += 1;
-        for (const ref of topic.source_refs) if (!original.has(ref)) throw conflict('Topic source reference is invalid.');
+        for (const ref of topic.source_refs) {
+          if (!original.has(ref)) throw conflict('Topic source reference is invalid.');
+          const reviewed = reviewedById.get(ref);
+          if (reviewed?.disposition !== 'included' || reviewed.topic_id !== topic.id) {
+            throw new AppError(422, 'validation_error', 'Topic source references must match included review decisions.');
+          }
+        }
       }
     }
   }
@@ -191,7 +204,8 @@ export function registerActivityPlanRoutes(app, { prisma, requireUser, storage }
     const input = await readUpload(request);
     const planId = randomUUID();
     const key = sourceKey(organizationId, planId);
-    await storage.putSource(key, input.bytes);
+    try { await storage.putSource(key, input.bytes); }
+    catch { throw notReady('Source PDF storage is temporarily unavailable. Try uploading again.'); }
     let plan;
     try {
       plan = await prisma.$transaction(async (tx) => {
@@ -229,7 +243,7 @@ export function registerActivityPlanRoutes(app, { prisma, requireUser, storage }
       'Cache-Control': 'private, no-store',
       'X-Content-Type-Options': 'nosniff',
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${cleanFilename(plan.filename)}"`,
+      'Content-Disposition': attachmentName(plan.filename),
     }).send(bytes);
   });
 

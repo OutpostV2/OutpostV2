@@ -3,7 +3,7 @@ import express from 'express';
 import request from 'supertest';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { describe, expect, test } from 'vitest';
-import { errorHandler } from '../../src/core/errors.js';
+import { AppError, errorHandler } from '../../src/core/errors.js';
 import { createPrismaClient } from '../../src/db/client.js';
 import { createObjectStorage } from '../../src/modules/activity-plans/storage.js';
 import { processQueuedPlan } from '../../src/modules/activity-plans/worker.js';
@@ -48,6 +48,20 @@ describe.skipIf(!process.env.OUTPOST_DATABASE_URL || !process.env.OUTPOST_OBJECT
       try {
         await storage.ensureBucket();
         const bytes = await sourcePdf();
+        const compensationApp = express();
+        const failedDatabase = new Proxy(prisma, { get(target, key) {
+          return key === '$transaction' ? async () => { throw new AppError(503, 'write_failed', 'Temporary write failure'); } : target[key];
+        } });
+        const uploadedKeys = [];
+        const compensationStorage = { ...storage, putSource: async (key, buffer) => {
+          uploadedKeys.push(key); await storage.putSource(key, buffer);
+        } };
+        registerActivityPlanRoutes(compensationApp, { prisma: failedDatabase, requireUser, storage: compensationStorage });
+        compensationApp.use(errorHandler);
+        expect((await request(compensationApp).post(base).field('name', 'Failed upload')
+          .attach('file', bytes, { filename: 'source.pdf', contentType: 'application/pdf' })).status).toBe(503);
+        expect(uploadedKeys).toHaveLength(1);
+        await expect(storage.getSource(uploadedKeys[0])).rejects.toThrow();
         const uploaded = await request(app).post(base).field('name', 'Career plan')
           .attach('file', bytes, { filename: 'source.pdf', contentType: 'application/pdf' });
         expect(uploaded.status, JSON.stringify(uploaded.body)).toBe(201);
@@ -65,11 +79,58 @@ describe.skipIf(!process.env.OUTPOST_DATABASE_URL || !process.env.OUTPOST_OBJECT
         expect(source.headers['content-disposition']).toContain('attachment');
         expect(source.body).toEqual(bytes);
 
+        const tampered = structuredClone(plan.review_items);
+        tampered[0].text = 'Rewritten source';
+        expect((await request(app).patch(path).send({ revision: plan.revision, name: plan.name,
+          proposal: plan.proposal, review_items: tampered, review_confirmed: false })).status).toBe(409);
+        expect((await request(app).post(`${path}/convert`).send({ revision: plan.revision })).status).toBe(422);
+        // Every content endpoint rechecks active organization membership.
+        for (const role of ['student', 'mentor']) {
+          await prisma.organizationMembership.updateMany({ where: { organizationId: organization.id, userId: owner.id }, data: { role } });
+          expect((await request(app).get(base)).status).toBe(403);
+          expect((await request(app).get(path)).status).toBe(403);
+          expect((await request(app).get(`${path}/source`)).status).toBe(403);
+          expect((await request(app).post(`${path}/retry`).send({ revision: plan.revision })).status).toBe(403);
+          expect((await request(app).post(`${path}/convert`).send({ revision: plan.revision })).status).toBe(403);
+        }
+        await prisma.organizationMembership.updateMany({ where: { organizationId: organization.id, userId: owner.id }, data: { role: 'owner', status: 'suspended' } });
+        expect((await request(app).get(path)).status).toBe(403);
+        await prisma.organizationMembership.updateMany({ where: { organizationId: organization.id, userId: owner.id }, data: { status: 'active' } });
+        const unicode = await request(app).post(base).field('name', 'é'.repeat(150))
+          .attach('file', bytes, { filename: 'café.pdf', contentType: 'application/pdf' });
+        expect(unicode.status).toBe(201);
+        const unicodeSource = await request(app).get(`${base}/${unicode.body.id}/source`);
+        expect(unicodeSource.status).toBe(200);
+        expect(unicodeSource.headers['content-disposition']).toContain('filename*=UTF-8');
+        await prisma.activityPlan.update({ where: { id: unicode.body.id }, data: {
+          status: 'failed', failure: { code: 'processing_interrupted', message: 'Retry this plan.' },
+        } });
+        expect((await request(app).post(`${base}/${unicode.body.id}/retry`).send({ revision: unicode.body.revision + 1 })).status).toBe(409);
+        const retry = await request(app).post(`${base}/${unicode.body.id}/retry`).send({ revision: unicode.body.revision });
+        expect(retry.status).toBe(200);
+        expect(retry.body).toMatchObject({ status: 'queued', failure: null, revision: unicode.body.revision + 1 });
+        expect((await request(app).post(`${base}/${unicode.body.id}/retry`).send({ revision: unicode.body.revision })).status).toBe(409);
+        expect((await request(app).post(base).field('name', 'Too large').attach('file', Buffer.alloc(10 * 1024 * 1024 + 1),
+          { filename: 'large.pdf', contentType: 'application/pdf' })).status).toBe(413);
+        expect((await request(app).post(base).field('name', 'Wrong bytes').attach('file', Buffer.from('not a PDF'),
+          { filename: 'fake.pdf', contentType: 'application/pdf' })).status).toBe(422);
+
         const unlinked = structuredClone(plan.review_items);
         unlinked.find((item) => item.text.includes('Set goals')).topic_id = null;
         expect((await request(app).patch(path).send({
           revision: plan.revision, name: plan.name,
           proposal: plan.proposal, review_items: unlinked,
+          review_confirmed: true,
+        })).status).toBe(422);
+
+        const excludedReferenced = structuredClone(plan.review_items);
+        const sourceActivity = excludedReferenced.find((item) => item.text.includes('Set goals'));
+        sourceActivity.disposition = 'excluded';
+        sourceActivity.topic_id = null;
+        sourceActivity.reason = 'Administrative note';
+        expect((await request(app).patch(path).send({
+          revision: plan.revision, name: plan.name,
+          proposal: plan.proposal, review_items: excludedReferenced,
           review_confirmed: true,
         })).status).toBe(422);
 
@@ -79,19 +140,39 @@ describe.skipIf(!process.env.OUTPOST_DATABASE_URL || !process.env.OUTPOST_OBJECT
           review_confirmed: true,
         });
         expect(revised.status).toBe(200);
+        expect((await request(app).post(`${path}/convert`).send({ revision: plan.revision })).status).toBe(409);
         expect((await request(app).patch(path).send({
           revision: plan.revision, name: plan.name,
           proposal: plan.proposal, review_items: plan.review_items,
           review_confirmed: true,
         })).status).toBe(409);
-        const converted = await request(app).post(`${path}/convert`)
-          .send({ revision: revised.body.revision });
-        expect(converted.status).toBe(201);
+        // Inject a real write failure after roadmap/version/phase/week inserts;
+        // all rows and the conversion link must roll back together.
+        const rollbackApp = express();
+        rollbackApp.use(express.json());
+        const failingPrisma = new Proxy(prisma, { get(target, key) {
+          return key === '$transaction' ? (action, options) => prisma.$transaction((tx) => action(new Proxy(tx, {
+            get(transaction, model) { return model === 'topic' ? { create: async () => { throw new AppError(503, 'write_failed', 'Temporary write failure'); } } : transaction[model]; },
+          })), options) : target[key];
+        } });
+        registerActivityPlanRoutes(rollbackApp, { prisma: failingPrisma, requireUser, storage });
+        rollbackApp.use(errorHandler);
+        expect((await request(rollbackApp).post(`${path}/convert`).send({ revision: revised.body.revision })).status).toBe(503);
+        expect(await prisma.roadmap.count({ where: { organizationId: organization.id } })).toBe(0);
+        expect(await prisma.roadmapVersion.count({ where: { createdBy: owner.id } })).toBe(0);
+        expect(await prisma.activityPlan.findUnique({ where: { id: plan.id } })).toMatchObject({ status: 'ready', roadmapId: null, versionId: null });
+        const pair = await Promise.all([request(app).post(`${path}/convert`).send({ revision: revised.body.revision }),
+          request(app).post(`${path}/convert`).send({ revision: revised.body.revision })]);
+        expect(pair.map((entry) => entry.status).sort()).toEqual([200, 201]);
+        const converted = pair[0];
+        expect(pair[1].body).toEqual(converted.body);
         expect(converted.body.version_number).toBe(1);
         expect((await request(app).post(`${path}/convert`).send({ revision: revised.body.revision })).body)
           .toEqual(converted.body);
         const version = await prisma.roadmapVersion.findUnique({ where: { id: converted.body.version_id } });
         expect(version.status).toBe('draft');
+        expect(await prisma.roadmap.count({ where: { organizationId: organization.id } })).toBe(1);
+        expect(await storage.getSource((await prisma.activityPlan.findUnique({ where: { id: plan.id } })).objectKey)).toEqual(bytes);
       } finally {
         const plans = await prisma.activityPlan.findMany({ where: { organizationId: organization.id } });
         await prisma.activityPlan.deleteMany({ where: { organizationId: organization.id } });

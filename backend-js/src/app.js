@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import { errorHandler, notFound, notReady } from './core/errors.js';
+import { AppError, errorHandler, notFound, notReady } from './core/errors.js';
 import { registerAuthRoutes } from './modules/auth/routes.js';
 import { registerRecoveryRoutes } from './modules/auth/recovery.js';
 import { registerReviewRoutes } from './modules/review/routes.js';
@@ -38,7 +38,19 @@ export function createApp({ prisma, settings = {}, emailProvider, redisClient, s
     });
     next();
   });
-  app.use(express.json({ limit: '1mb' }));
+  const normalJson = express.json({ limit: '1mb' });
+  const reviewJson = express.json({ limit: '4mb' });
+  app.use((request, response, next) => {
+    // A reviewed proposal repeats selectable source text alongside corrections.
+    // Allow its bounded UTF-8 representation without enlarging auth requests.
+    const review = request.method === 'PATCH' &&
+      /^\/api\/v1\/organizations\/[0-9a-f-]+\/activity-plans\/[0-9a-f-]+\/?$/i.test(request.path);
+    (review ? reviewJson : normalJson)(request, response, (error) => {
+      next(error?.type === 'entity.too.large'
+        ? new AppError(413, 'request_too_large', 'The request exceeds the allowed size.')
+        : error);
+    });
+  });
   app.use(cookieParser());
 
   app.get('/health', (_request, response) => response.json({ status: 'healthy' }));

@@ -51,11 +51,43 @@ describe.skipIf(!process.env.OUTPOST_DATABASE_URL || !process.env.OUTPOST_OBJECT
         expect(ready.proposal.phases[0].weeks[0].topics[0].title).toBe('Set goals');
         expect(await storage.getSource(key)).toEqual(bytes);
 
-        await prisma.activityPlan.update({ where: { id }, data: { status: 'extracting' } });
+        await prisma.activityPlan.update({ where: { id }, data: {
+          status: 'extracting', processingStartedAt: new Date(),
+        } });
+        await recoverInterruptedPlans(prisma);
+        expect((await prisma.activityPlan.findUnique({ where: { id } })).status).toBe('extracting');
+        await prisma.activityPlan.update({ where: { id }, data: {
+          processingStartedAt: new Date(Date.now() - 60_000),
+        } });
         await recoverInterruptedPlans(prisma);
         const recovered = await prisma.activityPlan.findUnique({ where: { id } });
         expect(recovered.status).toBe('failed');
         expect(recovered.failure.code).toBe('processing_interrupted');
+
+        // A second application instance must not start another PDF while this
+        // instance still holds the global extraction lease.
+        const secondId = randomUUID();
+        await prisma.activityPlan.create({ data: {
+          id: secondId, organizationId: organization.id, uploadedBy: user.id,
+          name: 'Second plan', filename: 'second.pdf', objectKey: `${key}.second`,
+          sha256: createHash('sha256').update(bytes).digest('hex'), byteCount: bytes.length,
+        } });
+        await prisma.activityPlan.update({ where: { id }, data: { status: 'queued' } });
+        let unblock;
+        let entered;
+        const blocked = new Promise((resolve) => { unblock = resolve; });
+        const started = new Promise((resolve) => { entered = resolve; });
+        const active = processQueuedPlan(prisma, { getSource: async () => { entered(); await blocked; return bytes; } });
+        await started;
+        try {
+          expect(await processQueuedPlan(prisma, storage)).toBeNull();
+          expect((await prisma.activityPlan.findUnique({ where: { id: secondId } })).status).toBe('queued');
+        } finally { unblock(); await active; }
+        // A missing private object is a safe retryable failure, never a raw
+        // storage exception with internal details in the API.
+        expect(await processQueuedPlan(prisma, storage)).toBe(secondId);
+        const missing = await prisma.activityPlan.findUnique({ where: { id: secondId } });
+        expect(missing).toMatchObject({ status: 'failed', failure: { code: 'pdf_source_unavailable' } });
       } finally {
         await prisma.activityPlan.deleteMany({ where: { organizationId: organization.id } });
         for (const key of keys) await storage.deleteSource(key);
