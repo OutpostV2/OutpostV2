@@ -9,6 +9,7 @@ import {
 } from 'react-router'
 import { restoreSession, signOut, dashboardPath } from '../../auth/authApi'
 import { WorkspaceContext } from '../hooks/useWorkspace'
+import { listOrganizations } from '../learningApi'
 const studentLinks = [
   { to: '/app/student', label: 'Overview', end: true },
   { to: '/app/student/learning', label: 'My assigned learning' },
@@ -31,6 +32,7 @@ export default function WorkspaceShell() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [organizations, setOrganizations] = useState([])
   const triggerRef = useRef(null),
     sidebarRef = useRef(null)
   const [mobile, setMobile] = useState(
@@ -79,6 +81,26 @@ export default function WorkspaceShell() {
   const location = useLocation()
   const navigate = useNavigate()
   const coordinatorView = user?.account_type === 'coordinator'
+  const organizationId = new URLSearchParams(location.search).get(
+    'organizationId',
+  )
+  const organization =
+    organizations.find((item) => item.id === organizationId) ||
+    (organizations.length === 1 ? organizations[0] : null)
+  useEffect(() => {
+    if (!user || user.account_type !== 'coordinator') return
+    let active = true
+    listOrganizations()
+      .then((items) => {
+        if (active) setOrganizations(items)
+      })
+      .catch(() => {
+        if (active) setOrganizations([])
+      })
+    return () => {
+      active = false
+    }
+  }, [user])
   useEffect(() => {
     let active = true
     void (async () => {
@@ -175,13 +197,33 @@ export default function WorkspaceShell() {
             <small>Workspace</small>
           </Link>
           <div className="workspace-org">
-            <span className="workspace-org-mark">O</span>
-            <span>
-              <strong>Outpost workspace</strong>
-              <small>Live learning and review</small>
+            <span className="workspace-org-mark">
+              {organization?.name[0]?.toUpperCase() || 'O'}
             </span>
-            <Link to="/app/organizations" aria-label="Organization context">
-              ⌄
+            <span>
+              <strong>
+                {organization?.name ||
+                  (coordinatorView
+                    ? 'Your organizations'
+                    : 'Student workspace')}
+              </strong>
+              <small>
+                {organization
+                  ? 'Organization workspace'
+                  : coordinatorView
+                    ? 'Manage college learning'
+                    : 'Your assigned learning'}
+              </small>
+            </span>
+            <Link
+              to={
+                coordinatorView ? '/app/organizations' : '/app/student/learning'
+              }
+              aria-label={
+                coordinatorView ? 'Organization context' : 'Assigned learning'
+              }
+            >
+              →
             </Link>
           </div>
           <div className="workspace-view-switch" aria-label="Account type">
@@ -241,7 +283,11 @@ export default function WorkspaceShell() {
                     ? 'Activity plan'
                     : location.pathname.includes('versions')
                       ? 'Roadmap versions'
-                      : 'Account')}
+                      : location.pathname.startsWith(
+                            '/app/coordinator/learning/',
+                          )
+                        ? 'Cohort report'
+                        : 'Account')}
               </span>
             </div>
             <div className="workspace-topbar-actions">

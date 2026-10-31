@@ -4,7 +4,8 @@ export default function useUnsavedChanges(dirty) {
   useBlocker(
     ({ currentLocation, nextLocation }) =>
       dirty &&
-      currentLocation.pathname !== nextLocation.pathname &&
+      (currentLocation.pathname !== nextLocation.pathname ||
+        currentLocation.search !== nextLocation.search) &&
       !window.confirm('You have unsaved changes. Leave this page?'),
   )
   useEffect(() => {

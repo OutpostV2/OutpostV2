@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import {
   EmptyState,
   PageHeading,
@@ -20,6 +20,9 @@ import {
   rotateCohortJoinCode,
 } from '../learningApi'
 export default function CoordinatorLearningPage() {
+  const [search] = useSearchParams()
+  const preferredOrganization = search.get('organizationId')
+  const preferredVersion = search.get('roadmapVersionId')
   const [organizations, setOrganizations] = useState([])
   const [organizationId, setOrganizationId] = useState('')
   const [roadmaps, setRoadmaps] = useState([])
@@ -48,7 +51,13 @@ export default function CoordinatorLearningPage() {
       .then((items) => {
         if (!active) return
         setOrganizations(items)
-        setOrganizationId((current) => current || items[0]?.id || '')
+        setOrganizationId((current) =>
+          items.some((item) => item.id === preferredOrganization)
+            ? preferredOrganization
+            : items.some((item) => item.id === current)
+              ? current
+              : items[0]?.id || '',
+        )
       })
       .catch((cause) => {
         if (active)
@@ -64,7 +73,7 @@ export default function CoordinatorLearningPage() {
     return () => {
       active = false
     }
-  }, [])
+  }, [preferredOrganization])
   useEffect(() => {
     if (!organizationId) return
     let active = true
@@ -79,11 +88,18 @@ export default function CoordinatorLearningPage() {
         setVersionId((current) =>
           loadedRoadmaps.some(
             (roadmap) =>
-              roadmap.version_id === current && roadmap.status === 'published',
+              roadmap.version_id === preferredVersion &&
+              roadmap.status === 'published',
           )
-            ? current
-            : loadedRoadmaps.find((roadmap) => roadmap.status === 'published')
-                ?.version_id || '',
+            ? preferredVersion
+            : loadedRoadmaps.some(
+                  (roadmap) =>
+                    roadmap.version_id === current &&
+                    roadmap.status === 'published',
+                )
+              ? current
+              : loadedRoadmaps.find((roadmap) => roadmap.status === 'published')
+                  ?.version_id || '',
         )
       })
       .catch((cause) => {
@@ -97,7 +113,14 @@ export default function CoordinatorLearningPage() {
     return () => {
       active = false
     }
-  }, [organizationId])
+  }, [organizationId, preferredVersion])
+  useEffect(() => {
+    if (search.get('roadmapVersionId') && publishedRoadmaps.length) {
+      document
+        .getElementById('cohort-setup')
+        ?.scrollIntoView?.({ block: 'start' })
+    }
+  }, [search, publishedRoadmaps.length])
   async function addOrganization(event) {
     event.preventDefault()
     setBusy('organization')
@@ -496,7 +519,7 @@ export default function CoordinatorLearningPage() {
           )}
         </section>
 
-        <section className="workspace-card learning-step">
+        <section className="workspace-card learning-step" id="cohort-setup">
           <SectionHeading
             title="3. Cohort"
             description="Assign an exact roadmap version and share its join code"

@@ -1,5 +1,6 @@
 import { listPlans } from '../activityPlanApi'
 import useUnsavedChanges from '../hooks/useUnsavedChanges'
+import { outlineProblems } from '../outlineValidation'
 import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { PageHeading } from '../components/WorkspaceUI'
@@ -52,6 +53,7 @@ export default function RoadmapVersionsPage() {
   const [message, setMessage] = useState('')
   useUnsavedChanges(dirty)
   const active = versions.find((item) => item.version_id === activeId)
+  const problems = outlineProblems(draft)
 
   useEffect(() => {
     let mounted = true
@@ -202,17 +204,19 @@ export default function RoadmapVersionsPage() {
         title={active?.name || 'Roadmap versions'}
         description="Edit drafts, review their complete structure, and publish a fixed version for cohort assignment."
       />
-      <Link className="workspace-text-link" to="/app/coordinator/roadmaps">
-        ← All roadmaps
-      </Link>
-      {(search.get('activityPlanId') || sourcePlan) && (
-        <Link
-          className="workspace-text-link"
-          to={`/app/coordinator/activity-plans/${search.get('activityPlanId') || sourcePlan.id}?organizationId=${organizationId || preferredOrg}`}
-        >
-          View source and review decisions
+      <div className="roadmap-backlinks">
+        <Link className="workspace-text-link" to="/app/coordinator/roadmaps">
+          ← All roadmaps
         </Link>
-      )}
+        {(search.get('activityPlanId') || sourcePlan) && (
+          <Link
+            className="workspace-text-link"
+            to={`/app/coordinator/activity-plans/${search.get('activityPlanId') || sourcePlan.id}?organizationId=${organizationId || preferredOrg}`}
+          >
+            View source and review decisions
+          </Link>
+        )}
+      </div>
       {loading && <p role="status">Loading version history…</p>}
       {error && (
         <p className="form-error" role="alert">
@@ -289,7 +293,11 @@ export default function RoadmapVersionsPage() {
                   </p>
                   <fieldset className="plan-fieldset" disabled={busy}>
                     {draft.map((phase, phaseIndex) => (
-                      <details open className="roadmap-phase" key={phaseIndex}>
+                      <details
+                        open={phaseIndex === 0 || !phase.title}
+                        className="roadmap-phase"
+                        key={phaseIndex}
+                      >
                         <summary>
                           {phase.title || 'Untitled phase'} ·{' '}
                           {phase.weeks.length} weeks
@@ -340,7 +348,10 @@ export default function RoadmapVersionsPage() {
                         </div>
                         {phase.weeks.map((week, weekIndex) => (
                           <details
-                            open
+                            open={
+                              (phaseIndex === 0 && weekIndex === 0) ||
+                              !week.title
+                            }
                             className="roadmap-week"
                             key={weekIndex}
                           >
@@ -493,7 +504,10 @@ export default function RoadmapVersionsPage() {
                             ))}
                             <button
                               type="button"
-                              disabled={week.topics.length >= 24}
+                              disabled={
+                                week.topics.length >= 24 ||
+                                topicCount(draft) >= 500
+                              }
                               onClick={() =>
                                 change((next) =>
                                   next[phaseIndex].weeks[weekIndex].topics.push(
@@ -526,6 +540,19 @@ export default function RoadmapVersionsPage() {
                       </details>
                     ))}
                   </fieldset>
+                  {problems.length > 0 && (
+                    <section
+                      className="outline-validation"
+                      aria-label="Outline needs attention"
+                    >
+                      <h3>Complete the outline before saving</h3>
+                      <ul>
+                        {problems.map((problem) => (
+                          <li key={problem}>{problem}</li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
                   <div className="roadmap-actions plan-save-bar">
                     <p role="status">
                       {busy
@@ -538,7 +565,7 @@ export default function RoadmapVersionsPage() {
                     </p>
                     <button
                       type="button"
-                      disabled={draft.length >= 12}
+                      disabled={busy || draft.length >= 12}
                       onClick={() =>
                         change((next) => next.push({ title: '', weeks: [] }))
                       }
@@ -548,7 +575,7 @@ export default function RoadmapVersionsPage() {
                     <button
                       type="button"
                       className="workspace-button"
-                      disabled={busy || !dirty}
+                      disabled={busy || !dirty || problems.length > 0}
                       onClick={save}
                     >
                       Save draft
@@ -556,7 +583,7 @@ export default function RoadmapVersionsPage() {
                     <button
                       type="button"
                       className="workspace-button workspace-button-outline"
-                      disabled={busy || dirty}
+                      disabled={busy || dirty || problems.length > 0}
                       onClick={() => setReviewing(true)}
                     >
                       Review for publication
@@ -569,6 +596,31 @@ export default function RoadmapVersionsPage() {
                       aria-label="Publication review"
                     >
                       <h3>Publication review</h3>
+                      {!!sourcePlan?.warnings?.length && (
+                        <aside
+                          className="source-warning"
+                          aria-label="Source review notes"
+                        >
+                          <h4>Source review notes</h4>
+                          <p>
+                            These extraction notes were checked during import.
+                            Compare the saved draft with the original before
+                            publishing.
+                          </p>
+                          <ul>
+                            {sourcePlan.warnings.map((warning) => (
+                              <li key={warning.id}>
+                                {warning.message} · Page {warning.page_number}
+                              </li>
+                            ))}
+                          </ul>
+                          <Link
+                            to={`/app/coordinator/activity-plans/${sourcePlan.id}?organizationId=${organizationId}`}
+                          >
+                            View source and decisions
+                          </Link>
+                        </aside>
+                      )}
                       <div className="roadmap-readonly">
                         {draft.map((phase, pi) => (
                           <section key={pi}>
@@ -640,7 +692,7 @@ export default function RoadmapVersionsPage() {
                   {active.status === 'published' && (
                     <Link
                       className="workspace-button"
-                      to="/app/coordinator/cohorts"
+                      to={`/app/coordinator/learning?organizationId=${encodeURIComponent(organizationId)}&roadmapVersionId=${encodeURIComponent(active.version_id)}#cohort-setup`}
                     >
                       Assign to cohort
                     </Link>

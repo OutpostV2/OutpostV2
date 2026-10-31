@@ -9,6 +9,7 @@ import {
   downloadPlan,
 } from '../activityPlanApi'
 import useUnsavedChanges from '../hooks/useUnsavedChanges'
+import { outlineProblems } from '../outlineValidation'
 const uid = () => crypto.randomUUID()
 const topicsOf = (p) =>
   p.phases.flatMap((ph) => ph.weeks.flatMap((w) => w.topics))
@@ -16,6 +17,11 @@ export default function ActivityPlanPage() {
   const { planId } = useParams()
   const [search] = useSearchParams()
   const org = search.get('organizationId')
+  return (
+    <ActivityPlanReview key={`${org}:${planId}`} org={org} planId={planId} />
+  )
+}
+function ActivityPlanReview({ org, planId }) {
   const navigate = useNavigate()
   const [plan, setPlan] = useState(null),
     [dirty, setDirty] = useState(false),
@@ -47,6 +53,7 @@ export default function ActivityPlanPage() {
   function edit(fn) {
     setPlan((p) => {
       const next = structuredClone(p)
+      next.review_confirmed = false
       fn(next)
       return next
     })
@@ -68,6 +75,10 @@ export default function ActivityPlanPage() {
     const target = index + delta
     if (target >= 0 && target < rows.length)
       [rows[index], rows[target]] = [rows[target], rows[index]]
+  }
+  function focusSource(id) {
+    setTab('source')
+    setTimeout(() => document.getElementById(`decision-${id}`)?.focus(), 0)
   }
   function remove(fn) {
     if (
@@ -105,30 +116,12 @@ export default function ActivityPlanPage() {
           !r.topic_id &&
           !/^(?:module|phase|week|session)\s+\d+[\s.:–-]+/i.test(r.text)),
     ).length || 0
-  const invalid =
-    plan?.proposal &&
-    (!plan.proposal.phases.length ||
-      plan.proposal.phases.length > 12 ||
-      topics.length === 0 ||
-      topics.length > 500 ||
-      plan.proposal.phases.some(
-        (p) =>
-          p.title.trim().length < 2 ||
-          !p.weeks.length ||
-          p.weeks.length > 52 ||
-          p.weeks.some(
-            (w) =>
-              w.title.trim().length < 2 ||
-              !w.topics.length ||
-              w.topics.length > 24 ||
-              w.topics.some(
-                (t) =>
-                  t.title.trim().length < 2 ||
-                  t.title.length > 200 ||
-                  t.description.length > 1000,
-              ),
-          ),
-      ))
+  const problems = plan?.proposal
+    ? outlineProblems(plan.proposal.phases, 'Activity')
+    : []
+  if (plan && (plan.name.trim().length < 2 || plan.name.length > 200))
+    problems.unshift('Plan name: enter 2–200 characters.')
+  const invalid = problems.length > 0
   const blocked = dirty || unresolved || !plan?.review_confirmed || invalid
   const draftUrl = (p) =>
     `/app/coordinator/roadmaps/${p.roadmap_id}/versions?organizationId=${org}&activityPlanId=${planId}`
@@ -250,15 +243,42 @@ export default function ActivityPlanPage() {
                   <button
                     key={t}
                     role="tab"
+                    id={`plan-${t}-tab`}
+                    aria-controls={`plan-${t}-panel`}
                     aria-selected={tab === t}
+                    tabIndex={tab === t ? 0 : -1}
                     onClick={() => setTab(t)}
+                    onKeyDown={(e) => {
+                      if (
+                        !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(
+                          e.key,
+                        )
+                      )
+                        return
+                      e.preventDefault()
+                      const next =
+                        e.key === 'Home'
+                          ? 'draft'
+                          : e.key === 'End'
+                            ? 'source'
+                            : t === 'draft'
+                              ? 'source'
+                              : 'draft'
+                      setTab(next)
+                      document.getElementById(`plan-${next}-tab`)?.focus()
+                    }}
                   >
                     {t === 'draft' ? 'Draft' : 'Source'}
                   </button>
                 ))}
               </div>
               <div className={`plan-review-grid show-${tab}`}>
-                <section className="workspace-card plan-draft">
+                <section
+                  className="workspace-card plan-draft"
+                  id="plan-draft-panel"
+                  role="tabpanel"
+                  aria-labelledby="plan-draft-tab"
+                >
                   <h2>Suggested outline</h2>
                   <p>
                     Dates remain source text. Set deadlines after assigning a
@@ -279,7 +299,11 @@ export default function ActivityPlanPage() {
                   </label>
                   <fieldset disabled={busy} className="plan-fieldset">
                     {plan.proposal.phases.map((ph, pi) => (
-                      <details open key={ph.id} className="roadmap-phase">
+                      <details
+                        open={pi === 0 || !ph.title}
+                        key={ph.id}
+                        className="roadmap-phase"
+                      >
                         <summary>
                           {ph.title || 'Untitled phase'} · {ph.weeks.length}{' '}
                           weeks
@@ -324,7 +348,11 @@ export default function ActivityPlanPage() {
                           </button>
                         </div>
                         {ph.weeks.map((w, wi) => (
-                          <details open key={w.id} className="roadmap-week">
+                          <details
+                            open={(pi === 0 && wi === 0) || !w.title}
+                            key={w.id}
+                            className="roadmap-week"
+                          >
                             <summary>
                               {w.title || 'Untitled week'} · {w.topics.length}{' '}
                               activities
@@ -410,6 +438,24 @@ export default function ActivityPlanPage() {
                                     }
                                   />
                                 </label>
+                                <div className="source-references">
+                                  {t.source_refs
+                                    .map((ref) =>
+                                      plan.review_items.find(
+                                        (item) => item.id === ref,
+                                      ),
+                                    )
+                                    .filter(Boolean)
+                                    .map((item) => (
+                                      <button
+                                        type="button"
+                                        key={item.id}
+                                        onClick={() => focusSource(item.id)}
+                                      >
+                                        View source on page {item.page_number}
+                                      </button>
+                                    ))}
+                                </div>
                                 <label className="form-field">
                                   Move activity to week
                                   <select
@@ -534,7 +580,12 @@ export default function ActivityPlanPage() {
                     </button>
                   </fieldset>
                 </section>
-                <section className="workspace-card plan-source">
+                <section
+                  className="workspace-card plan-source"
+                  id="plan-source-panel"
+                  role="tabpanel"
+                  aria-labelledby="plan-source-tab"
+                >
                   <h2>Source review</h2>
                   {plan.warnings.map((w) => (
                     <p key={w.id} className="source-warning">
@@ -659,6 +710,18 @@ export default function ActivityPlanPage() {
                 </section>
               </div>
               <div className="plan-save-bar">
+                {invalid && (
+                  <details className="outline-validation" open>
+                    <summary>
+                      Outline needs attention ({problems.length})
+                    </summary>
+                    <ul>
+                      {problems.map((problem) => (
+                        <li key={problem}>{problem}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
                 <label>
                   <input
                     type="checkbox"

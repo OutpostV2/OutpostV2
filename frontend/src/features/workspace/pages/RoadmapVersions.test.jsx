@@ -8,6 +8,7 @@ import {
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import * as api from '../learningApi'
+import * as plans from '../activityPlanApi'
 import RoadmapVersionsPage from './RoadmapVersionsPage'
 
 vi.mock('../activityPlanApi', () => ({
@@ -58,10 +59,26 @@ const original = {
 afterEach(cleanup)
 beforeEach(() => {
   vi.clearAllMocks()
+  plans.listPlans.mockResolvedValue({ plans: [] })
   vi.mocked(api.listOrganizations).mockResolvedValue([
     { id: 'org-1', name: 'Campus' },
   ])
   vi.mocked(api.listRoadmapVersions).mockResolvedValue([original])
+})
+it('takes the published version directly to its organization cohort setup', async () => {
+  api.listRoadmapVersions.mockResolvedValue([
+    { ...original, status: 'published' },
+  ])
+  const router = createMemoryRouter(
+    [{ path: '/roadmaps/:roadmapId', element: <RoadmapVersionsPage /> }],
+    { initialEntries: ['/roadmaps/roadmap-1?organizationId=org-1'] },
+  )
+  render(<RouterProvider router={router} />)
+  const link = await screen.findByRole('link', { name: 'Assign to cohort' })
+  expect(link).toHaveAttribute(
+    'href',
+    '/app/coordinator/learning?organizationId=org-1&roadmapVersionId=version-1#cohort-setup',
+  )
 })
 it('saves a draft before explicit review and publication, then copies a published snapshot', async () => {
   const edited = {
@@ -179,4 +196,57 @@ it('shows the complete saved hierarchy in publication review and multiline descr
   expect(
     screen.getByRole('region', { name: 'Publication review' }),
   ).toHaveTextContent('Set goals')
+})
+it('explains invalid outline fields before save or publication', async () => {
+  render(
+    <RouterProvider
+      router={createMemoryRouter(
+        [{ path: '/r/:roadmapId', element: <RoadmapVersionsPage /> }],
+        { initialEntries: ['/r/roadmap-1?organizationId=org-1'] },
+      )}
+    />,
+  )
+  fireEvent.change(await screen.findByLabelText('Topic 1'), {
+    target: { value: '' },
+  })
+  expect(screen.getByRole('button', { name: 'Save draft' })).toBeDisabled()
+  expect(
+    screen.getByRole('button', { name: 'Review for publication' }),
+  ).toBeDisabled()
+  expect(
+    screen.getByRole('region', { name: 'Outline needs attention' }),
+  ).toHaveTextContent('Topic 1')
+})
+it('includes imported source warnings in the saved publication review', async () => {
+  plans.listPlans.mockResolvedValue({
+    plans: [
+      {
+        id: 'plan-1',
+        roadmap_id: 'roadmap-1',
+        warnings: [
+          {
+            id: 'warning-1',
+            message: 'Check table reading order',
+            page_number: 2,
+            review_item_id: 'source-1',
+          },
+        ],
+      },
+    ],
+  })
+  render(
+    <RouterProvider
+      router={createMemoryRouter(
+        [{ path: '/r/:roadmapId', element: <RoadmapVersionsPage /> }],
+        { initialEntries: ['/r/roadmap-1?organizationId=org-1'] },
+      )}
+    />,
+  )
+  await screen.findByRole('link', { name: 'View source and review decisions' })
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Review for publication' }),
+  )
+  const review = screen.getByRole('region', { name: 'Publication review' })
+  expect(review).toHaveTextContent('Check table reading order')
+  expect(review).toHaveTextContent('Page 2')
 })

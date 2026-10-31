@@ -160,15 +160,17 @@ export default function CoordinatorReportPage({ view = 'overview' }) {
                   with active student membership and enrollment, including
                   students with no saved progress.
                 </p>
-                <button className="workspace-button" onClick={resource.retry}>
-                  Refresh report
-                </button>
-                <Link
-                  className="workspace-text-link"
-                  to={'/app/coordinator/learning/' + cohortId}
-                >
-                  Open cohort details →
-                </Link>
+                <div className="workspace-inline-actions">
+                  <button className="workspace-button" onClick={resource.retry}>
+                    Refresh report
+                  </button>
+                  <Link
+                    className="workspace-text-link"
+                    to={'/app/coordinator/learning/' + cohortId}
+                  >
+                    Open cohort details →
+                  </Link>
+                </div>
               </section>
               <div className="workspace-metric-grid">
                 <MetricCard

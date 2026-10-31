@@ -24,6 +24,7 @@ vi.mock('../review/reviewApi', () => ({
   resetReviewProgress: vi.fn(),
 }))
 vi.mock('./learningApi', () => ({
+  listOrganizations: vi.fn(),
   getMyLearning: vi.fn(),
   setTopicProgress: vi.fn(),
   joinCohort: vi.fn(),
@@ -82,7 +83,32 @@ function renderRoadmap() {
 }
 beforeEach(() => {
   vi.clearAllMocks()
+  learningApi.listOrganizations.mockResolvedValue([])
   vi.mocked(reviewApi.getReviewOverview).mockResolvedValue(overview)
+})
+it('shows the actual selected organization in the coordinator sidebar', async () => {
+  authApi.restoreSession.mockResolvedValue({
+    id: 'staff',
+    display_name: 'Coordinator',
+    account_type: 'coordinator',
+  })
+  learningApi.listOrganizations.mockResolvedValue([
+    { id: 'org-1', name: 'First campus', role: 'owner' },
+    { id: 'org-2', name: 'Chosen college', role: 'coordinator' },
+  ])
+  render(
+    <MemoryRouter
+      initialEntries={['/app/coordinator/roadmaps?organizationId=org-2']}
+    >
+      <Routes>
+        <Route path="/app" element={<WorkspaceShell />}>
+          <Route path="coordinator/roadmaps" element={<h1>Roadmaps</h1>} />
+        </Route>
+      </Routes>
+    </MemoryRouter>,
+  )
+  expect(await screen.findByText('Chosen college')).toBeInTheDocument()
+  expect(screen.queryByText('Outpost workspace')).not.toBeInTheDocument()
 })
 afterEach(cleanup)
 it('requires a signed-in account before loading workspace data', async () => {

@@ -35,6 +35,42 @@ vi.mock('../learningApi', () => ({
   removeWeekDeadline: vi.fn(),
 }))
 afterEach(cleanup)
+it('preselects the published roadmap and organization from a cohort assignment link', async () => {
+  learningApi.listOrganizations.mockResolvedValue([
+    { id: 'other-org', name: 'Other campus', role: 'owner' },
+    { id: 'target-org', name: 'Target campus', role: 'owner' },
+  ])
+  learningApi.listRoadmaps.mockResolvedValue([
+    {
+      id: 'r1',
+      name: 'Another path',
+      version_id: 'other-version',
+      status: 'published',
+      topics: [],
+    },
+    {
+      id: 'r2',
+      name: 'Chosen path',
+      version_id: 'target-version',
+      status: 'published',
+      topics: [],
+    },
+  ])
+  render(
+    <MemoryRouter
+      initialEntries={[
+        '/app/coordinator/learning?organizationId=target-org&roadmapVersionId=target-version#cohort-setup',
+      ]}
+    >
+      <CoordinatorLearningPage />
+    </MemoryRouter>,
+  )
+  await waitFor(() =>
+    expect(screen.getByLabelText('Roadmap')).toHaveValue('target-version'),
+  )
+  expect(learningApi.listRoadmaps).toHaveBeenCalledWith('target-org')
+  expect(screen.getByLabelText('Working in')).toHaveValue('target-org')
+})
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(learningApi.listOrganizations).mockResolvedValue([])

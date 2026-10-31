@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  act,
 } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -64,6 +65,7 @@ function show() {
     { initialEntries: ['/plans/p1?organizationId=o1'] },
   )
   render(<RouterProvider router={router} />)
+  return router
 }
 beforeEach(() => {
   vi.clearAllMocks()
@@ -137,4 +139,69 @@ it('clears prior activity links when excluding source text', async () => {
     api.savePlan.mock.calls[0][2].proposal.phases[0].weeks[0].topics[0]
       .source_refs,
   ).toEqual([])
+})
+it('lets a coordinator add the missing phase and week before regrouping activities', async () => {
+  show()
+  await screen.findByLabelText('Decision for source 1')
+  fireEvent.click(screen.getByRole('button', { name: 'Add phase' }))
+  expect(screen.getAllByLabelText('Phase title')).toHaveLength(2)
+  fireEvent.click(screen.getAllByRole('button', { name: 'Add week' })[1])
+  expect(screen.getAllByLabelText('Week title')).toHaveLength(2)
+  fireEvent.change(screen.getByLabelText('Move activity to week'), {
+    target: {
+      value: screen.getByLabelText('Move activity to week').options[1].value,
+    },
+  })
+  expect(screen.getByLabelText('Activity title')).toHaveValue('Explore')
+  api.savePlan.mockImplementation(async (o, id, p) => p)
+  fireEvent.click(screen.getByRole('button', { name: 'Save review' }))
+  await waitFor(() => expect(api.savePlan).toHaveBeenCalled())
+  const saved = api.savePlan.mock.calls[0][2]
+  expect(saved.proposal.phases[0].weeks[0].topics).toEqual([])
+  expect(saved.proposal.phases[1].weeks[0].topics[0].id).toBe('t')
+  expect(saved.proposal.phases[1].weeks[0].topics[0].source_refs).toEqual(['r'])
+})
+it('requires confirmation again after changing the outline', async () => {
+  api.getPlan.mockResolvedValue({
+    ...structuredClone(plan),
+    review_confirmed: true,
+  })
+  show()
+  fireEvent.change(await screen.findByLabelText('Activity title'), {
+    target: { value: 'Revised activity' },
+  })
+  expect(screen.getByLabelText(/I have checked/)).not.toBeChecked()
+})
+it('supports arrow-key switching between the mobile review tabs', async () => {
+  show()
+  const draft = await screen.findByRole('tab', { name: 'Draft' })
+  draft.focus()
+  fireEvent.keyDown(draft, { key: 'ArrowRight' })
+  const source = screen.getByRole('tab', { name: 'Source' })
+  expect(source).toHaveAttribute('aria-selected', 'true')
+  expect(source).toHaveFocus()
+  expect(source).toHaveAttribute('aria-controls', 'plan-source-panel')
+})
+it('clears the previous review while another organization’s plan is loading', async () => {
+  const router = show()
+  await screen.findByLabelText('Activity title')
+  api.getPlan.mockReturnValue(new Promise(() => {}))
+  await act(async () => {
+    await router.navigate('/plans/p1?organizationId=other')
+  })
+  expect(screen.queryByLabelText('Activity title')).not.toBeInTheDocument()
+  expect(screen.getByRole('status')).toHaveTextContent('Loading activity plan')
+})
+it('opens the source decision linked to an activity’s stable reference', async () => {
+  show()
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'View source on page 1' }),
+  )
+  await waitFor(() =>
+    expect(screen.getByLabelText('Decision for source 1')).toHaveFocus(),
+  )
+  expect(screen.getByRole('tab', { name: 'Source' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
 })

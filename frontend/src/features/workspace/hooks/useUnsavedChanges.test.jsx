@@ -29,3 +29,14 @@ it('blocks browser history navigation while the user keeps unsaved edits', async
   expect(screen.getByLabelText('Draft text')).toHaveValue('My local edit')
   expect(confirm).toHaveBeenCalled()
 })
+it('keeps edits when navigation changes the organization on the same route', async () => {
+  vi.spyOn(window, 'confirm').mockReturnValue(false)
+  const router = createMemoryRouter([{ path: '/edit', element: <Editor /> }], {
+    initialEntries: ['/edit?organizationId=first'],
+  })
+  render(<RouterProvider router={router} />)
+  await act(async () => {
+    await router.navigate('/edit?organizationId=second')
+  })
+  expect(router.state.location.search).toBe('?organizationId=first')
+})
