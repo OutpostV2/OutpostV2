@@ -40,6 +40,10 @@ The frozen API compatibility contract is in [`docs/architecture/javascript-api-c
 
 ## Frontend
 
+For selectable-text PDF import, review and roadmap publication, follow
+[the activity-plan guide](docs/ACTIVITY-PLANS.md). Uploaded PDFs stay in private
+MinIO storage; PostgreSQL stores extraction, review and draft conversion state.
+
 Run the frontend setup and quality gate from `frontend/`:
 
 ```powershell
