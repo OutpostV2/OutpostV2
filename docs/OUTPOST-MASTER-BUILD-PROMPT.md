@@ -2373,58 +2373,44 @@ Outpost-New/
 # LAYER 4 — DYNAMIC USER WINDOW
 
 CURRENT PHASE:
-User-requested feature amendment: selectable-text PDF activity plans and Astra frontend refinement. Phase 18 remains complete; Phase 19 account linking has not started.
+Selectable-text PDF activity-plan amendment complete. Phase 18 remains complete; Phase 19 account linking has not started in this feature.
 
 CURRENT TASK:
-Review docs/superpowers/specs/2026-10-08-pdf-activity-plans-and-ui-design.md. After written-spec approval, prepare the implementation plan and its execution handoff. No PDF feature or frontend redesign implementation has started.
+Verified feature handoff: commit and push codex/pdf-activity-plans. No next phase is authorized by this checkpoint.
 
-TASK GOAL:
-Coordinator uploads an activity-plan PDF, reviews extraction, creates an editable roadmap draft and deliberately publishes it. Refine the existing responsive website with Astra and verify the full user journey.
+TASK GOAL / DELIVERED:
+Private PDF upload → bounded local extraction → saved source review/correction → idempotent editable roadmap draft → complete preview and explicit publication → exact-version cohort setup → persisted student completion and live coordinator report. Responsive forest/sage/lime frontend refined; no generated images, OCR or runtime external AI provider.
 
-Repository:
-Outpost
-
-Project root / active checkout:
+CANONICAL PROJECT:
 D:\Shared Workspace\Projects\Outpost-New
-
-Branch:
-main
+Canonical branch: main. Delivery branch: codex/pdf-activity-plans.
+Remote: origin, https://github.com/PriyanshuK1810/OutpostV2.git.
+User authorized feature commit/push on 2026-10-31.
 
 LAST VERIFIED PROJECT COMMIT:
-09354e68d23c90958b520380c35ea54950142ed7 — written design only. Last verified runtime implementation: 4f2f51a09a8ac6310cd230ee37a6e8109b879b09 (Phase 18).
+e22666ee0d1fa09b789cf83f82314a6ff5becf40 — implementation, regression fixes, usage and verification documentation.
+Runtime fixes: a01afe4 (backend) and ae64bb2 (frontend).
 
 CHECKPOINT FILE STATE:
-Commit A 09354e68d23c90958b520380c35ea54950142ed7 adds the proposed written specification and current UI audit evidence. Commit B updates only Layer 4; its own hash is not recorded here.
+Commit A e22666ee0d1fa09b789cf83f82314a6ff5becf40 records verified delivery. Commit B changes only Layer 4; its own hash is not recorded here. Layers 1–3 remain byte-for-byte unchanged.
 
-VERIFIED IN THIS TASK:
-Repository and existing roadmap/auth/storage contracts inspected. Astra inspected six current Edge screenshots and reviewed the specification. Initial coordinator loading capture was rejected and replaced with a settled capture. Disposable test-owned users and organizations were removed. Specification formatting and git diff --check passed. No product code or schema changed; no new feature tests claimed.
+VERIFIED:
+Backend 74/74 with PostgreSQL/MinIO enabled, none skipped; standalone PostgreSQL suite 12/12; frontend 71/71. Formatting, lint, production build and git diff checks passed. Backend full audit and frontend production audit report zero advisories. Six migrations deploy to a fresh isolated database; existing schema has zero drift. Real Edge journey passed, including original authenticated source download, review/draft edits, publication, preselected cohort setup, student enrollment/completion, live report and refresh/new-sign-in persistence. Student source denial and repeated conversion checked. 360/390/768/1280/1440px layouts, 720px equivalent 200% reflow, source keyboard tabs, drawer focus/Escape/inert and sampled 8.19:1 primary action contrast verified. Temporary review data/objects removed; existing local data preserved.
 
-LAST VERIFIED RUNTIME BASELINE:
-Phase 18: frontend 47/47, backend 43/43 and PostgreSQL integration 9/9 passed, with lint/build, additive migration validation and real browser workflows. This is historical runtime evidence; PDF import and redesign are not built yet.
+FILES / DOCUMENTATION:
+docs/ACTIVITY-PLANS.md
+docs/verification/2026-10-31-activity-plans.md
+backend-js/src/modules/activity-plans/
+backend-js/prisma/migrations/20261009_activity_plans/
+frontend/src/features/workspace/pages/ActivityPlanPage.jsx
+frontend/src/features/workspace/pages/ActivityPlanUploadPage.jsx
+frontend/src/features/workspace/pages/RoadmapVersionsPage.jsx
 
-DESIGN:
-Local selectable-text PDF extraction with explicit review and page references; private MinIO source retention, PostgreSQL workflow state, bounded processing and idempotent conversion to the existing draft/publication system. Initial limits: 10 MiB / 50 pages / 200,000 characters. No OCR or external runtime model provider in this version. Forest/sage/lime, system font, no generated images; readable operational text, compact draft editor, source review, complete preview, accessible mobile navigation.
+LIMITS / REVIEW:
+10 MiB, 50 pages, 200,000 extracted characters; 30-second parser budget and one extraction at a time. Complex tables require manual correction. Astra contributed frontend work; final independent review attempts hit workspace credit exhaustion, so final code/visual review was self-review. One development-only ESLint/minimatch advisory remains (six dependent moderate entries), with no compatible upstream fix; production audits are clean. Unrelated identity changes in the other managed checkout were preserved and excluded. Retention/deletion policy, OCR, roster import and production operations remain separate future work.
 
-FILES RELEVANT TO CURRENT TASK:
-docs/superpowers/specs/2026-10-08-pdf-activity-plans-and-ui-design.md
-backend-js/src/modules/learning/
-backend-js/prisma/schema.prisma
-frontend/src/features/workspace/
-frontend/src/features/auth/
-frontend/src/pages/marketing/
-frontend/src/app/workspace.css
-
-FILES CHANGED SINCE LAST VERIFIED CHECKPOINT:
-docs/superpowers/specs/2026-10-08-pdf-activity-plans-and-ui-design.md
-
-CURRENT REQUEST:
-Build selectable-text PDF activity-plan conversion into editable roadmaps before publication. Use Astra to refine the frontend into a creative, basic, professional website and review it as a UI/UX engineer. Headless Edge browser review explicitly authorized after in-app browser initialization failed.
-
-CURRENT OUTPUT / ERROR:
-Written specification ready for review. No implementation started. In-app browser failed to initialize; user-approved Edge fallback successfully captured the current UI. No unresolved capture blocker.
-
-ENVIRONMENT:
-Windows / PowerShell, canonical main. Existing local settings and data preserved; secrets remain ignored. Local review screenshots live outside the repository in the Codex visualization folder. No push requested.
+CURRENT OUTPUT:
+Full feature verification passed. Deliver the checkpoint on the named feature branch and retain the verified source in the canonical project folder. Secrets stay in ignored environment files; no database reset or volume deletion occurred.
 
 ---
 # SESSION OPERATING RULE
